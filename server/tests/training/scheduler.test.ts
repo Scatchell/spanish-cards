@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { CardSchedule, ReviewRating } from './scheduler.js';
-import { isReviewRating, rateSchedule } from './scheduler.js';
+import type { CardSchedule, ReviewRating } from '../../src/training/scheduler.js';
+import { isReviewRating, rateSchedule } from '../../src/training/scheduler.js';
 
 const NOW = new Date('2026-06-11T12:00:00Z');
 

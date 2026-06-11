@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { clampTzOffset, computeReviewMetrics, countLearningStages } from './metrics.js';
-import type { ReviewEvent } from './metrics.js';
+import { clampTzOffset, computeReviewMetrics, countLearningStages } from '../../src/progress/metrics.js';
+import type { ReviewEvent } from '../../src/progress/metrics.js';
 
 // Fixed "now": 2026-06-10 15:00 UTC.
 const NOW = new Date('2026-06-10T15:00:00Z');

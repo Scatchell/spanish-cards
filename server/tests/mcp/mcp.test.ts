@@ -4,10 +4,10 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import express from 'express';
 import { afterEach, describe, expect, it } from 'vitest';
-import type { Card } from '../cards/repository.js';
-import { CARD_TEXT_MAX_LENGTH } from '../cards/validation.js';
-import { mcpRoutes } from './routes.js';
-import type { McpDeps } from './tools.js';
+import type { Card } from '../../src/cards/repository.js';
+import { CARD_TEXT_MAX_LENGTH } from '../../src/cards/validation.js';
+import { mcpRoutes } from '../../src/mcp/routes.js';
+import type { McpDeps } from '../../src/mcp/tools.js';
 
 const TOKEN = 'test-mcp-token';
 

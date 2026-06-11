@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { Card } from './repository.js';
-import { normalizeForSearch, searchCards } from './search.js';
+import type { Card } from '../../src/cards/repository.js';
+import { normalizeForSearch, searchCards } from '../../src/cards/search.js';
 
 let nextId = 1;
 

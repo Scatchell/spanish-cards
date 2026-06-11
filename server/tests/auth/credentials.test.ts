@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { checkCredentials } from './credentials.js';
+import { checkCredentials } from '../../src/auth/credentials.js';
 
 const EXPECTED = { username: 'admin', password: 's3cret' };
 

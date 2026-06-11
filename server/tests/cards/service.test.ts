@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import type { Card } from './repository.js';
-import { saveCardBatch } from './service.js';
-import type { CardInput } from './validation.js';
+import type { Card } from '../../src/cards/repository.js';
+import { saveCardBatch } from '../../src/cards/service.js';
+import type { CardInput } from '../../src/cards/validation.js';
 
 function fakeInsert(inserted: CardInput[][]) {
   return async (inputs: CardInput[]): Promise<Card[]> => {

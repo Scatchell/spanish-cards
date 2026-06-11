@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { DiffSegment } from './answer-check.js';
-import { checkAnswer, normalizeAnswer } from './answer-check.js';
+import type { DiffSegment } from '../../src/training/answer-check.js';
+import { checkAnswer, normalizeAnswer } from '../../src/training/answer-check.js';
 
 function highlighted(segments: DiffSegment[]): string[] {
   return segments.filter((s) => s.highlight).map((s) => s.text);

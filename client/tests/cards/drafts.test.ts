@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { DraftsState } from './drafts.js';
-import { draftsReducer, initialDraftsState, isDraftBlank, submittableDrafts } from './drafts.js';
+import type { DraftsState } from '../../src/cards/drafts.js';
+import { draftsReducer, initialDraftsState, isDraftBlank, submittableDrafts } from '../../src/cards/drafts.js';
 
 function stateWithDrafts(count: number): DraftsState {
   let state = initialDraftsState;

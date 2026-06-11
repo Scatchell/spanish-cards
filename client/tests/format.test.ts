@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDueStatus, formatPercent } from './format.js';
+import { formatDueStatus, formatPercent } from '../src/format.js';
 
 const NOW = new Date('2026-06-10T12:00:00Z');
 

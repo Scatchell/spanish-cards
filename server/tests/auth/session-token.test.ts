@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createSessionToken, verifySessionToken } from './session-token.js';
+import { createSessionToken, verifySessionToken } from '../../src/auth/session-token.js';
 
 const SECRET = 'test-secret';
 const NOW = 1_700_000_000_000;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { CARD_TEXT_MAX_LENGTH, normalizeCardInput, validateCardInput } from './validation.js';
+import { CARD_TEXT_MAX_LENGTH, normalizeCardInput, validateCardInput } from '../../src/cards/validation.js';
 
 describe('validateCardInput', () => {
   it('accepts a valid card', () => {

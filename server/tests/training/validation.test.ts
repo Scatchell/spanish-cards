@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { parseReviewRequest } from './validation.js';
+import { parseReviewRequest } from '../../src/training/validation.js';
 
 const validBody = {
   cardId: 7,
