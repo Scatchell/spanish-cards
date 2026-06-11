@@ -35,6 +35,17 @@ if (!config.mcpToken) {
   console.warn('MCP_TOKEN is not set: /mcp is disabled and will return a configuration error (see .env.example)');
 }
 
-app.listen(config.port, () => {
+const server = app.listen(config.port, () => {
   console.log(`spanish-cards API listening on http://localhost:${config.port}`);
+});
+
+server.on('error', (error: NodeJS.ErrnoException) => {
+  if (error.code === 'EADDRINUSE') {
+    console.error(
+      `Port ${config.port} is already in use — another process (for example the prod app container) owns it. ` +
+        'Change PORT in .env or stop the conflicting process.',
+    );
+    process.exit(1);
+  }
+  throw error;
 });

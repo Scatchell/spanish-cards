@@ -39,13 +39,13 @@ function env(name: string, fallback: string): string {
   return process.env[name] ?? envFile[name] ?? fallback;
 }
 
-export const E2E_COMPOSE_PROJECT = env('E2E_COMPOSE_PROJECT', 'spanish-cards-e2e');
+export const E2E_COMPOSE_PROJECT = env('COMPOSE_PROJECT_NAME', 'spanish-cards-e2e');
 export const E2E_POSTGRES_USER = env('POSTGRES_USER', 'spanish_cards');
 export const E2E_POSTGRES_PASSWORD = env('POSTGRES_PASSWORD', 'spanish_cards');
 export const E2E_POSTGRES_DB = env('POSTGRES_DB', 'spanish_cards_test');
 export const E2E_POSTGRES_HOST_PORT = env('POSTGRES_HOST_PORT', '55435');
-export const E2E_API_PORT = Number(env('API_PORT', '4102'));
-export const E2E_CLIENT_PORT = Number(env('CLIENT_PORT', '4103'));
+export const E2E_API_PORT = Number(env('API_PORT', '4112'));
+export const E2E_CLIENT_PORT = Number(env('CLIENT_PORT', '4113'));
 export const E2E_DATABASE_URL = `postgres://${E2E_POSTGRES_USER}:${E2E_POSTGRES_PASSWORD}@localhost:${E2E_POSTGRES_HOST_PORT}/${E2E_POSTGRES_DB}`;
 
 export const E2E_COMPOSE_ARGS = [

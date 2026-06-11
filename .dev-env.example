@@ -1,20 +1,19 @@
-# Compose-only settings. Copy to .dev-env and pass it with:
-# docker compose --env-file .dev-env up -d postgres
+# Compose-only settings for local development. Copy to .dev-env. The pnpm
+# scripts pass this file automatically (npm run db:up / db:down); you never
+# need --env-file by hand.
 
-# PostgreSQL container settings. The app container connects to postgres:5432
-# internally; POSTGRES_HOST_PORT is only for host tools like psql, migrations,
-# and the local dev server DATABASE_URL.
+# Namespaces Docker containers, networks, and volumes for local development.
+COMPOSE_PROJECT_NAME=spanish-cards-dev
+
+# PostgreSQL container settings. Host port 5436 must match DATABASE_URL in
+# .env (5434 belongs to the prod stack on this host).
 POSTGRES_USER=spanish_cards
 POSTGRES_PASSWORD=spanish_cards
 POSTGRES_DB=spanish_cards
-POSTGRES_HOST_PORT=5434
+POSTGRES_HOST_PORT=5436
 
-# App container port mapping. APP_CONTAINER_PORT is the port Express listens on
-# inside the container; APP_HOST_PORT is the host port exposed by Docker.
-APP_CONTAINER_PORT=4100
-APP_HOST_PORT=4100
-
-# Runtime app environment file mounted into the app container. Keep secrets and
-# app settings such as APP_USERNAME, APP_PASSWORD, SESSION_SECRET, and MCP_TOKEN
-# in that file rather than this Compose env file.
-APP_ENV_FILE=.env
+# Host port for the app container if the `app` profile is ever started from
+# this env file for testing. Normal dev never starts it (the dev API is a
+# local tsx process on 4102), but 4100 — the compose-file default — is the
+# always-running prod container, so a non-conflicting port is set explicitly.
+APP_HOST_PORT=4103

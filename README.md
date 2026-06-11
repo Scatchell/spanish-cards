@@ -29,16 +29,26 @@ npm install
 cp .env.example .env      # adjust APP_USERNAME / APP_PASSWORD / SESSION_SECRET
 cp .dev-env.example .dev-env
 cp .test-env.example .test-env
-npm run db:up             # starts PostgreSQL in Docker on host port 5434
-npm run migrate:up
-npm run dev               # API on :4100, client on :4101
+npm run migrate:up        # first run only (needs the db: npm run db:up)
+npm run dev               # starts dev postgres in Docker, then API + client
 ```
 
 Open <http://localhost:4101> and log in with the credentials from your `.env`.
 
-> Ports 4100/4101/5434 were chosen to avoid clashes with other services. Change
-> the API server port in `.env` (`PORT`), the client port in
-> `client/vite.config.ts`, and Docker host ports in `.dev-env`.
+### Port allocation (this host runs dev, e2e, and prod side by side)
+
+| Environment | Client | API  | Postgres | App container* | Where configured                       |
+| ----------- | ------ | ---- | -------- | -------------- | -------------------------------------- |
+| dev         | 4101   | 4102 | 5436     | 4103           | `.env` (`PORT`, `CLIENT_PORT` optional, `DATABASE_URL`), `.dev-env` |
+| e2e         | 4113   | 4112 | 55435    | 4114           | `.test-env`                            |
+| prod        | —      | 4100 | 5434     | 4100           | `.prod-env` on the prod checkout       |
+
+\* Only prod normally runs the containerized app (`--profile app`); the dev and
+e2e values exist so that manually starting the container for testing never
+collides with the always-running prod container on 4100.
+
+The Vite dev server reads the root `.env`, so its `/api` proxy always follows
+`PORT` — change the API port in one place only.
 
 ## Environment variables
 
@@ -64,9 +74,9 @@ exist before their corresponding commands are run.
 | Command                | What it does                                     |
 | ---------------------- | ------------------------------------------------ |
 | `npm install`          | Install all workspace dependencies               |
-| `npm run dev`          | Run API + client dev servers concurrently        |
-| `npm run db:up`        | Start the PostgreSQL container                   |
-| `npm run db:down`      | Stop the PostgreSQL container                    |
+| `npm run dev`          | Start dev postgres, then API + client dev servers|
+| `npm run db:up`        | Start the dev PostgreSQL container (and wait until healthy) |
+| `npm run db:down`      | Stop the dev PostgreSQL container                |
 | `npm run migrate:up`   | Apply pending migrations                         |
 | `npm run migrate:down` | Roll back the most recent migration              |
 | `npm test`             | Run unit tests (server, then client)             |
@@ -111,7 +121,7 @@ docker compose --profile app run --rm app \
 - **E2E** (`npm run e2e`): requires Docker, `.env`, and `.test-env`, but not a
   running dev database. The suite starts an isolated Compose project using
   `.test-env`, creates a fresh `spanish_cards_test` database volume, runs
-  migrations from scratch, boots its own server pair on ports 4102/4103, and
+  migrations from scratch, boots its own server pair on ports 4112/4113, and
   removes the test Compose volume during teardown. First run:
   `npx playwright install chromium`.
 
@@ -172,8 +182,9 @@ with its card.
 ## MCP access (AI agents)
 
 The Express server exposes a [Model Context Protocol](https://modelcontextprotocol.io)
-endpoint over Streamable HTTP at `http://localhost:4100/mcp` (same server and
-port as the API), so AI agents and local LLM tools can manage the deck.
+endpoint over Streamable HTTP at `/mcp` (same server and port as the API:
+`http://localhost:4100/mcp` against prod, `http://localhost:4102/mcp` against
+the dev API), so AI agents and local LLM tools can manage the deck.
 
 Authentication is a static bearer token, independent of the browser session:
 set `MCP_TOKEN` in `.env` (e.g. `openssl rand -hex 32`) and send it on every
@@ -262,27 +273,36 @@ If you changed `PORT`, adjust the URLs accordingly.
 
 A multi-stage `Dockerfile` builds and serves the whole app (API + static
 client). `docker-compose.yml` wires it to PostgreSQL and runs migrations on
-startup. Copy `.dev-env.example` or your production equivalent to a real Compose
-env file and pass it explicitly:
+startup. The `app` service is behind the `app` compose profile, which only
+production uses — `npm run deploy` is the normal entry point and assembles the
+full `docker compose --env-file .prod-env --profile app up --build` invocation
+for you. Local development never starts the `app` service; `npm run db:up`
+starts only the database using `.dev-env`.
 
-```bash
-docker compose --env-file .dev-env --profile app up --build
-```
-
-For production, use the same compose file with a different Compose env file,
-for example `docker compose --env-file .prod-env --profile app up --build`.
-The Compose env file controls Docker-specific values such as host ports,
-Postgres container settings, and `APP_ENV_FILE`. The app env file referenced by
-`APP_ENV_FILE` holds runtime app settings and secrets; Compose overrides
-`DATABASE_URL` inside the app container so it connects to `postgres:5432` on the
-Compose network instead of the host port.
-
-The `app` service is behind a compose profile so `npm run db:up` starts only
-the database for local development using `.dev-env`. To use a different Compose
-env file, run `docker compose --env-file <file> up -d postgres` directly.
+The Compose env file (`.dev-env`, `.test-env`, `.prod-env`) controls
+Docker-specific values: `COMPOSE_PROJECT_NAME` (namespaces containers,
+networks, and volumes per environment), host ports, and Postgres container
+settings. Production additionally sets `APP_ENV_FILE` to point at the runtime
+app env file (`.prod.app.env`) holding app settings and secrets; Compose
+overrides `DATABASE_URL` inside the app container so it connects to
+`postgres:5432` on the Compose network instead of the host port. For
+production, copy `.prod-env.example` to `.prod-env` and
+`.prod.app.env.example` to `.prod.app.env` on the production host.
 
 Postgres data persists in the named `pgdata` volume; back it up (or bind-mount
 it) before destructive operations like `docker compose down -v`.
+
+From this checkout on the server, deploy the production stack with:
+
+```bash
+pnpm run deploy
+```
+
+The deploy script runs Docker Compose from
+`/srv/containers/sideProjects/spanish-cards` using `.prod-env`, validates the
+resolved Compose config without printing it, rebuilds the app image, starts the
+`app` profile in detached mode, and prints `docker compose ps`. Override the
+paths with `PROD_COMPOSE_DIR` or `PROD_COMPOSE_ENV_FILE` if needed.
 
 ### Health check
 

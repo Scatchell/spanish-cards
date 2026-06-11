@@ -3,7 +3,7 @@ import { E2E_API_PORT, E2E_CLIENT_PORT, E2E_DATABASE_URL } from './e2e/env.js';
 
 // E2E runs against an isolated stack: its own database (created and migrated
 // by e2e/global-setup.ts) and its own server ports, so dev data and dev
-// servers (4100/4101) are never touched.
+// servers (4101/4102) are never touched.
 
 export default defineConfig({
   testDir: 'e2e',
