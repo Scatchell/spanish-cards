@@ -36,7 +36,7 @@ test('batch create saves valid drafts, keeps invalid ones, and supports delete',
 
   // First draft via the button, second via the keyboard shortcut.
   await page.getByRole('button', { name: /Add card/ }).click();
-  await page.keyboard.press('Control+n');
+  await page.keyboard.press('Shift+Enter');
   const drafts = page.locator('.draft-card');
   await expect(drafts).toHaveCount(2);
 

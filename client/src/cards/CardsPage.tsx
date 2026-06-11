@@ -4,8 +4,7 @@ import { ApiError, deleteCardById, listCards, logout, saveCardBatch } from '../a
 import { draftsReducer, initialDraftsState, submittableDrafts } from './drafts.js';
 import { DraftCardRow } from './DraftCardRow.js';
 
-const IS_MAC = typeof navigator !== 'undefined' && /Mac|iPhone|iPad/.test(navigator.platform);
-export const NEW_CARD_SHORTCUT_LABEL = IS_MAC ? '⌘N' : 'Ctrl+N';
+export const NEW_CARD_SHORTCUT_LABEL = 'Shift+Enter';
 
 export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [cards, setCards] = useState<Card[]>([]);
@@ -52,11 +51,12 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
 
   useEffect(() => {
     function onKeyDown(event: KeyboardEvent) {
-      const modifier = IS_MAC ? event.metaKey : event.ctrlKey;
-      if (modifier && !event.shiftKey && !event.altKey && event.key.toLowerCase() === 'n') {
-        event.preventDefault();
-        addDraft();
-      }
+      if (!event.shiftKey || event.key !== 'Enter') return;
+      const target = event.target as HTMLElement;
+      // Buttons activate on Enter; guard against double-triggering (click + shortcut).
+      if (target.tagName === 'BUTTON') return;
+      event.preventDefault();
+      addDraft();
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
