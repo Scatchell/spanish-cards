@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { getMe } from './api.js';
 import { LoginPage } from './auth/LoginPage.js';
 import { CardsPage } from './cards/CardsPage.js';
+import { LearnPage } from './learning/LearnPage.js';
 import { ProgressPage } from './progress/ProgressPage.js';
 import { TrainPage } from './training/TrainPage.js';
 
@@ -38,6 +39,16 @@ export function App() {
         element={
           auth === 'authenticated' ? (
             <CardsPage onLoggedOut={() => setAuth('anonymous')} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/learn"
+        element={
+          auth === 'authenticated' ? (
+            <LearnPage onLoggedOut={() => setAuth('anonymous')} />
           ) : (
             <Navigate to="/login" replace />
           )
