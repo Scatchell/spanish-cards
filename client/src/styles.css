@@ -1,0 +1,235 @@
+:root {
+  --bg: #f6f4ef;
+  --surface: #ffffff;
+  --surface-muted: #efece5;
+  --text: #2b2a27;
+  --text-muted: #7d7a72;
+  --accent: #b3541e;
+  --danger: #b0322c;
+  --border: #ddd8cd;
+  --radius: 10px;
+  font-size: 16px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+h1 {
+  font-size: 1.4rem;
+  margin: 0;
+}
+
+h2 {
+  font-size: 1.05rem;
+  margin: 0;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+button {
+  font: inherit;
+  border: none;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: #fff;
+  padding: 0.55rem 1rem;
+  cursor: pointer;
+  min-height: 44px;
+}
+
+button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button.secondary {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+
+button.danger {
+  background: var(--danger);
+}
+
+button.danger.subtle {
+  background: transparent;
+  color: var(--danger);
+  border: 1px solid transparent;
+  padding: 0.35rem 0.6rem;
+  min-height: 36px;
+}
+
+button.danger.subtle:hover,
+button.danger.subtle:focus-visible {
+  border-color: var(--danger);
+}
+
+input[type='text'],
+input[type='password'] {
+  font: inherit;
+  width: 100%;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: #fff;
+  min-height: 44px;
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--danger);
+}
+
+label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+
+/* ---- Login ---- */
+
+.centered-page {
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: min(22rem, 100%);
+  background: var(--surface);
+  padding: 2rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+
+/* ---- App shell ---- */
+
+.app-shell {
+  max-width: 64rem;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+.app-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0 0.75rem;
+  flex-wrap: wrap;
+}
+
+.shortcut-hint {
+  opacity: 0.75;
+  font-size: 0.85em;
+}
+
+.hint {
+  color: var(--text-muted);
+}
+
+/* ---- Card grid ---- */
+
+.card-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr));
+  gap: 0.75rem;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+/* Saved cards step back visually so fresh drafts stand out. */
+.existing-card {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
+.card-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 0;
+}
+
+.card-spanish {
+  font-weight: 600;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.existing-card .card-spanish {
+  color: inherit;
+}
+
+.card-english {
+  overflow-wrap: anywhere;
+}
+
+.draft-card {
+  border-color: var(--accent);
+  box-shadow: 0 2px 6px rgb(0 0 0 / 0.06);
+}
+
+.draft-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.field-error,
+.form-error {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.form-error {
+  margin: 0.25rem 0;
+}
+
+.save-all {
+  margin-top: 0.85rem;
+  width: 100%;
+}
+
+@media (min-width: 40rem) {
+  .save-all {
+    width: auto;
+  }
+}

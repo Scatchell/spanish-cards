@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: spanish_cards
+      POSTGRES_PASSWORD: spanish_cards
+      POSTGRES_DB: spanish_cards
+    ports:
+      - "5434:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U spanish_cards"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build: .
+    profiles: ["app"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://spanish_cards:spanish_cards@postgres:5432/spanish_cards
+      PORT: 4100
+      APP_USERNAME: ${APP_USERNAME:-admin}
+      APP_PASSWORD: ${APP_PASSWORD:-change-me}
+      SESSION_SECRET: ${SESSION_SECRET:-change-me-to-a-long-random-string}
+      NODE_ENV: production
+    command: sh -c "npx --no-install node-pg-migrate -m server/migrations up && node server/dist/index.js"
+    ports:
+      - "4100:4100"
+
+volumes:
+  pgdata:
