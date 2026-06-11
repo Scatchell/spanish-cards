@@ -75,6 +75,7 @@ exist before their corresponding commands are run.
 | ---------------------- | ------------------------------------------------ |
 | `npm install`          | Install all workspace dependencies               |
 | `npm run dev`          | Start dev postgres, then API + client dev servers|
+| `npm run ship`         | Deploy prod (runs compose from the prod checkout)|
 | `npm run db:up`        | Start the dev PostgreSQL container (and wait until healthy) |
 | `npm run db:down`      | Stop the dev PostgreSQL container                |
 | `npm run migrate:up`   | Apply pending migrations                         |

@@ -10,7 +10,7 @@ Express 5 API (`server/`), PostgreSQL 16 via Docker Compose. Full docs in
 | ---------------- | ------------------------------------------------------------------------- |
 | `pnpm dev`       | Starts the dev postgres container (waits for healthy), then API (`tsx watch`) + client (Vite) as local processes |
 | `pnpm e2e`       | Playwright suite; spins up its own compose project + fresh DB, tears down after |
-| `pnpm deploy`    | Deploys prod: runs compose with `--profile app` from `/srv/containers/sideProjects/spanish-cards` using `.prod-env` there |
+| `pnpm ship`      | Deploys prod: runs compose with `--profile app` from `/srv/containers/sideProjects/spanish-cards` using `.prod-env` there |
 | `pnpm db:up` / `db:down` | Start/stop just the dev postgres container                         |
 | `pnpm migrate:up` / `migrate:down` | Migrations against the dev DB (reads `.env`)             |
 | `pnpm test` / `typecheck` | Unit tests / TS checks for both workspaces                        |
