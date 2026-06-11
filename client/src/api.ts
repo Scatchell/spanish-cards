@@ -26,6 +26,17 @@ export interface BatchSaveResult {
   failures: BatchFailure[];
 }
 
+export interface TrainingCard {
+  id: number;
+  spanishText: string;
+  englishText: string;
+  due: string;
+}
+
+export type TrainingScope = 'due' | 'ahead';
+
+export type ReviewRating = 'again' | 'hard' | 'good' | 'easy';
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -73,4 +84,16 @@ export function saveCardBatch(cards: CardDraftInput[]): Promise<BatchSaveResult>
 
 export function deleteCardById(id: number): Promise<void> {
   return request(`/api/cards/${id}`, { method: 'DELETE' });
+}
+
+export async function fetchTrainingQueue(scope: TrainingScope): Promise<TrainingCard[]> {
+  const { cards } = await request<{ cards: TrainingCard[] }>(`/api/training/queue?scope=${scope}`);
+  return cards;
+}
+
+export function submitReview(cardId: number, rating: ReviewRating): Promise<{ schedule: { due: string } }> {
+  return request('/api/training/reviews', {
+    method: 'POST',
+    body: JSON.stringify({ cardId, rating }),
+  });
 }

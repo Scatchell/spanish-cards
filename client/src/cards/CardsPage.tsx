@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import type { Card } from '../api.js';
 import { ApiError, deleteCardById, listCards, logout, saveCardBatch } from '../api.js';
 import { draftsReducer, initialDraftsState, submittableDrafts } from './drafts.js';
@@ -112,9 +113,14 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     <div className="app-shell">
       <header className="app-header">
         <h1>Spanish Cards</h1>
-        <button type="button" className="secondary" onClick={handleLogout}>
-          Log out
-        </button>
+        <div className="header-actions">
+          <Link to="/train" className="train-link">
+            Train
+          </Link>
+          <button type="button" className="secondary" onClick={handleLogout}>
+            Log out
+          </button>
+        </div>
       </header>
 
       <main>

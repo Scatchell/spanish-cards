@@ -1,8 +1,8 @@
 # Spanish Cards
 
-A single-user Spanish/English flashcard web app. This slice (Epic 01) covers
-authentication, batch card creation, and card management. Training with FSRS
-scheduling arrives in Epic 02.
+A single-user Spanish/English flashcard web app. Epic 01 covers
+authentication, batch card creation, and card management. Epic 02 adds typed
+training with FSRS spaced-repetition scheduling.
 
 ## Stack
 
@@ -16,6 +16,8 @@ scheduling arrives in Epic 02.
 - **Auth**: single username/password from env vars; stateless HMAC-signed
   session token in an HTTP-only cookie (30-day expiry, survives server and
   browser restarts, cleared on logout).
+- **Scheduling**: FSRS via [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs)
+  with default parameters.
 
 ## Quick start
 
@@ -79,11 +81,34 @@ npm run migrate:up    # re-applies cleanly
 ## Tests
 
 - **Unit** (`npm test`): card validation, batch-save partitioning, session
-  token signing/expiry/tampering, credential checks, and the client drafts
+  token signing/expiry/tampering, credential checks, FSRS scheduling
+  (intervals, lapses, persistence round trip), answer normalization/matching
+  (accents, casing, punctuation, spacing, word order), and the client drafts
   reducer. No database required.
-- **E2E** (`npm run e2e`): requires a migrated database
-  (`npm run db:up && npm run migrate:up`) and a `.env`. Playwright boots both
-  dev servers itself. First run: `npx playwright install chromium`.
+- **E2E** (`npm run e2e`): requires a running postgres (`npm run db:up`) and a
+  `.env`. The suite is fully isolated from dev data: it creates and migrates
+  its own `spanish_cards_test` database and boots its own server pair on ports
+  4102/4103 (see `e2e/global-setup.ts` and `playwright.config.ts`). First run:
+  `npx playwright install chromium`.
+
+## Training UX
+
+- `Train` (from the cards page header) shows due cards one at a time,
+  oldest-due-first. Newly created cards are immediately due.
+- Default direction is Spanish prompt → English answer; the toggle switches to
+  English → Spanish and the preference persists for the browser session.
+- Type the answer and press `Enter`. The correct answer is always revealed,
+  even when correct. An empty `Enter` counts as "Don't remember".
+- Matching is deterministically lenient: accents, capitalization, punctuation
+  (including `¿¡`), and extra spaces are forgiven but highlighted in the
+  revealed answer. Word identity and word order must match exactly.
+- Correct answers offer `Hard` / `Good` / `Easy`; incorrect or empty answers
+  default to `Don't remember` but can be overridden to any rating.
+- Keyboard shortcuts after reveal: `0` Don't remember (incorrect only),
+  `1` Hard, `2` Good, `3` Easy.
+- Rating persists the card's FSRS state, which decides when it is next due.
+- When no cards are due, a done screen offers studying ahead of schedule
+  (soonest-due cards first, clearly marked as extra practice).
 
 ## Card management UX
 
@@ -119,17 +144,19 @@ server/
   src/
     auth/              credentials, session tokens, middleware, routes
     cards/             validation + batch-save domain logic, repository, routes
+    training/          FSRS scheduler wrapper (unit-tested), queue/schedule repository, routes
     app.ts             express app factory
     index.ts           entrypoint (env, pool, static client in production)
 client/
   src/
     auth/LoginPage.tsx
     cards/             CardsPage, DraftCardRow, drafts reducer (unit-tested)
+    training/          answer matching (unit-tested), direction, TrainPage + components
     api.ts             typed fetch wrappers
-e2e/                   Playwright specs
+e2e/                   Playwright specs + isolated-DB global setup
 meta/                  epics and plans
 ```
 
-Domain logic (validation, batch partitioning, session tokens) lives in plain
-modules with no Express/React imports, so it is unit-testable and reusable as
-the app grows (Epic 02 adds training + FSRS scheduling on top of this).
+Domain logic (validation, batch partitioning, session tokens, FSRS scheduling
+decisions, answer normalization/matching) lives in plain modules with no
+Express/React imports, so it is unit-testable and easy to evolve.
