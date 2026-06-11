@@ -1,7 +1,8 @@
 import { Router } from 'express';
 import type { DbPool } from '../db.js';
-import { cardExists, getSchedule, getTrainingQueue, upsertSchedule } from './repository.js';
-import { isReviewRating, rateSchedule } from './scheduler.js';
+import { getTrainingQueue } from './repository.js';
+import { recordReview } from './service.js';
+import { parseReviewRequest } from './validation.js';
 
 export function trainingRoutes(pool: DbPool): Router {
   const router = Router();
@@ -12,21 +13,20 @@ export function trainingRoutes(pool: DbPool): Router {
   });
 
   router.post('/reviews', async (req, res) => {
-    const { cardId, rating } = (req.body ?? {}) as Record<string, unknown>;
-    if (!Number.isInteger(cardId) || !isReviewRating(rating)) {
+    const request = parseReviewRequest(req.body);
+    if (!request) {
       res.status(400).json({
-        error: 'Body must be { cardId, rating } with rating one of again/hard/good/easy',
+        error:
+          'Body must be { cardId, rating, direction, detectedCorrect } with rating one of again/hard/good/easy',
       });
       return;
     }
-    if (!(await cardExists(pool, cardId as number))) {
+    const outcome = await recordReview(pool, request, new Date());
+    if (!outcome) {
       res.status(404).json({ error: 'Card not found' });
       return;
     }
-    const current = await getSchedule(pool, cardId as number);
-    const next = rateSchedule(current, rating, new Date());
-    await upsertSchedule(pool, cardId as number, next);
-    res.json({ schedule: { due: next.due.toISOString() } });
+    res.json({ schedule: { due: outcome.due.toISOString() }, wasDue: outcome.wasDue });
   });
 
   return router;

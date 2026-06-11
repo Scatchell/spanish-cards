@@ -1,5 +1,6 @@
-import type { DbPool } from '../db.js';
-import type { CardSchedule } from './scheduler.js';
+import type { DbQueryable } from '../db.js';
+import type { CardSchedule, ReviewRating } from './scheduler.js';
+import type { PromptDirection } from './validation.js';
 
 // A card as presented in the training queue. `due` is the effective due time:
 // the FSRS due date, or the card's creation time if it has never been reviewed.
@@ -35,12 +36,12 @@ interface ScheduleRow {
 // Cards ordered oldest-due-first. Scope 'due' returns cards due at `now`;
 // 'ahead' returns the not-yet-due cards soonest-first for studying ahead.
 export async function getTrainingQueue(
-  pool: DbPool,
+  db: DbQueryable,
   scope: QueueScope,
   now: Date,
 ): Promise<TrainingCard[]> {
   const comparison = scope === 'due' ? '<=' : '>';
-  const result = await pool.query<QueueRow>(
+  const result = await db.query<QueueRow>(
     `SELECT c.id, c.spanish_text, c.english_text, COALESCE(s.due, c.created_at) AS due
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
@@ -56,13 +57,34 @@ export async function getTrainingQueue(
   }));
 }
 
-export async function cardExists(pool: DbPool, cardId: number): Promise<boolean> {
-  const result = await pool.query('SELECT 1 FROM cards WHERE id = $1', [cardId]);
-  return (result.rowCount ?? 0) > 0;
+// Number of cards due at `now`, using the same effective-due rule as the
+// training queue.
+export async function countDueCards(db: DbQueryable, now: Date): Promise<number> {
+  const result = await db.query<{ count: number }>(
+    `SELECT COUNT(*)::int AS count
+     FROM cards c
+     LEFT JOIN card_schedules s ON s.card_id = c.id
+     WHERE COALESCE(s.due, c.created_at) <= $1`,
+    [now],
+  );
+  return result.rows[0]?.count ?? 0;
 }
 
-export async function getSchedule(pool: DbPool, cardId: number): Promise<CardSchedule | null> {
-  const result = await pool.query<ScheduleRow>(
+// The card's effective due time (see TrainingCard), or null when the card
+// does not exist.
+export async function getEffectiveDue(db: DbQueryable, cardId: number): Promise<Date | null> {
+  const result = await db.query<{ due: Date }>(
+    `SELECT COALESCE(s.due, c.created_at) AS due
+     FROM cards c
+     LEFT JOIN card_schedules s ON s.card_id = c.id
+     WHERE c.id = $1`,
+    [cardId],
+  );
+  return result.rows[0]?.due ?? null;
+}
+
+export async function getSchedule(db: DbQueryable, cardId: number): Promise<CardSchedule | null> {
+  const result = await db.query<ScheduleRow>(
     `SELECT due, stability, difficulty, elapsed_days, scheduled_days,
             learning_steps, reps, lapses, state, last_review
      FROM card_schedules WHERE card_id = $1`,
@@ -87,11 +109,11 @@ export async function getSchedule(pool: DbPool, cardId: number): Promise<CardSch
 }
 
 export async function upsertSchedule(
-  pool: DbPool,
+  db: DbQueryable,
   cardId: number,
   schedule: CardSchedule,
 ): Promise<void> {
-  await pool.query(
+  await db.query(
     `INSERT INTO card_schedules
        (card_id, due, stability, difficulty, elapsed_days, scheduled_days,
         learning_steps, reps, lapses, state, last_review, updated_at)
@@ -120,6 +142,31 @@ export async function upsertSchedule(
       schedule.lapses,
       schedule.state,
       schedule.lastReview,
+    ],
+  );
+}
+
+// One row of review history (see the reviews migration for field semantics).
+export interface NewReview {
+  cardId: number;
+  direction: PromptDirection;
+  detectedCorrect: boolean;
+  rating: ReviewRating;
+  wasDue: boolean;
+  reviewedAt: Date;
+}
+
+export async function insertReview(db: DbQueryable, review: NewReview): Promise<void> {
+  await db.query(
+    `INSERT INTO reviews (card_id, direction, detected_correct, rating, was_due, reviewed_at)
+     VALUES ($1, $2, $3, $4, $5, $6)`,
+    [
+      review.cardId,
+      review.direction,
+      review.detectedCorrect,
+      review.rating,
+      review.wasDue,
+      review.reviewedAt,
     ],
   );
 }

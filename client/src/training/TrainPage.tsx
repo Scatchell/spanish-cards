@@ -3,6 +3,7 @@ import type { SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { ReviewRating, TrainingCard, TrainingScope } from '../api.js';
 import { ApiError, fetchTrainingQueue, submitReview } from '../api.js';
+import { formatPercent } from '../format.js';
 import type { AnswerCheckResult } from './answer-check.js';
 import { checkAnswer } from './answer-check.js';
 import type { Direction } from './direction.js';
@@ -17,9 +18,18 @@ interface Reveal {
   result: AnswerCheckResult;
 }
 
+// Per-queue-load stats: reset when a session starts (scheduled cards or a
+// continue-studying batch), summarized on the done screen.
+interface Session {
+  total: number;
+  reviewed: number;
+  correct: number;
+}
+
 export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [queue, setQueue] = useState<TrainingCard[]>([]);
+  const [session, setSession] = useState<Session>({ total: 0, reviewed: 0, correct: 0 });
   const [studyingAhead, setStudyingAhead] = useState(false);
   const [direction, setDirection] = useState<Direction>(loadDirection);
   const [typed, setTyped] = useState('');
@@ -46,6 +56,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       fetchTrainingQueue(scope)
         .then((cards) => {
           setQueue(cards);
+          setSession({ total: cards.length, reviewed: 0, correct: 0 });
           setLoadState('ready');
         })
         .catch((err) => {
@@ -76,11 +87,17 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
 
   const handleRate = useCallback(
     async (rating: ReviewRating) => {
-      if (!currentCard || saving) return;
+      if (!currentCard || !reveal || saving) return;
+      const detectedCorrect = reveal.result.verdict !== 'incorrect';
       setSaving(true);
       try {
-        await submitReview(currentCard.id, rating);
+        await submitReview({ cardId: currentCard.id, rating, direction, detectedCorrect });
         setQueue((cards) => cards.slice(1));
+        setSession((s) => ({
+          ...s,
+          reviewed: s.reviewed + 1,
+          correct: s.correct + (detectedCorrect ? 1 : 0),
+        }));
         setReveal(null);
         setTyped('');
       } catch (err) {
@@ -91,7 +108,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         setSaving(false);
       }
     },
-    [currentCard, saving, handleUnauthenticated],
+    [currentCard, reveal, saving, direction, handleUnauthenticated],
   );
 
   function toggleDirection() {
@@ -107,8 +124,8 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     loadQueue('ahead');
   }
 
-  const isCorrect =
-    reveal !== null && reveal.result.verdict !== 'incorrect';
+  const isCorrect = reveal !== null && reveal.result.verdict !== 'incorrect';
+  const cardPosition = session.total - queue.length + 1;
 
   return (
     <div className="app-shell train-page">
@@ -131,8 +148,12 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <section className="train-card" aria-label="Training card">
             <div className="train-meta">
               <span className="queue-count">
-                {queue.length} card{queue.length === 1 ? '' : 's'} left
-                {studyingAhead && <em className="ahead-badge"> · extra practice (ahead of schedule)</em>}
+                Card {cardPosition} of {session.total}
+                {studyingAhead ? (
+                  <em className="ahead-badge"> · extra practice (ahead of schedule)</em>
+                ) : (
+                  ' scheduled'
+                )}
               </span>
               <button
                 type="button"
@@ -181,11 +202,13 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
 
         {loadState === 'ready' && !currentCard && !studyingAhead && (
           <section className="train-done" aria-label="Training complete">
-            <h2>All done!</h2>
-            <p>You've finished every card scheduled for now. 🎉</p>
+            <h2>All done — great work! 🎉</h2>
+            <p>You've finished every card scheduled for now.</p>
+            <SessionSummary session={session} />
             <button type="button" onClick={continueStudyingAhead}>
               Continue studying ahead of schedule
             </button>
+            <Link to="/progress">See your progress</Link>
           </section>
         )}
 
@@ -193,10 +216,25 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <section className="train-done" aria-label="Nothing left to study">
             <h2>Nothing left to study</h2>
             <p>There are no more cards to practice right now.</p>
+            <SessionSummary session={session} ahead />
+            <Link to="/progress">See your progress</Link>
             <Link to="/">Back to cards</Link>
           </section>
         )}
       </main>
     </div>
+  );
+}
+
+function SessionSummary({ session, ahead = false }: { session: Session; ahead?: boolean }) {
+  if (session.reviewed === 0) {
+    return null;
+  }
+  return (
+    <p className="session-summary">
+      {ahead ? 'Extra practice' : 'This session'}: {session.reviewed} card
+      {session.reviewed === 1 ? '' : 's'} reviewed, {session.correct} correct (
+      {formatPercent(session.correct / session.reviewed)}).
+    </p>
   );
 }

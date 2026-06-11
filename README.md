@@ -2,7 +2,8 @@
 
 A single-user Spanish/English flashcard web app. Epic 01 covers
 authentication, batch card creation, and card management. Epic 02 adds typed
-training with FSRS spaced-repetition scheduling.
+training with FSRS spaced-repetition scheduling. Epic 03 adds review history,
+a progress dashboard, and deployment polish.
 
 ## Stack
 
@@ -70,12 +71,22 @@ The server loads `.env` from the repository root.
 ## Migrations
 
 Migrations live in `server/migrations/` and every migration defines both `up`
-and `down`. Verified workflow:
+and `down` (cards, card schedules, review history). Verified workflow:
 
 ```bash
-npm run migrate:up    # creates the cards table
-npm run migrate:down  # rolls it back
+npm run migrate:up    # applies all pending migrations
+npm run migrate:down  # rolls back the most recent migration
 npm run migrate:up    # re-applies cleanly
+```
+
+In the containerized deployment the `app` service runs
+`node-pg-migrate ... up` before starting the server (see
+`docker-compose.yml`), so migrations apply automatically on each deploy. To
+roll back inside the container:
+
+```bash
+docker compose --profile app run --rm app \
+  npx --no-install node-pg-migrate -m server/migrations down
 ```
 
 ## Tests
@@ -83,8 +94,10 @@ npm run migrate:up    # re-applies cleanly
 - **Unit** (`npm test`): card validation, batch-save partitioning, session
   token signing/expiry/tampering, credential checks, FSRS scheduling
   (intervals, lapses, persistence round trip), answer normalization/matching
-  (accents, casing, punctuation, spacing, word order), and the client drafts
-  reducer. No database required.
+  (accents, casing, punctuation, spacing, word order), review submission
+  validation, progress metrics (daily buckets with timezone offsets, correct
+  rates, streaks, cards-learned trend), client display formatters, and the
+  client drafts reducer. No database required.
 - **E2E** (`npm run e2e`): requires a running postgres (`npm run db:up`) and a
   `.env`. The suite is fully isolated from dev data: it creates and migrates
   its own `spanish_cards_test` database and boots its own server pair on ports
@@ -106,9 +119,32 @@ npm run migrate:up    # re-applies cleanly
   default to `Don't remember` but can be overridden to any rating.
 - Keyboard shortcuts after reveal: `0` Don't remember (incorrect only),
   `1` Hard, `2` Good, `3` Easy.
-- Rating persists the card's FSRS state, which decides when it is next due.
-- When no cards are due, a done screen offers studying ahead of schedule
-  (soonest-due cards first, clearly marked as extra practice).
+- Rating persists the card's FSRS state, which decides when it is next due,
+  and appends a review-history row that powers the progress dashboard.
+- Session progress shows `Card 3 of 12 scheduled`; extra-practice cards are
+  marked `extra practice (ahead of schedule)` instead.
+- Finishing the scheduled queue shows a congratulations screen with a session
+  summary (cards reviewed, correct rate) and offers studying ahead of
+  schedule (soonest-due cards first). Ahead-of-schedule ratings update FSRS
+  normally but are recorded as extra practice rather than due reviews.
+
+## Progress dashboard
+
+`Progress` (from the cards page header, or the training done screen) shows:
+
+- Deck stats: total cards, due now, and new/learning/review counts from FSRS
+  state.
+- Activity: cards reviewed today, correct rate today, average daily correct
+  rate, current streak, and last study date.
+- 14-day trends: reviews per day and cumulative cards studied, as lightweight
+  CSS bar charts (no charting dependency).
+
+Metrics are computed server-side in `server/src/progress/metrics.ts` (pure,
+unit-tested) from the `reviews` history table. Days are bucketed in the
+browser's timezone, passed as a UTC-offset query parameter. "Correct" means
+the answer checker's verdict before any manual rating override, so overriding
+a miss to `Good` does not inflate the stats. Review history cascade-deletes
+with its card.
 
 ## Card management UX
 
@@ -136,6 +172,20 @@ The `app` service is behind a compose profile so the default
 `docker compose up -d postgres` (what `npm run db:up` runs) starts only the
 database for local development.
 
+Postgres data persists in the named `pgdata` volume; back it up (or bind-mount
+it) before destructive operations like `docker compose down -v`.
+
+### Health check
+
+`GET /api/health` is unauthenticated and verifies database connectivity —
+`{"ok":true}` with HTTP 200 when healthy, 503 otherwise. The compose `app`
+service uses it as its container healthcheck, and it doubles as a smoke check
+after any deployment:
+
+```bash
+curl -fsS http://localhost:4100/api/health
+```
+
 ## Project layout
 
 ```
@@ -144,15 +194,18 @@ server/
   src/
     auth/              credentials, session tokens, middleware, routes
     cards/             validation + batch-save domain logic, repository, routes
-    training/          FSRS scheduler wrapper (unit-tested), queue/schedule repository, routes
-    app.ts             express app factory
+    training/          FSRS scheduler wrapper, review recording service, queue/schedule/history repository, routes
+    progress/          progress metrics (pure, unit-tested), repository, routes
+    app.ts             express app factory (incl. /api/health)
     index.ts           entrypoint (env, pool, static client in production)
 client/
   src/
     auth/LoginPage.tsx
-    cards/             CardsPage, DraftCardRow, drafts reducer (unit-tested)
+    cards/             CardsPage (incl. due status), DraftCardRow, drafts reducer (unit-tested)
     training/          answer matching (unit-tested), direction, TrainPage + components
+    progress/          ProgressPage dashboard
     api.ts             typed fetch wrappers
+    format.ts          shared display formatters (unit-tested)
 e2e/                   Playwright specs + isolated-DB global setup
 meta/                  epics and plans
 ```

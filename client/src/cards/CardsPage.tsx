@@ -2,6 +2,7 @@ import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Card } from '../api.js';
 import { ApiError, deleteCardById, listCards, logout, saveCardBatch } from '../api.js';
+import { formatDueStatus } from '../format.js';
 import { draftsReducer, initialDraftsState, submittableDrafts } from './drafts.js';
 import { DraftCardRow } from './DraftCardRow.js';
 
@@ -117,6 +118,9 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <Link to="/train" className="train-link">
             Train
           </Link>
+          <Link to="/progress" className="back-link">
+            Progress
+          </Link>
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>
@@ -188,6 +192,7 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                   <div className="card-text">
                     <span className="card-spanish">{card.spanishText}</span>
                     <span className="card-english">{card.englishText}</span>
+                    <CardDueStatus card={card} />
                   </div>
                   <button
                     type="button"
@@ -204,5 +209,18 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         </section>
       </main>
     </div>
+  );
+}
+
+// Due/learning status line for a saved card. A card that has never been
+// reviewed is "New" (always due now); reviewed cards show when they are next
+// due, highlighted when due now.
+function CardDueStatus({ card }: { card: Card }) {
+  const status = formatDueStatus(card.due, new Date());
+  const dueNow = status === 'Due now';
+  return (
+    <span className={dueNow ? 'due-status due-now' : 'due-status'}>
+      {card.reviewed ? status : 'New · due now'}
+    </span>
   );
 }

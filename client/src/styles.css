@@ -388,3 +388,103 @@ button.rating.emphasized {
     grid-template-columns: repeat(3, 1fr);
   }
 }
+
+.session-summary {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+/* ---- Card due status ---- */
+
+.due-status {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.due-status.due-now {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* ---- Progress dashboard ---- */
+
+.progress-page main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0.75rem 0 0;
+}
+
+.stat-tile {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.75rem 0.85rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stat-tile dt {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.stat-tile dd {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.stat-tile.emphasized {
+  border-color: var(--accent);
+}
+
+.stat-tile.emphasized dd {
+  color: var(--accent);
+}
+
+.trend-chart {
+  margin: 0.75rem 0 0;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+}
+
+.trend-chart figcaption {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  margin-bottom: 0.6rem;
+}
+
+.trend-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 6rem;
+}
+
+.trend-bar {
+  flex: 1;
+  background: var(--accent);
+  border-radius: 3px 3px 0 0;
+  min-width: 4px;
+}
+
+.trend-bar.empty {
+  background: var(--surface-muted);
+}
+
+.trend-range {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  margin-top: 0.35rem;
+}

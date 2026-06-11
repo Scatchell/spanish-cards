@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import { getMe } from './api.js';
 import { LoginPage } from './auth/LoginPage.js';
 import { CardsPage } from './cards/CardsPage.js';
+import { ProgressPage } from './progress/ProgressPage.js';
 import { TrainPage } from './training/TrainPage.js';
 
 type AuthState = 'loading' | 'authenticated' | 'anonymous';
@@ -47,6 +48,16 @@ export function App() {
         element={
           auth === 'authenticated' ? (
             <TrainPage onLoggedOut={() => setAuth('anonymous')} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/progress"
+        element={
+          auth === 'authenticated' ? (
+            <ProgressPage onLoggedOut={() => setAuth('anonymous')} />
           ) : (
             <Navigate to="/login" replace />
           )

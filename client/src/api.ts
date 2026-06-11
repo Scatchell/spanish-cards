@@ -4,6 +4,9 @@ export interface Card {
   englishText: string;
   createdAt: string;
   updatedAt: string;
+  // Effective due time: FSRS due date, or createdAt if never reviewed.
+  due: string;
+  reviewed: boolean;
 }
 
 export interface CardDraftInput {
@@ -36,6 +39,34 @@ export interface TrainingCard {
 export type TrainingScope = 'due' | 'ahead';
 
 export type ReviewRating = 'again' | 'hard' | 'good' | 'easy';
+
+export interface ReviewSubmission {
+  cardId: number;
+  rating: ReviewRating;
+  direction: 'spanish-to-english' | 'english-to-spanish';
+  // Whether answer matching judged the typed answer correct, before any
+  // manual rating override.
+  detectedCorrect: boolean;
+}
+
+export interface DayActivity {
+  date: string;
+  reviews: number;
+  correct: number;
+  cardsStudiedToDate: number;
+}
+
+export interface ProgressSummary {
+  totalCards: number;
+  dueNow: number;
+  stages: { new: number; learning: number; review: number };
+  reviewedToday: number;
+  correctRateToday: number | null;
+  averageDailyCorrectRate: number | null;
+  streakDays: number;
+  lastStudiedAt: string | null;
+  recentDays: DayActivity[];
+}
 
 export class ApiError extends Error {
   constructor(
@@ -91,9 +122,16 @@ export async function fetchTrainingQueue(scope: TrainingScope): Promise<Training
   return cards;
 }
 
-export function submitReview(cardId: number, rating: ReviewRating): Promise<{ schedule: { due: string } }> {
+export function submitReview(review: ReviewSubmission): Promise<{ schedule: { due: string } }> {
   return request('/api/training/reviews', {
     method: 'POST',
-    body: JSON.stringify({ cardId, rating }),
+    body: JSON.stringify(review),
   });
+}
+
+export function fetchProgress(): Promise<ProgressSummary> {
+  // The server buckets days in local time using this offset (minutes ahead
+  // of UTC, the negation of Date#getTimezoneOffset).
+  const tzOffset = -new Date().getTimezoneOffset();
+  return request(`/api/progress?tzOffset=${tzOffset}`);
 }

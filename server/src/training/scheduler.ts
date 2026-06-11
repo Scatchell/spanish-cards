@@ -1,4 +1,4 @@
-import { Rating, createEmptyCard, fsrs } from 'ts-fsrs';
+import { Rating, State, createEmptyCard, fsrs } from 'ts-fsrs';
 import type { Card as FsrsCard } from 'ts-fsrs';
 
 // FSRS scheduling state for one card, decoupled from the ts-fsrs types so the
@@ -29,6 +29,23 @@ const RATING_TO_GRADE = {
   good: Rating.Good,
   easy: Rating.Easy,
 } as const;
+
+// Coarse user-facing grouping of the FSRS state machine. A card with no
+// schedule row (state null) has never been reviewed and is 'new'; relearning
+// after a lapse counts as 'learning'.
+export type LearningStage = 'new' | 'learning' | 'review';
+
+export function learningStage(state: number | null): LearningStage {
+  switch (state) {
+    case null:
+    case State.New:
+      return 'new';
+    case State.Review:
+      return 'review';
+    default:
+      return 'learning';
+  }
+}
 
 const scheduler = fsrs(); // default FSRS parameters
 

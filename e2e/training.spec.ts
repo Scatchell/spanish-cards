@@ -46,7 +46,7 @@ test('trains due cards oldest-first: typed answers, rating, and studying ahead',
   await expect(page).toHaveURL('/train');
 
   // Both new cards are immediately due, oldest (first created) first.
-  await expect(page.locator('.queue-count')).toContainText('2 cards left');
+  await expect(page.locator('.queue-count')).toContainText('Card 1 of 2 scheduled');
   await expect(page.locator('.train-prompt')).toHaveText('el perro');
 
   // Correct typed answer: success state, answer revealed, no "Don't remember".
@@ -58,6 +58,7 @@ test('trains due cards oldest-first: typed answers, rating, and studying ahead',
   await page.getByRole('button', { name: /Good/ }).click();
 
   // Incorrect typed answer: both answers shown, override rating allowed.
+  await expect(page.locator('.queue-count')).toContainText('Card 2 of 2 scheduled');
   await expect(page.locator('.train-prompt')).toHaveText('la casa');
   await page.getByLabel(/Your answer/).fill('the table');
   await page.keyboard.press('Enter');
@@ -67,15 +68,21 @@ test('trains due cards oldest-first: typed answers, rating, and studying ahead',
   await expect(page.getByRole('button', { name: /Don't remember/ })).toBeVisible();
   await page.getByRole('button', { name: /Hard/ }).click();
 
-  // All scheduled cards are done, and FSRS state persists across a reload.
-  await expect(page.getByText("All done!")).toBeVisible();
+  // All scheduled cards are done: congratulations plus a session summary
+  // counting the detected results (1 of 2 correct — the Hard override on a
+  // missed card doesn't inflate the stats).
+  await expect(page.getByText('All done')).toBeVisible();
+  await expect(page.locator('.session-summary')).toContainText('2 cards reviewed, 1 correct (50%)');
+
+  // FSRS state persists across a reload (the summary is per-session).
   await page.reload();
-  await expect(page.getByText("All done!")).toBeVisible();
+  await expect(page.getByText('All done')).toBeVisible();
 
   // Studying ahead surfaces not-yet-due cards soonest-first ("la casa" was
   // rated Hard, so it comes back sooner than the Good-rated "el perro").
   await page.getByRole('button', { name: /Continue studying ahead/ }).click();
   await expect(page.locator('.ahead-badge')).toBeVisible();
+  await expect(page.locator('.queue-count')).toContainText('Card 1 of 2');
   await expect(page.locator('.train-prompt')).toHaveText('la casa');
   await page.getByLabel(/Your answer/).fill('the house');
   await page.keyboard.press('Enter');
@@ -99,7 +106,7 @@ test('empty answer reveals the correct answer and defaults to Don\'t remember', 
 
   // Rate via the keyboard shortcut (0 = Don't remember).
   await page.keyboard.press('0');
-  await expect(page.getByText("All done!")).toBeVisible();
+  await expect(page.getByText('All done')).toBeVisible();
 });
 
 test('direction toggle trains English to Spanish with lenient accent matching', async ({
