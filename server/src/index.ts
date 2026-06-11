@@ -8,6 +8,13 @@ import { createPool } from './db.js';
 
 const config = loadConfig();
 const pool = createPool(config.databaseUrl);
+pool.on('error', (error) => {
+  if (process.env.NODE_ENV === 'test' && 'code' in error && error.code === '57P01') {
+    return;
+  }
+
+  console.warn('Unexpected idle PostgreSQL client error:', error.message);
+});
 const app = createApp(config, pool);
 
 // In production the API server also serves the built client.

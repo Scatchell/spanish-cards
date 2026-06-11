@@ -28,6 +28,7 @@ Prerequisites: Node 22+, npm 10+, Docker (for PostgreSQL).
 npm install
 cp .env.example .env      # adjust APP_USERNAME / APP_PASSWORD / SESSION_SECRET
 cp .dev-env.example .dev-env
+cp .test-env.example .test-env
 npm run db:up             # starts PostgreSQL in Docker on host port 5434
 npm run migrate:up
 npm run dev               # API on :4100, client on :4101
@@ -54,7 +55,9 @@ Documented in `.env.example`:
 
 The server loads `.env` from the repository root. Docker Compose interpolation
 can use a separate Compose env file, such as `.dev-env` or `.prod-env`, via
-`docker compose --env-file <file> ...`.
+`docker compose --env-file <file> ...`. Example files are templates only; real
+environment files such as `.env`, `.dev-env`, `.test-env`, and `.prod-env` must
+exist before their corresponding commands are run.
 
 ## Scripts (run from the repo root)
 
@@ -105,10 +108,11 @@ docker compose --profile app run --rm app \
   listing/calls over Streamable HTTP with a real MCP client against in-memory
   card storage), client display formatters, and the client drafts reducer. No
   database required.
-- **E2E** (`npm run e2e`): requires a running postgres (`npm run db:up`) and a
-  `.env`. The suite is fully isolated from dev data: it creates and migrates
-  its own `spanish_cards_test` database and boots its own server pair on ports
-  4102/4103 (see `e2e/global-setup.ts` and `playwright.config.ts`). First run:
+- **E2E** (`npm run e2e`): requires Docker, `.env`, and `.test-env`, but not a
+  running dev database. The suite starts an isolated Compose project using
+  `.test-env`, creates a fresh `spanish_cards_test` database volume, runs
+  migrations from scratch, boots its own server pair on ports 4102/4103, and
+  removes the test Compose volume during teardown. First run:
   `npx playwright install chromium`.
 
 ## Training UX
@@ -258,7 +262,8 @@ If you changed `PORT`, adjust the URLs accordingly.
 
 A multi-stage `Dockerfile` builds and serves the whole app (API + static
 client). `docker-compose.yml` wires it to PostgreSQL and runs migrations on
-startup. Copy `.dev-env.example` to a Compose env file and pass it explicitly:
+startup. Copy `.dev-env.example` or your production equivalent to a real Compose
+env file and pass it explicitly:
 
 ```bash
 docker compose --env-file .dev-env --profile app up --build

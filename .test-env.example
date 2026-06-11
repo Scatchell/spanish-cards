@@ -1,0 +1,12 @@
+# Compose-only settings for Playwright E2E. Copy to .test-env to override
+# locally. E2E uses a separate Compose project and removes its volume after each
+# run, so migrations are exercised against a fresh database from scratch.
+E2E_COMPOSE_PROJECT=spanish-cards-e2e
+
+POSTGRES_USER=spanish_cards
+POSTGRES_PASSWORD=spanish_cards
+POSTGRES_DB=spanish_cards_test
+POSTGRES_HOST_PORT=55435
+
+API_PORT=4102
+CLIENT_PORT=4103

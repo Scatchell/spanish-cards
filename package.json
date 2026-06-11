@@ -10,13 +10,13 @@
     "dev": "concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
     "build": "npm run build -w server && npm run build -w client",
     "start": "npm run start -w server",
-    "db:up": "docker compose --env-file .dev-env up -d postgres",
-    "db:down": "docker compose --env-file .dev-env stop postgres",
+    "db:up": "node scripts/require-env-file.mjs dev .dev-env .dev-env.example && docker compose --env-file .dev-env up -d postgres",
+    "db:down": "node scripts/require-env-file.mjs dev .dev-env .dev-env.example && docker compose --env-file .dev-env stop postgres",
     "migrate:up": "npm run migrate:up -w server",
     "migrate:down": "npm run migrate:down -w server",
     "test": "npm run test -w server && npm run test -w client",
     "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
-    "e2e": "playwright test"
+    "e2e": "node scripts/require-env-file.mjs test .test-env .test-env.example && playwright test"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

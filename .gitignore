@@ -3,6 +3,7 @@ dist/
 .env
 .dev-env
 .prod-env
+.test-env
 *.app.env
 *.local
 playwright-report/
