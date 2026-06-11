@@ -27,6 +27,7 @@ Prerequisites: Node 22+, npm 10+, Docker (for PostgreSQL).
 ```bash
 npm install
 cp .env.example .env      # adjust APP_USERNAME / APP_PASSWORD / SESSION_SECRET
+cp .dev-env.example .dev-env
 npm run db:up             # starts PostgreSQL in Docker on host port 5434
 npm run migrate:up
 npm run dev               # API on :4100, client on :4101
@@ -34,9 +35,9 @@ npm run dev               # API on :4100, client on :4101
 
 Open <http://localhost:4101> and log in with the credentials from your `.env`.
 
-> Ports 4100/4101/5434 were chosen to avoid clashes with other services; change
-> them in `.env` (`PORT`), `client/vite.config.ts`, and `docker-compose.yml`
-> if needed.
+> Ports 4100/4101/5434 were chosen to avoid clashes with other services. Change
+> the API server port in `.env` (`PORT`), the client port in
+> `client/vite.config.ts`, and Docker host ports in `.dev-env`.
 
 ## Environment variables
 
@@ -51,7 +52,9 @@ Documented in `.env.example`:
 | `SESSION_SECRET` | HMAC secret for session cookies — long random text |
 | `MCP_TOKEN`      | Bearer token for the MCP endpoint — long random text. If unset, `/mcp` is disabled with a configuration error |
 
-The server loads `.env` from the repository root.
+The server loads `.env` from the repository root. Docker Compose interpolation
+can use a separate Compose env file, such as `.dev-env` or `.prod-env`, via
+`docker compose --env-file <file> ...`.
 
 ## Scripts (run from the repo root)
 
@@ -254,16 +257,24 @@ If you changed `PORT`, adjust the URLs accordingly.
 ## Docker deployment
 
 A multi-stage `Dockerfile` builds and serves the whole app (API + static
-client) on port 4100. `docker-compose.yml` wires it to PostgreSQL and runs
-migrations on startup:
+client). `docker-compose.yml` wires it to PostgreSQL and runs migrations on
+startup. Copy `.dev-env.example` to a Compose env file and pass it explicitly:
 
 ```bash
-docker compose --profile app up --build
+docker compose --env-file .dev-env --profile app up --build
 ```
 
-The `app` service is behind a compose profile so the default
-`docker compose up -d postgres` (what `npm run db:up` runs) starts only the
-database for local development.
+For production, use the same compose file with a different Compose env file,
+for example `docker compose --env-file .prod-env --profile app up --build`.
+The Compose env file controls Docker-specific values such as host ports,
+Postgres container settings, and `APP_ENV_FILE`. The app env file referenced by
+`APP_ENV_FILE` holds runtime app settings and secrets; Compose overrides
+`DATABASE_URL` inside the app container so it connects to `postgres:5432` on the
+Compose network instead of the host port.
+
+The `app` service is behind a compose profile so `npm run db:up` starts only
+the database for local development using `.dev-env`. To use a different Compose
+env file, run `docker compose --env-file <file> up -d postgres` directly.
 
 Postgres data persists in the named `pgdata` volume; back it up (or bind-mount
 it) before destructive operations like `docker compose down -v`.

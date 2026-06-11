@@ -1,6 +1,9 @@
 node_modules/
 dist/
 .env
+.dev-env
+.prod-env
+*.app.env
 *.local
 playwright-report/
 test-results/
