@@ -55,7 +55,7 @@ test('trains due cards oldest-first: typed answers, rating, and studying ahead',
   await expect(page.locator('.verdict')).toHaveText('Correct!');
   await expect(page.locator('.correct-answer')).toHaveText('the dog');
   await expect(page.getByRole('button', { name: /Don't remember/ })).toHaveCount(0);
-  await page.getByRole('button', { name: /Good/ }).click();
+  await page.keyboard.press('2');
 
   // Incorrect typed answer: both answers shown, override rating allowed.
   await expect(page.locator('.queue-count')).toContainText('Card 2 of 2 scheduled');
@@ -66,7 +66,7 @@ test('trains due cards oldest-first: typed answers, rating, and studying ahead',
   await expect(page.locator('.submitted-answer')).toContainText('the table');
   await expect(page.locator('.correct-answer')).toHaveText('the house');
   await expect(page.getByRole('button', { name: /Don't remember/ })).toBeVisible();
-  await page.getByRole('button', { name: /Hard/ }).click();
+  await page.keyboard.press('1');
 
   // All scheduled cards are done: congratulations plus a session summary
   // counting the detected results (1 of 2 correct — the Hard override on a
@@ -113,6 +113,7 @@ test('direction toggle trains English to Spanish with lenient accent matching', 
   page,
 }) => {
   await createCard(page, 'estás', 'you are');
+  await createCard(page, 'hola', 'hello');
   await page.goto('/train');
 
   await page.getByRole('button', { name: 'Spanish → English' }).click();
@@ -123,9 +124,11 @@ test('direction toggle trains English to Spanish with lenient accent matching', 
   await page.keyboard.press('Enter');
   await expect(page.locator('.verdict')).toContainText('Correct — but check');
   await expect(page.locator('.correct-answer mark')).toHaveText('á');
+  await page.keyboard.press('3');
+  await expect(page.locator('.train-prompt')).toHaveText('hello');
 
   // The direction preference persists for the browser session.
   await page.reload();
   await expect(page.getByRole('button', { name: 'English → Spanish' })).toBeVisible();
-  await expect(page.locator('.train-prompt')).toHaveText('you are');
+  await expect(page.locator('.train-prompt')).toHaveText('hello');
 });

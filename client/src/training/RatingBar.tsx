@@ -14,6 +14,17 @@ const RATING_OPTIONS: RatingOption[] = [
   { rating: 'easy', label: 'Easy', shortcut: '3' },
 ];
 
+const SHORTCUT_BY_CODE: Record<string, string> = {
+  Digit0: '0',
+  Digit1: '1',
+  Digit2: '2',
+  Digit3: '3',
+  Numpad0: '0',
+  Numpad1: '1',
+  Numpad2: '2',
+  Numpad3: '3',
+};
+
 interface RatingBarProps {
   // 'again' is only offered for incorrect/empty answers; a detected-correct
   // answer can only be rated hard/good/easy.
@@ -32,10 +43,14 @@ export function RatingBar({ allowAgain, emphasized, disabled, onRate }: RatingBa
     function onKeyDown(event: KeyboardEvent) {
       if (disabled || event.metaKey || event.ctrlKey || event.altKey) return;
       const target = event.target as HTMLElement;
-      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) {
+      if (
+        target.isConnected &&
+        (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)
+      ) {
         return;
       }
-      const option = options.find((o) => o.shortcut === event.key);
+      const shortcut = /^[0-3]$/.test(event.key) ? event.key : SHORTCUT_BY_CODE[event.code];
+      const option = options.find((o) => o.shortcut === shortcut);
       if (!option) return;
       event.preventDefault();
       onRate(option.rating);
