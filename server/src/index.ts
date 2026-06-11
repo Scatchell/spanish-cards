@@ -24,6 +24,10 @@ if (fs.existsSync(clientDist)) {
   });
 }
 
+if (!config.mcpToken) {
+  console.warn('MCP_TOKEN is not set: /mcp is disabled and will return a configuration error (see .env.example)');
+}
+
 app.listen(config.port, () => {
   console.log(`spanish-cards API listening on http://localhost:${config.port}`);
 });

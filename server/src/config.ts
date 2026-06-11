@@ -12,6 +12,9 @@ export interface AppConfig {
   appPassword: string;
   sessionSecret: string;
   sessionTtlMs: number;
+  // Bearer token for the /mcp endpoint. null disables MCP with a clear
+  // configuration error instead of failing startup (see mcp/routes.ts).
+  mcpToken: string | null;
   isProduction: boolean;
 }
 
@@ -25,6 +28,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     appPassword: required(env, 'APP_PASSWORD'),
     sessionSecret: required(env, 'SESSION_SECRET'),
     sessionTtlMs: SESSION_TTL_MS,
+    mcpToken: env.MCP_TOKEN?.trim() || null,
     isProduction: env.NODE_ENV === 'production',
   };
 }

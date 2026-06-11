@@ -49,6 +49,7 @@ Documented in `.env.example`:
 | `APP_USERNAME`   | Login username (single user)                       |
 | `APP_PASSWORD`   | Login password (plain-text comparison, MVP)        |
 | `SESSION_SECRET` | HMAC secret for session cookies — long random text |
+| `MCP_TOKEN`      | Bearer token for the MCP endpoint — long random text. If unset, `/mcp` is disabled with a configuration error |
 
 The server loads `.env` from the repository root.
 
@@ -96,8 +97,11 @@ docker compose --profile app run --rm app \
   (intervals, lapses, persistence round trip), answer normalization/matching
   (accents, casing, punctuation, spacing, word order), review submission
   validation, progress metrics (daily buckets with timezone offsets, correct
-  rates, streaks, cards-learned trend), client display formatters, and the
-  client drafts reducer. No database required.
+  rates, streaks, cards-learned trend), fuzzy card search
+  (normalization/ranking), MCP endpoint behavior (bearer auth, tool
+  listing/calls over Streamable HTTP with a real MCP client against in-memory
+  card storage), client display formatters, and the client drafts reducer. No
+  database required.
 - **E2E** (`npm run e2e`): requires a running postgres (`npm run db:up`) and a
   `.env`. The suite is fully isolated from dev data: it creates and migrates
   its own `spanish_cards_test` database and boots its own server pair on ports
@@ -158,6 +162,95 @@ with its card.
 - Deleting a card asks for confirmation, then hard-deletes it.
 - Unsaved drafts are lost on refresh (accepted for MVP).
 
+## MCP access (AI agents)
+
+The Express server exposes a [Model Context Protocol](https://modelcontextprotocol.io)
+endpoint over Streamable HTTP at `http://localhost:4100/mcp` (same server and
+port as the API), so AI agents and local LLM tools can manage the deck.
+
+Authentication is a static bearer token, independent of the browser session:
+set `MCP_TOKEN` in `.env` (e.g. `openssl rand -hex 32`) and send it on every
+request as `Authorization: Bearer <MCP_TOKEN>`. Missing or wrong tokens get a
+`401`; if `MCP_TOKEN` is unset the endpoint is disabled and returns a `503`
+configuration error.
+
+### Tools
+
+| Tool           | Purpose                                                          |
+| -------------- | ---------------------------------------------------------------- |
+| `create_card`  | Batch-create cards; valid cards save even when others in the batch fail validation (per-index errors returned). Duplicates allowed. New cards are immediately due for training. |
+| `list_cards`   | All cards with both text sides and timestamps, newest first.     |
+| `search_cards` | Fuzzy duplicate-check search by `english`, `spanish`, or `both`; ignores case/accents/punctuation and ranks exact > phrase containment > close typo. |
+
+Typical agent flow: `search_cards` with `{"query": "hello", "language":
+"english"}` to check for near-duplicates, then `create_card` with
+`{"cards": [{"spanish_text": "Hola", "english_text": "Hello"}]}`. Card text
+follows the same validation as the web UI: required, single line, at most 70
+characters.
+
+### Client setup
+
+Opencode (`opencode.json`):
+
+```jsonc
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "spanish-cards": {
+      "type": "remote",
+      "url": "http://localhost:4100/mcp",
+      "enabled": true,
+      "oauth": false,
+      "headers": {
+        "Authorization": "Bearer <MCP_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+OpenClaw (`openclaw.json5`):
+
+```json5
+{
+  mcp: {
+    servers: {
+      "spanish-cards": {
+        url: "http://localhost:4100/mcp",
+        transport: "streamable-http",
+        headers: {
+          Authorization: "Bearer ${SPANISH_CARDS_MCP_TOKEN}",
+        },
+      },
+    },
+  },
+}
+```
+
+Claude CLI:
+
+```bash
+claude mcp add --transport http spanish-cards http://localhost:4100/mcp \
+  --header "Authorization: Bearer <MCP_TOKEN>"
+```
+
+LM Studio (`mcp.json`):
+
+```json
+{
+  "mcpServers": {
+    "spanish-cards": {
+      "url": "http://localhost:4100/mcp",
+      "headers": {
+        "Authorization": "Bearer <MCP_TOKEN>"
+      }
+    }
+  }
+}
+```
+
+If you changed `PORT`, adjust the URLs accordingly.
+
 ## Docker deployment
 
 A multi-stage `Dockerfile` builds and serves the whole app (API + static
@@ -196,7 +289,8 @@ server/
     cards/             validation + batch-save domain logic, repository, routes
     training/          FSRS scheduler wrapper, review recording service, queue/schedule/history repository, routes
     progress/          progress metrics (pure, unit-tested), repository, routes
-    app.ts             express app factory (incl. /api/health)
+    mcp/               MCP endpoint: bearer auth, tool definitions, Streamable HTTP routes
+    app.ts             express app factory (incl. /api/health and /mcp)
     index.ts           entrypoint (env, pool, static client in production)
 client/
   src/
