@@ -1,5 +1,5 @@
 import { defineConfig, devices } from '@playwright/test';
-import { E2E_API_PORT, E2E_CLIENT_PORT, E2E_DATABASE_URL } from './e2e/env.js';
+import { E2E_API_PORT, E2E_CLIENT_PORT, E2E_DATABASE_URL, E2E_OPENAI_STUB_PORT } from './e2e/env.js';
 
 // E2E runs against an isolated stack: its own database (created and migrated
 // by e2e/global-setup.ts) and its own server ports, so dev data and dev
@@ -34,6 +34,8 @@ export default defineConfig({
         NODE_ENV: 'test',
         PORT: String(E2E_API_PORT),
         DATABASE_URL: E2E_DATABASE_URL,
+        OPENAI_SECRET_KEY: 'e2e-test-key',
+        OPENAI_BASE_URL: `http://localhost:${E2E_OPENAI_STUB_PORT}`,
       },
     },
     {
@@ -43,6 +45,14 @@ export default defineConfig({
       env: {
         CLIENT_PORT: String(E2E_CLIENT_PORT),
         API_PROXY_TARGET: `http://localhost:${E2E_API_PORT}`,
+      },
+    },
+    {
+      command: 'npx tsx e2e/openai-stub.ts',
+      url: `http://localhost:${E2E_OPENAI_STUB_PORT}/__health`,
+      reuseExistingServer: !process.env.CI,
+      env: {
+        OPENAI_STUB_PORT: String(E2E_OPENAI_STUB_PORT),
       },
     },
   ],

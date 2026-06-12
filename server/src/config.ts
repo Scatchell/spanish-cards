@@ -15,6 +15,8 @@ export interface AppConfig {
   // Bearer token for the /mcp endpoint. null disables MCP with a clear
   // configuration error instead of failing startup (see mcp/routes.ts).
   mcpToken: string | null;
+  openaiSecretKey: string | null;
+  openaiBaseUrl: string | null;
   isProduction: boolean;
 }
 
@@ -29,6 +31,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     sessionSecret: required(env, 'SESSION_SECRET'),
     sessionTtlMs: SESSION_TTL_MS,
     mcpToken: env.MCP_TOKEN?.trim() || null,
+    openaiSecretKey: env.OPENAI_SECRET_KEY?.trim() || null,
+    openaiBaseUrl: env.OPENAI_BASE_URL?.trim() || null,
     isProduction: env.NODE_ENV === 'production',
   };
 }

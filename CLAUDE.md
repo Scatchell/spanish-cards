@@ -28,11 +28,11 @@ servers leave their ports unbound, so also check the table below.
 
 ## Port allocation (three environments side by side on this host)
 
-| Environment | Client | API  | Postgres | App container (manual only) |
-| ----------- | ------ | ---- | -------- | --------------------------- |
-| dev         | 4101   | 4102 | 5436     | 4103                        |
-| e2e         | 4113   | 4112 | 55435    | 4114                        |
-| prod        | —      | 4100 | 5434     | 4100                        |
+| Environment | Client | API  | Postgres | App container (manual only) | OpenAI stub |
+| ----------- | ------ | ---- | -------- | --------------------------- | ----------- |
+| dev         | 4101   | 4102 | 5436     | 4103                        | —           |
+| e2e         | 4113   | 4112 | 55435    | 4114                        | 4115        |
+| prod        | —      | 4100 | 5434     | 4100                        | —           |
 
 - Prod serves the built client from the API container, hence no client port.
 - The `/mcp` endpoint lives on the API port (it is a route on the Express
@@ -48,7 +48,7 @@ servers leave their ports unbound, so also check the table below.
 
 | File            | Read by                                  | Contains                                  |
 | --------------- | ---------------------------------------- | ----------------------------------------- |
-| `.env`          | API server (dotenv), Vite config (`loadEnv`), migrations | `PORT`, `DATABASE_URL`, app credentials, `SESSION_SECRET`, `MCP_TOKEN` |
+| `.env`          | API server (dotenv), Vite config (`loadEnv`), migrations | `PORT`, `DATABASE_URL`, app credentials, `SESSION_SECRET`, `MCP_TOKEN`, `OPENAI_SECRET_KEY` |
 | `.dev-env`      | docker compose (`--env-file`) for dev    | Compose project name, postgres container settings, `APP_HOST_PORT` safety valve |
 | `.test-env`     | `e2e/env.ts` + compose for the e2e stack | e2e compose project, ports, test DB        |
 | `.prod-env`     | compose on the prod checkout (not here)  | Prod compose settings + `APP_ENV_FILE=.prod.app.env` |

@@ -8,6 +8,7 @@ export interface TrainingCard {
   id: number;
   spanishText: string;
   englishText: string;
+  languagePair: string;
   due: string;
 }
 
@@ -17,6 +18,7 @@ interface QueueRow {
   id: number;
   spanish_text: string;
   english_text: string;
+  language_pair: string;
   due: Date;
 }
 
@@ -42,7 +44,7 @@ export async function getTrainingQueue(
 ): Promise<TrainingCard[]> {
   const comparison = scope === 'due' ? '<=' : '>';
   const result = await db.query<QueueRow>(
-    `SELECT c.id, c.spanish_text, c.english_text, COALESCE(s.due, c.created_at) AS due
+    `SELECT c.id, c.spanish_text, c.english_text, c.language_pair, COALESCE(s.due, c.created_at) AS due
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
      WHERE COALESCE(s.due, c.created_at) ${comparison} $1
@@ -53,6 +55,7 @@ export async function getTrainingQueue(
     id: row.id,
     spanishText: row.spanish_text,
     englishText: row.english_text,
+    languagePair: row.language_pair,
     due: row.due.toISOString(),
   }));
 }

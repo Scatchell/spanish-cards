@@ -3,6 +3,9 @@ import type { SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { ReviewRating, TrainingCard, TrainingScope } from '../api.js';
 import { ApiError, fetchTrainingQueue, submitReview } from '../api.js';
+import { canExplain } from '../explain/canExplain.js';
+import { ExplainButton } from '../explain/ExplainButton.js';
+import { ExplanationModal } from '../explain/ExplanationModal.js';
 import { formatPercent } from '../format.js';
 import type { AnswerCheckResult } from './answer-check.js';
 import { checkAnswer } from './answer-check.js';
@@ -35,6 +38,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [typed, setTyped] = useState('');
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [saving, setSaving] = useState(false);
+  const [explainOpen, setExplainOpen] = useState(false);
   const answerInput = useRef<HTMLInputElement>(null);
 
   const currentCard: TrainingCard | undefined = queue[0];
@@ -79,6 +83,20 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     }
   }, [currentCard, reveal]);
 
+  useEffect(() => {
+    if (!currentCard || !reveal || explainOpen || !canExplain(currentCard)) return;
+    function onKeyDown(event: KeyboardEvent) {
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement) return;
+      if (event.code === 'KeyE') {
+        event.preventDefault();
+        setExplainOpen(true);
+      }
+    }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [currentCard, reveal, explainOpen]);
+
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (!currentCard || reveal) return;
@@ -100,6 +118,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         }));
         setReveal(null);
         setTyped('');
+        setExplainOpen(false);
       } catch (err) {
         if (!handleUnauthenticated(err)) {
           setLoadState('error');
@@ -189,12 +208,23 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
             ) : (
               <>
                 <AnswerReveal submitted={reveal.submitted} result={reveal.result} />
+                {canExplain(currentCard) && (
+                  <ExplainButton onClick={() => setExplainOpen(true)} />
+                )}
                 <RatingBar
                   allowAgain={!isCorrect}
                   emphasized={isCorrect ? 'good' : 'again'}
-                  disabled={saving}
+                  disabled={saving || explainOpen}
                   onRate={handleRate}
                 />
+                {explainOpen && (
+                  <ExplanationModal
+                    cardId={currentCard.id}
+                    spanishText={currentCard.spanishText}
+                    englishText={currentCard.englishText}
+                    onClose={() => setExplainOpen(false)}
+                  />
+                )}
               </>
             )}
           </section>

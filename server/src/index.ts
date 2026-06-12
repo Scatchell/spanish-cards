@@ -34,6 +34,9 @@ if (fs.existsSync(clientDist)) {
 if (!config.mcpToken) {
   console.warn('MCP_TOKEN is not set: /mcp is disabled and will return a configuration error (see .env.example)');
 }
+if (!config.openaiSecretKey) {
+  console.warn('OPENAI_SECRET_KEY is not set: explanation generation is disabled and will return errors (see .env.example)');
+}
 
 const server = app.listen(config.port, () => {
   console.log(`spanish-cards API listening on http://localhost:${config.port}`);

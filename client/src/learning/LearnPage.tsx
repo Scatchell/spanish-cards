@@ -3,6 +3,9 @@ import { Link } from 'react-router-dom';
 import type { Card } from '../api.js';
 import { ApiError, listCards, logout } from '../api.js';
 import { CardDueStatus } from '../cards/CardDueStatus.js';
+import { canExplain } from '../explain/canExplain.js';
+import { ExplainButton } from '../explain/ExplainButton.js';
+import { ExplanationModal } from '../explain/ExplanationModal.js';
 import type { Direction } from '../training/direction.js';
 import {
   answerText,
@@ -41,6 +44,7 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [session, setSession] = useState<LearningSession | null>(null);
   const [direction, setDirection] = useState<Direction>(loadDirection);
   const [showBack, setShowBack] = useState(false);
+  const [explainOpen, setExplainOpen] = useState(false);
 
   const handleUnauthenticated = useCallback(
     (err: unknown) => {
@@ -83,6 +87,7 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
 
   const advance = useCallback((next: (session: LearningSession) => LearningSession) => {
     setShowBack(false);
+    setExplainOpen(false);
     setSession((current) => (current ? next(current) : current));
   }, []);
 
@@ -91,16 +96,18 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     saveDirection(next);
     setDirection(next);
     setShowBack(false);
+    setExplainOpen(false);
   }
 
   const card = session ? currentCard(session) : undefined;
   const hasCard = card !== undefined;
 
   // Shortcuts while a card is shown: Space flips, 1 = Remembered,
-  // 2 = Still learning. Space is intercepted even on a focused button so
-  // flicking the answer back and forth never activates that button instead.
+  // 2 = Still learning, E = Explain. Space is intercepted even on a focused
+  // button so flicking the answer back and forth never activates that button.
+  // All shortcuts are suspended while the explain modal is open.
   useEffect(() => {
-    if (!hasCard) {
+    if (!hasCard || explainOpen) {
       return;
     }
     function onKeyDown(event: KeyboardEvent) {
@@ -108,6 +115,11 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       if (event.code === 'Space') {
         event.preventDefault();
         setShowBack((s) => !s);
+        return;
+      }
+      if (event.code === 'KeyE' && showBack && card && canExplain(card)) {
+        event.preventDefault();
+        setExplainOpen(true);
         return;
       }
       const digit = /^[12]$/.test(event.key) ? event.key : DIGIT_BY_CODE[event.code];
@@ -121,7 +133,7 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [hasCard, advance]);
+  }, [hasCard, explainOpen, showBack, card, advance]);
 
   return (
     <div className={session ? 'app-shell train-page' : 'app-shell'}>
@@ -178,10 +190,24 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
             >
               {answerText(card, direction)}
             </p>
-            <button type="button" className="secondary" onClick={() => setShowBack((s) => !s)}>
-              {showBack ? 'Hide answer' : 'Show answer'}{' '}
-              <span className="shortcut-hint">(Space)</span>
-            </button>
+            <div className="learn-show-answer-row">
+              <button type="button" className="secondary" onClick={() => setShowBack((s) => !s)}>
+                {showBack ? 'Hide answer' : 'Show answer'}{' '}
+                <span className="shortcut-hint">(Space)</span>
+              </button>
+              {canExplain(card) && (
+                <ExplainButton onClick={() => setExplainOpen(true)} concealed={!showBack} />
+              )}
+            </div>
+
+            {explainOpen && (
+              <ExplanationModal
+                cardId={card.id}
+                spanishText={card.spanishText}
+                englishText={card.englishText}
+                onClose={() => setExplainOpen(false)}
+              />
+            )}
 
             <div className="learn-actions">
               <button type="button" onClick={() => advance(markRemembered)}>

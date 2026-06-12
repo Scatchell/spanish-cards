@@ -28,6 +28,7 @@ function makeFakeDeck(): FakeDeck {
       id: nextId++,
       spanishText,
       englishText,
+      languagePair: 'en<->es',
       createdAt: timestamp,
       updatedAt: timestamp,
       due: timestamp,

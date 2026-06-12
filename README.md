@@ -62,6 +62,7 @@ Documented in `.env.example`:
 | `APP_PASSWORD`   | Login password (plain-text comparison, MVP)        |
 | `SESSION_SECRET` | HMAC secret for session cookies — long random text |
 | `MCP_TOKEN`      | Bearer token for the MCP endpoint — long random text. If unset, `/mcp` is disabled with a configuration error |
+| `OPENAI_SECRET_KEY` | OpenAI API key for explanation generation. If unset, the explain feature returns an error (server still starts) |
 
 The server loads `.env` from the repository root. Docker Compose interpolation
 can use a separate Compose env file, such as `.dev-env` or `.prod-env`, via
@@ -122,9 +123,10 @@ docker compose --profile app run --rm app \
 - **E2E** (`npm run e2e`): requires Docker, `.env`, and `.test-env`, but not a
   running dev database. The suite starts an isolated Compose project using
   `.test-env`, creates a fresh `spanish_cards_test` database volume, runs
-  migrations from scratch, boots its own server pair on ports 4112/4113, and
-  removes the test Compose volume during teardown. First run:
-  `npx playwright install chromium`.
+  migrations from scratch, boots its own server pair on ports 4112/4113, a
+  local OpenAI stub on port 4115 (Playwright manages its lifecycle), and
+  removes the test Compose volume during teardown. No real OpenAI calls are
+  made during e2e. First run: `npx playwright install chromium`.
 
 ## Training UX
 

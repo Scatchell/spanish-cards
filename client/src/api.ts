@@ -2,6 +2,7 @@ export interface Card {
   id: number;
   spanishText: string;
   englishText: string;
+  languagePair: string;
   createdAt: string;
   updatedAt: string;
   // Effective due time: FSRS due date, or createdAt if never reviewed.
@@ -33,6 +34,7 @@ export interface TrainingCard {
   id: number;
   spanishText: string;
   englishText: string;
+  languagePair: string;
   due: string;
 }
 
@@ -127,6 +129,15 @@ export function submitReview(review: ReviewSubmission): Promise<{ schedule: { du
     method: 'POST',
     body: JSON.stringify(review),
   });
+}
+
+export interface ExplanationResponse {
+  explanation: { contentMarkdown: string; model: string; createdAt: string };
+  source: 'cached' | 'generated';
+}
+
+export function fetchExplanation(cardId: number, signal?: AbortSignal): Promise<ExplanationResponse> {
+  return request(`/api/cards/${cardId}/explanation`, { method: 'POST', signal });
 }
 
 export function fetchProgress(): Promise<ProgressSummary> {

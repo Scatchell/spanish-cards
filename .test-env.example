@@ -18,3 +18,7 @@ CLIENT_PORT=4113
 # processes on the ports above), but 4100 — the compose-file default — is the
 # always-running prod container, so a non-conflicting port is set explicitly.
 APP_HOST_PORT=4114
+
+# Port for the local OpenAI Responses API stub used during e2e tests.
+# Playwright starts and stops this process automatically as part of `pnpm e2e`.
+OPENAI_STUB_PORT=4115

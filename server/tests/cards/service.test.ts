@@ -10,8 +10,11 @@ function fakeInsert(inserted: CardInput[][]) {
       id: i + 1,
       spanishText: input.spanishText,
       englishText: input.englishText,
+      languagePair: 'en<->es',
       createdAt: '2026-01-01T00:00:00.000Z',
       updatedAt: '2026-01-01T00:00:00.000Z',
+      due: '2026-01-01T00:00:00.000Z',
+      reviewed: false,
     }));
   };
 }
