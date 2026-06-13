@@ -1,20 +1,22 @@
 FROM node:22-alpine AS build
 WORKDIR /app
-COPY package.json package-lock.json ./
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY server/package.json server/
 COPY client/package.json client/
-RUN npm ci
+RUN pnpm install --frozen-lockfile
 COPY server server
 COPY client client
-RUN npm run build
+RUN pnpm run build
 
 FROM node:22-alpine
 WORKDIR /app
 ENV NODE_ENV=production
-COPY package.json package-lock.json ./
+RUN corepack enable
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY server/package.json server/
 COPY client/package.json client/
-RUN npm ci --omit=dev
+RUN pnpm install --frozen-lockfile --prod
 COPY --from=build /app/server/dist server/dist
 COPY --from=build /app/client/dist client/dist
 COPY server/migrations server/migrations

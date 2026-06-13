@@ -2,21 +2,22 @@
   "name": "spanish-cards",
   "private": true,
   "type": "module",
+  "packageManager": "pnpm@10.32.1",
   "workspaces": [
     "server",
     "client"
   ],
   "scripts": {
-    "dev": "npm run db:up && concurrently -n server,client -c blue,green \"npm run dev -w server\" \"npm run dev -w client\"",
-    "build": "npm run build -w server && npm run build -w client",
-    "start": "npm run start -w server",
+    "dev": "pnpm run db:up && concurrently -n server,client -c blue,green \"pnpm --filter server run dev\" \"pnpm --filter client run dev\"",
+    "build": "pnpm --filter server run build && pnpm --filter client run build",
+    "start": "pnpm --filter server run start",
     "db:up": "node scripts/require-env-file.mjs dev .dev-env .dev-env.example && docker compose --env-file .dev-env up -d --wait postgres",
     "db:down": "node scripts/require-env-file.mjs dev .dev-env .dev-env.example && docker compose --env-file .dev-env stop postgres",
     "ship": "node scripts/deploy-prod.mjs",
-    "migrate:up": "npm run migrate:up -w server",
-    "migrate:down": "npm run migrate:down -w server",
-    "test": "npm run test -w server && npm run test -w client",
-    "typecheck": "npm run typecheck -w server && npm run typecheck -w client",
+    "migrate:up": "pnpm --filter server run migrate:up",
+    "migrate:down": "pnpm --filter server run migrate:down",
+    "test": "pnpm --filter server run test && pnpm --filter client run test",
+    "typecheck": "pnpm --filter server run typecheck && pnpm --filter client run typecheck",
     "e2e": "node scripts/require-env-file.mjs test .test-env .test-env.example && playwright test"
   },
   "devDependencies": {
