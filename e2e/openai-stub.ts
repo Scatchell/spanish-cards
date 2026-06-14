@@ -45,6 +45,12 @@ const server = http.createServer((req, res) => {
         return;
       }
 
+      const isFollowUp =
+        typeof parsed.input === 'string' && parsed.input.includes("Learner's question:");
+      const text = isFollowUp
+        ? '- **stubbed** follow-up answer'
+        : '- **stubbed** explanation for e2e';
+
       const payload = {
         id: 'stub-resp-001',
         object: 'response',
@@ -57,7 +63,7 @@ const server = http.createServer((req, res) => {
             content: [
               {
                 type: 'output_text',
-                text: '- **stubbed** explanation for e2e',
+                text,
               },
             ],
           },

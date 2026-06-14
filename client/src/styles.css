@@ -690,3 +690,56 @@ button.rating.emphasized {
 .explanation-loading {
   margin: 0;
 }
+
+.explanation-followup {
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.followup-answer {
+  margin-bottom: 1rem;
+}
+
+.followup-question {
+  font-weight: 600;
+  margin: 0 0 0.5rem;
+}
+
+.followup-divider {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 0 0 0.75rem;
+}
+
+.followup-loading {
+  margin: 0.5rem 0 0;
+  font-style: italic;
+}
+
+.followup-form {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.followup-input {
+  flex: 1;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+.followup-input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: -1px;
+}
+
+.followup-disclaimer {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}

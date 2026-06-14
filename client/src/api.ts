@@ -140,6 +140,23 @@ export function fetchExplanation(cardId: number, signal?: AbortSignal): Promise<
   return request(`/api/cards/${cardId}/explanation`, { method: 'POST', signal });
 }
 
+export interface FollowUpResponse {
+  answerMarkdown: string;
+}
+
+export function askFollowUp(
+  cardId: number,
+  question: string,
+  explanationMarkdown: string,
+  signal?: AbortSignal,
+): Promise<FollowUpResponse> {
+  return request(`/api/cards/${cardId}/explanation/follow-up`, {
+    method: 'POST',
+    body: JSON.stringify({ question, explanationMarkdown }),
+    signal,
+  });
+}
+
 export function fetchProgress(): Promise<ProgressSummary> {
   // The server buckets days in local time using this offset (minutes ahead
   // of UTC, the negation of Date#getTimezoneOffset).

@@ -6,7 +6,7 @@ import { requireAuth } from './auth/middleware.js';
 import { authRoutes } from './auth/routes.js';
 import { insertCards, listCards } from './cards/repository.js';
 import { cardRoutes } from './cards/routes.js';
-import { createExplanationGenerator } from './explanations/llm.js';
+import { createExplanationGenerator, createFollowUpGenerator } from './explanations/llm.js';
 import { explanationRoutes } from './explanations/routes.js';
 import { mcpRoutes } from './mcp/routes.js';
 import { progressRoutes } from './progress/routes.js';
@@ -44,7 +44,11 @@ export function createApp(config: AppConfig, pool: DbPool): express.Express {
   app.use('/api/login', loginLimiter);
   app.use('/api', authRoutes(config));
   app.use('/api/cards', requireAuth(config), cardRoutes(pool));
-  app.use('/api/cards', requireAuth(config), explanationRoutes(pool, createExplanationGenerator(config)));
+  app.use(
+    '/api/cards',
+    requireAuth(config),
+    explanationRoutes(pool, createExplanationGenerator(config), createFollowUpGenerator(config)),
+  );
   app.use('/api/training', requireAuth(config), trainingRoutes(pool));
   app.use('/api/progress', requireAuth(config), progressRoutes(pool));
 

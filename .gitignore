@@ -12,3 +12,5 @@ test-results/
 .claude/
 .idea/
 ._.idea
+._*
+.DS_Store
