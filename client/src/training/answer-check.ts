@@ -76,7 +76,7 @@ function lenientDiffSegments(submitted: string, correct: string): DiffSegment[] 
   let letterIndex = 0;
   const highlights = correctChars.map((c) => {
     if (c.norm !== null) {
-      return c.raw !== submittedLetters[letterIndex++]?.raw;
+      return c.raw.toLowerCase() !== submittedLetters[letterIndex++]?.raw.toLowerCase();
     }
     if (c.raw.trim() === '') {
       return false; // whitespace differences were already forgiven wholesale

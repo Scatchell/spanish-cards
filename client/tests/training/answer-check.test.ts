@@ -27,24 +27,23 @@ describe('checkAnswer verdicts', () => {
     expect(checkAnswer('manana', 'mañana').verdict).toBe('correctWithDifferences');
   });
 
-  it('forgives capitalization differences', () => {
+  it('forgives capitalization differences without highlighting them', () => {
     const result = checkAnswer('hola', 'Hola');
     expect(result.verdict).toBe('correctWithDifferences');
-    expect(highlighted(result.correctSegments)).toEqual(['H']);
+    expect(highlighted(result.correctSegments)).toEqual([]);
   });
 
   it('forgives missing punctuation, including inverted Spanish punctuation', () => {
     const result = checkAnswer('como estas', '¿Cómo estás?');
     expect(result.verdict).toBe('correctWithDifferences');
-    // Adjacent differing characters merge into one segment: ¿, C, and ó run together.
-    expect(highlighted(result.correctSegments)).toEqual(['¿Có', 'á', '?']);
+    expect(highlighted(result.correctSegments)).toEqual(['¿', 'ó', 'á', '?']);
     expect(fullText(result.correctSegments)).toBe('¿Cómo estás?');
   });
 
   it('does not flag punctuation the user actually typed', () => {
     const result = checkAnswer('¿como estas?', '¿Cómo estás?');
     expect(result.verdict).toBe('correctWithDifferences');
-    expect(highlighted(result.correctSegments)).toEqual(['Có', 'á']);
+    expect(highlighted(result.correctSegments)).toEqual(['ó', 'á']);
   });
 
   it('forgives extra and repeated spaces', () => {
