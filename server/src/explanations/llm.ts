@@ -37,6 +37,7 @@ const FOLLOWUP_INSTRUCTIONS = [
   'Do not introduce unrelated vocabulary or new sentences to study.',
   'Be brief and scannable: a few short sentences or up to ~4 bullets, no preamble,',
   'no headings. Respond in GitHub-flavored markdown.',
+  'NEVER offer follow ups. This is not a long running conversation, just a quick one off follow up answer.',
   'If the question is not about this sentence or about Spanish, briefly say you can',
   'only help with this sentence.',
 ].join(' ');
