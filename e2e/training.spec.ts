@@ -47,24 +47,24 @@ test('trains due cards oldest-first: typed answers, rating, and studying ahead',
 
   // Both new cards are immediately due, oldest (first created) first.
   await expect(page.locator('.queue-count')).toContainText('Card 1 of 2 scheduled');
-  await expect(page.locator('.train-prompt')).toHaveText('el perro');
+  await expect(page.locator('.train-prompt')).toHaveText('the dog');
 
   // Correct typed answer: success state, answer revealed, no "Don't remember".
-  await page.getByLabel(/Your answer/).fill('the dog');
+  await page.getByLabel(/Your answer/).fill('el perro');
   await page.keyboard.press('Enter');
   await expect(page.locator('.verdict')).toHaveText('Correct!');
-  await expect(page.locator('.correct-answer')).toHaveText('the dog');
+  await expect(page.locator('.correct-answer')).toHaveText('el perro');
   await expect(page.getByRole('button', { name: /Don't remember/ })).toHaveCount(0);
   await page.keyboard.press('2');
 
   // Incorrect typed answer: both answers shown, override rating allowed.
   await expect(page.locator('.queue-count')).toContainText('Card 2 of 2 scheduled');
-  await expect(page.locator('.train-prompt')).toHaveText('la casa');
-  await page.getByLabel(/Your answer/).fill('the table');
+  await expect(page.locator('.train-prompt')).toHaveText('the house');
+  await page.getByLabel(/Your answer/).fill('la silla');
   await page.keyboard.press('Enter');
   await expect(page.locator('.verdict')).toHaveText('Not quite');
-  await expect(page.locator('.submitted-answer')).toContainText('the table');
-  await expect(page.locator('.correct-answer')).toHaveText('the house');
+  await expect(page.locator('.submitted-answer')).toContainText('la silla');
+  await expect(page.locator('.correct-answer')).toHaveText('la casa');
   await expect(page.getByRole('button', { name: /Don't remember/ })).toBeVisible();
   await page.keyboard.press('1');
 
@@ -83,11 +83,11 @@ test('trains due cards oldest-first: typed answers, rating, and studying ahead',
   await page.getByRole('button', { name: /Continue studying ahead/ }).click();
   await expect(page.locator('.ahead-badge')).toBeVisible();
   await expect(page.locator('.queue-count')).toContainText('Card 1 of 2');
-  await expect(page.locator('.train-prompt')).toHaveText('la casa');
-  await page.getByLabel(/Your answer/).fill('the house');
+  await expect(page.locator('.train-prompt')).toHaveText('the house');
+  await page.getByLabel(/Your answer/).fill('la casa');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: /Good/ }).click();
-  await expect(page.locator('.train-prompt')).toHaveText('el perro');
+  await expect(page.locator('.train-prompt')).toHaveText('the dog');
 });
 
 test('empty answer reveals the correct answer and defaults to Don\'t remember', async ({
@@ -96,11 +96,11 @@ test('empty answer reveals the correct answer and defaults to Don\'t remember', 
   await createCard(page, 'el gato', 'the cat');
   await page.goto('/train');
 
-  await expect(page.locator('.train-prompt')).toHaveText('el gato');
+  await expect(page.locator('.train-prompt')).toHaveText('the cat');
   await page.getByLabel(/Your answer/).press('Enter');
 
   // Answer revealed; "Don't remember" is the emphasized default action.
-  await expect(page.locator('.correct-answer')).toHaveText('the cat');
+  await expect(page.locator('.correct-answer')).toHaveText('el gato');
   const dontRemember = page.getByRole('button', { name: /Don't remember/ });
   await expect(dontRemember).toBeFocused();
 
@@ -116,7 +116,8 @@ test('direction toggle trains English to Spanish with lenient accent matching', 
   await createCard(page, 'hola', 'hello');
   await page.goto('/train');
 
-  await page.getByRole('button', { name: 'Spanish → English' }).click();
+  // Default is English → Spanish: prompt shows English, answer is Spanish.
+  await expect(page.getByRole('button', { name: 'English → Spanish' })).toBeVisible();
   await expect(page.locator('.train-prompt')).toHaveText('you are');
 
   // Missing accent counts as correct but the difference is highlighted.

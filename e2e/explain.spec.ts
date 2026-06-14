@@ -50,13 +50,13 @@ test('Train: no explain button before checking; button + modal after; cached on 
 }) => {
   await createCard(page, 'me llamo', 'my name is');
   await page.goto('/train');
-  await expect(page.locator('.train-prompt')).toHaveText('me llamo');
+  await expect(page.locator('.train-prompt')).toHaveText('my name is');
 
   // No explain button before checking
   await expect(page.getByRole('button', { name: 'Explain' })).toHaveCount(0);
 
   // Check the answer
-  await page.getByLabel(/Your answer/).fill('my name is');
+  await page.getByLabel(/Your answer/).fill('me llamo');
   await page.keyboard.press('Enter');
 
   // Explain button is now visible
@@ -84,7 +84,7 @@ test('Train: E opens modal, Escape closes, 2 does not advance card while open', 
 }) => {
   await createCard(page, 'la casa', 'the house');
   await page.goto('/train');
-  await page.getByLabel(/Your answer/).fill('the house');
+  await page.getByLabel(/Your answer/).fill('la casa');
   await page.keyboard.press('Enter');
 
   // E opens modal
@@ -94,14 +94,14 @@ test('Train: E opens modal, Escape closes, 2 does not advance card while open', 
   // 2 should not advance the card while modal is open
   await page.keyboard.press('2');
   await expect(page.getByRole('dialog')).toBeVisible();
-  await expect(page.locator('.train-prompt')).toHaveText('la casa');
+  await expect(page.locator('.train-prompt')).toHaveText('the house');
 
   // Escape closes the modal
   await page.keyboard.press('Escape');
   await expect(page.getByRole('dialog')).toHaveCount(0);
 
   // Card is still present (not advanced)
-  await expect(page.locator('.train-prompt')).toHaveText('la casa');
+  await expect(page.locator('.train-prompt')).toHaveText('the house');
 });
 
 test('Learn: explain button hidden before answer shown, visible after', async ({ page }) => {
@@ -147,7 +147,7 @@ test('Failure path: modal shows friendly error message', async ({ page }) => {
   // The stub returns 500 when input contains TRIGGER-EXPLAIN-FAILURE
   await createCard(page, 'TRIGGER-EXPLAIN-FAILURE', 'trigger failure');
   await page.goto('/train');
-  await page.getByLabel(/Your answer/).fill('trigger failure');
+  await page.getByLabel(/Your answer/).fill('TRIGGER-EXPLAIN-FAILURE');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Explain' }).click();
   await expect(page.getByRole('alert')).toHaveText(
@@ -155,12 +155,49 @@ test('Failure path: modal shows friendly error message', async ({ page }) => {
   );
 });
 
+test('Follow-up: ask a question, see answer block, second question replaces first, no persistence on reopen', async ({
+  page,
+}) => {
+  await createCard(page, 'me llamo', 'my name is');
+  await page.goto('/train');
+  await page.getByLabel(/Your answer/).fill('me llamo');
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Explain' }).click();
+  const modal = page.getByRole('dialog');
+  await expect(modal).toContainText('stubbed');
+
+  // Fill follow-up input and submit
+  const input = modal.getByLabel('Ask a question about this sentence');
+  await input.fill('Why this tense?');
+  await modal.getByRole('button', { name: 'Ask' }).click();
+
+  // Answer block shows question and follow-up stub answer
+  await expect(modal.locator('.followup-answer')).toContainText('Why this tense?');
+  await expect(modal.locator('.followup-answer')).toContainText('follow-up answer');
+
+  // Input is cleared
+  await expect(input).toHaveValue('');
+
+  // Submit a second question — it replaces the first
+  await input.fill('Another option?');
+  await modal.getByRole('button', { name: 'Ask' }).click();
+  await expect(modal.locator('.followup-answer')).toContainText('Another option?');
+  await expect(modal.locator('.followup-answer')).not.toContainText('Why this tense?');
+
+  // Close and reopen — follow-up area is empty (not persisted)
+  await page.getByRole('button', { name: 'Close' }).click();
+  await expect(modal).toHaveCount(0);
+  await page.getByRole('button', { name: 'Explain' }).click();
+  await expect(page.getByRole('dialog')).toContainText('stubbed');
+  await expect(page.locator('.followup-answer')).toHaveCount(0);
+});
+
 test('Cross-card cache: second card with identical texts does not call the stub again', async ({
   page,
 }) => {
   await createCard(page, 'hola', 'hello');
   await page.goto('/train');
-  await page.getByLabel(/Your answer/).fill('hello');
+  await page.getByLabel(/Your answer/).fill('hola');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Explain' }).click();
   await expect(page.getByRole('dialog')).toContainText('stubbed');
@@ -175,7 +212,7 @@ test('Cross-card cache: second card with identical texts does not call the stub 
   // Create a second card with same texts, then train it
   await createCard(page, 'hola', 'hello');
   await page.reload();
-  await page.getByLabel(/Your answer/).fill('hello');
+  await page.getByLabel(/Your answer/).fill('hola');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Explain' }).click();
   await expect(page.getByRole('dialog')).toContainText('stubbed');

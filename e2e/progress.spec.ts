@@ -65,10 +65,10 @@ test('full journey: create cards, train, and watch the dashboard update', async 
 
   // Train both cards: one correct, one wrong.
   await page.getByRole('link', { name: 'Train', exact: true }).click();
-  await page.getByLabel(/Your answer/).fill('the dog');
+  await page.getByLabel(/Your answer/).fill('el perro');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: /Good/ }).click();
-  await page.getByLabel(/Your answer/).fill('the window');
+  await page.getByLabel(/Your answer/).fill('la ventana');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: /Don't remember/ }).click();
 
@@ -99,12 +99,12 @@ test('extra practice ahead of schedule is recorded but does not count as due', a
 
   // Review the only scheduled card, then keep practicing it ahead of schedule.
   await page.goto('/train');
-  await page.getByLabel(/Your answer/).fill('the cat');
+  await page.getByLabel(/Your answer/).fill('el gato');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: /Good/ }).click();
   await page.getByRole('button', { name: /Continue studying ahead/ }).click();
   await expect(page.locator('.ahead-badge')).toBeVisible();
-  await page.getByLabel(/Your answer/).fill('the cat');
+  await page.getByLabel(/Your answer/).fill('el gato');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: /Good/ }).click();
   await expect(page.locator('.session-summary')).toContainText('1 card reviewed, 1 correct (100%)');

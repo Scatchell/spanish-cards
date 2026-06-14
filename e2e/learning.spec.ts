@@ -111,7 +111,7 @@ test('learning pass: flip, still-learning spacing, restart, and no scheduling si
 }) => {
   await createCard(page, 'el perro', 'the dog');
   await createCard(page, 'la casa', 'the house');
-  const answers: Record<string, string> = { 'el perro': 'the dog', 'la casa': 'the house' };
+  const answers: Record<string, string> = { 'the dog': 'el perro', 'the house': 'la casa' };
 
   const progressBefore = await fetchProgress(page);
 
