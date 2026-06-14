@@ -63,9 +63,15 @@ importers:
       express:
         specifier: ^5.1.0
         version: 5.2.1
+      express-rate-limit:
+        specifier: ^8.5.2
+        version: 8.5.2(express@5.2.1)
       fuse.js:
         specifier: ^7.4.2
         version: 7.4.2
+      helmet:
+        specifier: ^8.2.0
+        version: 8.2.0
       node-pg-migrate:
         specifier: ^7.9.0
         version: 7.9.1(@types/pg@8.20.0)(pg@8.21.0)
@@ -1177,6 +1183,10 @@ packages:
 
   hast-util-whitespace@3.0.0:
     resolution: {integrity: sha512-88JUN06ipLwsnv+dVn+OIYOvAuvBMy/Qoi6O7mQHxdPXpjy+Cd6xRkWwux7DKO+4sYILtLBRIKgsdpS2gQc7qw==}
+
+  helmet@8.2.0:
+    resolution: {integrity: sha512-DRgTIUgnWcJ62KyarxxziuqYxKGnR6Rgg19BlbucN/dpmJbl1XOit6qvoOX0ZT+HhWe5OUVhU/a1zpGyc1xA0Q==}
+    engines: {node: '>=18.0.0'}
 
   hono@4.12.25:
     resolution: {integrity: sha512-2NFaIyNVgJmBs/ecmtGzlmluTFs5cHEWGTdu0t1HBwYzoGXOL5nUQBRMXsXWla5i4KkG//QMzVP88m1+I3fdAQ==}
@@ -2932,6 +2942,8 @@ snapshots:
   hast-util-whitespace@3.0.0:
     dependencies:
       '@types/hast': 3.0.4
+
+  helmet@8.2.0: {}
 
   hono@4.12.25: {}
 
