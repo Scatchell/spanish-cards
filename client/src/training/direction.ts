@@ -5,7 +5,7 @@ import type { TrainingCard } from '../api.js';
 export type Direction = 'spanish-to-english' | 'english-to-spanish';
 
 const STORAGE_KEY = 'spanish-cards.training-direction';
-export const DEFAULT_DIRECTION: Direction = 'spanish-to-english';
+export const DEFAULT_DIRECTION: Direction = 'english-to-spanish';
 
 export function loadDirection(): Direction {
   const stored = sessionStorage.getItem(STORAGE_KEY);
