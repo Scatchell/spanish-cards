@@ -1,8 +1,3 @@
-# Explain quick chat option
-
-After the initial explain is generated (or recalled from a previous generation) the user should be able to ask specific questions to the LLM within the context of that sentence. The full translation from explain with all details should automatically be in the context, and it should answer quickly and concisely with a character limit to avoid flooding the modal with too much content. These follow ups would not be saved and should be one shot (e.g. no long running conversation necessary). An example of the usage: for asking questions like "Why is Fui used here instead of estaba?" or "Would another viable translation be <blank>" etc.
-
-
 # Content-Security-Policy (deferred from the security hardening pass)
 
 We added `helmet()` but with CSP disabled. A Content-Security-Policy is the

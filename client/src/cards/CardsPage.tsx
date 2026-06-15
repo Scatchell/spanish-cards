@@ -4,6 +4,7 @@ import type { Card } from '../api.js';
 import { ApiError, deleteCardById, listCards, logout, saveCardBatch } from '../api.js';
 import { CardDueStatus } from './CardDueStatus.js';
 import { draftsReducer, initialDraftsState, submittableDrafts } from './drafts.js';
+import { sortCards } from './sort.js';
 import { DraftCardRow } from './DraftCardRow.js';
 
 export const NEW_CARD_SHORTCUT_LABEL = 'Shift+Enter';
@@ -29,7 +30,7 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
 
   useEffect(() => {
     listCards()
-      .then(setCards)
+      .then((cards) => setCards(sortCards(cards)))
       .catch((err) => {
         if (!handleUnauthenticated(err)) {
           setLoadError('Could not load cards');
@@ -74,7 +75,7 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       const result = await saveCardBatch(
         toSubmit.map(({ spanishText, englishText }) => ({ spanishText, englishText })),
       );
-      setCards((existing) => [...result.saved, ...existing]);
+      setCards((existing) => sortCards([...result.saved, ...existing]));
       dispatch({
         type: 'batchSaved',
         submittedKeys: toSubmit.map((draft) => draft.key),

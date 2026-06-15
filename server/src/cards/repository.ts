@@ -32,7 +32,7 @@ export async function listCards(db: DbQueryable): Promise<Card[]> {
             (s.card_id IS NOT NULL) AS reviewed
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
-     ORDER BY c.created_at DESC, c.id DESC`,
+     ORDER BY c.id`,
   );
   return result.rows.map(toCard);
 }
