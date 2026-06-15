@@ -8,7 +8,11 @@ interface AnswerRevealProps {
 export function AnswerReveal({ submitted, result }: AnswerRevealProps) {
   const submittedTrimmed = submitted.trim();
   const { verdict, correctSegments } = result;
-  const correctText = correctSegments.map((s) => s.text).join('');
+  const correctText = correctSegments
+    .filter((s) => s.kind !== 'extra')
+    .map((s) => s.text)
+    .join('')
+    .replace(/  +/g, ' ');
   const showDiff = verdict !== 'correct' && submittedTrimmed !== '';
 
   return (
