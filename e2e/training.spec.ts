@@ -64,8 +64,8 @@ test('trains due cards oldest-first: typed answers, rating, and studying ahead',
   await page.keyboard.press('Enter');
   await expect(page.locator('.verdict')).toHaveText('Not quite');
   await expect(page.locator('.submitted-answer')).toContainText('la silla');
-  await expect(page.locator('.correct-answer mark:not(.extra)')).toHaveText('casa');
-  await expect(page.locator('.correct-answer mark.extra')).toHaveText('silla');
+  await expect(page.locator('.answer-diff mark:not(.extra)')).toHaveText('casa');
+  await expect(page.locator('.answer-diff mark.extra')).toHaveText('silla');
   await expect(page.getByRole('button', { name: /Don't remember/ })).toBeVisible();
   await page.keyboard.press('1');
 
@@ -125,7 +125,7 @@ test('direction toggle trains English to Spanish with lenient accent matching', 
   await page.getByLabel(/Your answer \(Spanish\)/).fill('estas');
   await page.keyboard.press('Enter');
   await expect(page.locator('.verdict')).toContainText('Correct — but check');
-  await expect(page.locator('.correct-answer mark')).toHaveText('á');
+  await expect(page.locator('.answer-diff mark')).toHaveText('á');
   await page.keyboard.press('3');
   await expect(page.locator('.train-prompt')).toHaveText('hello');
 

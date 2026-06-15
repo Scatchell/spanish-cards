@@ -421,13 +421,21 @@ label {
   overflow-wrap: anywhere;
 }
 
-.correct-answer mark {
+.answer-diff {
+  margin: 0.25rem 0 0;
+  font-size: 0.9rem;
+  overflow-wrap: anywhere;
+}
+
+.answer-diff mark {
   background: #fde293;
   border-radius: 3px;
   padding: 0 0.05em;
+  color: var(--text);
 }
 
-.correct-answer mark.extra {
+.answer-diff mark.extra {
+  background: #f5c4c4;
   text-decoration: line-through;
   text-decoration-thickness: 2px;
 }
