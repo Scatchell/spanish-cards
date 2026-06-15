@@ -427,6 +427,11 @@ label {
   padding: 0 0.05em;
 }
 
+.correct-answer mark.extra {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+
 .answer-reveal .hint {
   font-size: 0.85rem;
   margin: 0.5rem 0 0;

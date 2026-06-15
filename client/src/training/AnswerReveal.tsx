@@ -28,9 +28,11 @@ export function AnswerReveal({ submitted, result }: AnswerRevealProps) {
       )}
 
       <p className="correct-answer" aria-label="Correct answer">
-        {correctSegments.map((segment, i) =>
-          segment.highlight ? <mark key={i}>{segment.text}</mark> : <span key={i}>{segment.text}</span>,
-        )}
+        {correctSegments.map((segment, i) => {
+          if (segment.kind === 'unchanged') return <span key={i}>{segment.text}</span>;
+          const className = segment.kind === 'extra' ? 'extra' : undefined;
+          return <mark key={i} className={className}>{segment.text}</mark>;
+        })}
       </p>
 
       {verdict === 'incorrect' && submittedTrimmed !== '' && (

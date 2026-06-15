@@ -3,13 +3,18 @@
 // accents, casing, punctuation (including ¿¡), and extra spaces are forgiven
 // but reported, while word order and word identity must match exactly.
 
-export type Verdict = 'correct' | 'correctWithDifferences' | 'incorrect';
+import { diffArrays } from 'diff';
 
-// The correct answer split into segments for rendering; highlighted segments
-// are the parts the submitted answer missed or got wrong.
+export type Verdict = 'correct' | 'correctWithDifferences' | 'incorrect';
+export type SegmentKind = 'unchanged' | 'missing' | 'extra';
+
+// The correct answer split into segments for rendering. 'missing' = correct
+// content the user omitted or got wrong (yellow highlight). 'extra' = words
+// the user typed that don't belong (yellow + strikethrough). 'unchanged' =
+// plain text.
 export interface DiffSegment {
   text: string;
-  highlight: boolean;
+  kind: SegmentKind;
 }
 
 export interface AnswerCheckResult {
@@ -27,16 +32,14 @@ interface AnnotatedChar {
 export function checkAnswer(submitted: string, correctAnswer: string): AnswerCheckResult {
   const correct = correctAnswer.trim();
   if (submitted.trim() === correct) {
-    return { verdict: 'correct', correctSegments: [{ text: correct, highlight: false }] };
+    return { verdict: 'correct', correctSegments: [{ text: correct, kind: 'unchanged' }] };
   }
   const normalizedSubmitted = normalizeAnswer(submitted);
-  if (normalizedSubmitted !== '' && normalizedSubmitted === normalizeAnswer(correct)) {
-    return {
-      verdict: 'correctWithDifferences',
-      correctSegments: lenientDiffSegments(submitted, correct),
-    };
-  }
-  return { verdict: 'incorrect', correctSegments: wordDiffSegments(submitted, correct) };
+  const verdict: Verdict =
+    normalizedSubmitted !== '' && normalizedSubmitted === normalizeAnswer(correct)
+      ? 'correctWithDifferences'
+      : 'incorrect';
+  return { verdict, correctSegments: diffSegments(submitted, correct) };
 }
 
 // Lowercased, diacritics stripped, punctuation removed, whitespace collapsed.
@@ -55,56 +58,95 @@ export function normalizeAnswer(text: string): string {
 
 function annotateChars(text: string): AnnotatedChar[] {
   return [...text].map((raw) => {
-    const base = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    const base = raw.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
     return /^[\p{L}\p{N}]+$/u.test(base) ? { raw, norm: base } : { raw, norm: null };
   });
 }
 
-// Character-level diff for answers that matched only after normalization.
-// Both answers have the same sequence of normalized letters, so letters align
-// one-to-one; a letter is highlighted when its raw form differs (wrong accent,
-// wrong case). Punctuation is highlighted when the submitted answer is missing
-// that character.
-function lenientDiffSegments(submitted: string, correct: string): DiffSegment[] {
-  const correctChars = annotateChars(correct.trim());
-  const submittedChars = annotateChars(submitted.trim());
+function normalizeWord(word: string): string {
+  return annotateChars(word)
+    .map((c) => c.norm ?? '')
+    .join('');
+}
+
+function coalesce(segments: DiffSegment[]): DiffSegment[] {
+  const out: DiffSegment[] = [];
+  for (const seg of segments) {
+    if (seg.text === '') continue;
+    const last = out[out.length - 1];
+    if (last && last.kind === seg.kind) last.text += seg.text;
+    else out.push({ ...seg });
+  }
+  return out;
+}
+
+// Char-level diff for a single aligned word pair. Because the diffArrays
+// comparator guarantees equal normalized letters, letters align one-to-one.
+function inWordSegments(submitted: string, correct: string): DiffSegment[] {
+  const correctChars = annotateChars(correct);
+  const submittedChars = annotateChars(submitted);
   const submittedLetters = submittedChars.filter((c) => c.norm !== null);
   const availablePunctuation = countBy(
     submittedChars.filter((c) => c.norm === null && c.raw.trim() !== '').map((c) => c.raw),
   );
 
   let letterIndex = 0;
-  const highlights = correctChars.map((c) => {
-    if (c.norm !== null) {
-      return c.raw.toLowerCase() !== submittedLetters[letterIndex++]?.raw.toLowerCase();
-    }
-    if (c.raw.trim() === '') {
-      return false; // whitespace differences were already forgiven wholesale
-    }
-    const available = availablePunctuation.get(c.raw) ?? 0;
-    availablePunctuation.set(c.raw, available - 1);
-    return available <= 0;
-  });
-
-  return toSegments(correctChars.map((c) => c.raw), highlights);
+  return coalesce(
+    correctChars.map((c) => {
+      if (c.norm !== null) {
+        const changed = c.raw.toLowerCase() !== submittedLetters[letterIndex++]?.raw.toLowerCase();
+        return { text: c.raw, kind: changed ? 'missing' : 'unchanged' };
+      }
+      if (c.raw.trim() === '') {
+        return { text: c.raw, kind: 'unchanged' };
+      }
+      const available = availablePunctuation.get(c.raw) ?? 0;
+      availablePunctuation.set(c.raw, available - 1);
+      return { text: c.raw, kind: available > 0 ? 'unchanged' : 'missing' };
+    }),
+  );
 }
 
-// Word-level diff for incorrect answers: each word of the correct answer is
-// highlighted unless the submitted answer has the matching word in the same
-// position.
-function wordDiffSegments(submitted: string, correct: string): DiffSegment[] {
-  const submittedWords = normalizeAnswer(submitted).split(' ');
-  const parts = correct.trim().split(/(\s+)/);
-  let wordIndex = 0;
-  const segments = parts.map((part) => {
-    if (part.trim() === '') {
-      return { text: part, highlight: false };
-    }
-    const matches = normalizeAnswer(part) === submittedWords[wordIndex];
-    wordIndex += 1;
-    return { text: part, highlight: !matches };
+// Unified token-level diff using diffArrays with a normalization-aware
+// comparator. Common word pairs run through inWordSegments for char-level
+// accent/case highlighting. Submitted-only words become 'extra' (strikethrough)
+// and correct-only words become 'missing'.
+function diffSegments(submitted: string, correct: string): DiffSegment[] {
+  const submittedWords = submitted.trim().split(/\s+/).filter((w) => w !== '');
+  const correctWords = correct.trim().split(/\s+/).filter((w) => w !== '');
+
+  const parts = diffArrays(submittedWords, correctWords, {
+    comparator: (a, b) => normalizeWord(a) === normalizeWord(b),
   });
-  return segments.filter((segment) => segment.text !== '');
+
+  const segments: DiffSegment[] = [];
+  let si = 0;
+  let ci = 0;
+  let needsSpace = false;
+
+  const pushWord = (wordSegments: DiffSegment[]) => {
+    if (needsSpace) segments.push({ text: ' ', kind: 'unchanged' });
+    segments.push(...wordSegments);
+    needsSpace = true;
+  };
+
+  for (const part of parts) {
+    if (part.removed) {
+      part.value.forEach((word) => pushWord([{ text: word, kind: 'extra' }]));
+      si += part.value.length;
+    } else if (part.added) {
+      part.value.forEach((word) => pushWord([{ text: word, kind: 'missing' }]));
+      ci += part.value.length;
+    } else {
+      part.value.forEach((_, k) => {
+        pushWord(inWordSegments(submittedWords[si + k]!, correctWords[ci + k]!));
+      });
+      si += part.value.length;
+      ci += part.value.length;
+    }
+  }
+
+  return coalesce(segments);
 }
 
 function countBy(items: string[]): Map<string, number> {
@@ -113,18 +155,4 @@ function countBy(items: string[]): Map<string, number> {
     counts.set(item, (counts.get(item) ?? 0) + 1);
   }
   return counts;
-}
-
-function toSegments(chars: string[], highlights: boolean[]): DiffSegment[] {
-  const segments: DiffSegment[] = [];
-  chars.forEach((char, i) => {
-    const highlight = highlights[i] ?? false;
-    const last = segments[segments.length - 1];
-    if (last && last.highlight === highlight) {
-      last.text += char;
-    } else {
-      segments.push({ text: char, highlight });
-    }
-  });
-  return segments;
 }
