@@ -40,7 +40,7 @@ describe('checkAnswer verdicts', () => {
   it('forgives missing punctuation, including inverted Spanish punctuation', () => {
     const result = checkAnswer('como estas', '¿Cómo estás?');
     expect(result.verdict).toBe('correctWithDifferences');
-    expect(missing(result.correctSegments)).toEqual(['¿', 'ó', 'á', '?']);
+    expect(missing(result.correctSegments)).toEqual(['ó', 'á']);
     expect(fullText(result.correctSegments)).toBe('¿Cómo estás?');
   });
 

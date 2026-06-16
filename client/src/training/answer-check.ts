@@ -86,9 +86,6 @@ function inWordSegments(submitted: string, correct: string): DiffSegment[] {
   const correctChars = annotateChars(correct);
   const submittedChars = annotateChars(submitted);
   const submittedLetters = submittedChars.filter((c) => c.norm !== null);
-  const availablePunctuation = countBy(
-    submittedChars.filter((c) => c.norm === null && c.raw.trim() !== '').map((c) => c.raw),
-  );
 
   let letterIndex = 0;
   return coalesce(
@@ -97,12 +94,7 @@ function inWordSegments(submitted: string, correct: string): DiffSegment[] {
         const changed = c.raw.toLowerCase() !== submittedLetters[letterIndex++]?.raw.toLowerCase();
         return { text: c.raw, kind: changed ? 'missing' : 'unchanged' };
       }
-      if (c.raw.trim() === '') {
-        return { text: c.raw, kind: 'unchanged' };
-      }
-      const available = availablePunctuation.get(c.raw) ?? 0;
-      availablePunctuation.set(c.raw, available - 1);
-      return { text: c.raw, kind: available > 0 ? 'unchanged' : 'missing' };
+      return { text: c.raw, kind: 'unchanged' };
     }),
   );
 }
@@ -147,12 +139,4 @@ function diffSegments(submitted: string, correct: string): DiffSegment[] {
   }
 
   return coalesce(segments);
-}
-
-function countBy(items: string[]): Map<string, number> {
-  const counts = new Map<string, number>();
-  for (const item of items) {
-    counts.set(item, (counts.get(item) ?? 0) + 1);
-  }
-  return counts;
 }

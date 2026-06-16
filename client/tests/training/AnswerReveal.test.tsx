@@ -35,6 +35,6 @@ describe('AnswerReveal', () => {
     const { container } = render(<AnswerReveal submitted="como estas" result={result} />);
     expect(container.querySelector('.correct-answer')?.textContent).toBe('¿Cómo estás?');
     const marks = [...container.querySelectorAll('.answer-diff mark')];
-    expect(marks.map((m) => m.textContent)).toEqual(['¿', 'ó', 'á', '?']);
+    expect(marks.map((m) => m.textContent)).toEqual(['ó', 'á']);
   });
 });
