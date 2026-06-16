@@ -1,7 +1,9 @@
 // Deterministic lenient answer matching. The goal is to check whether the
 // user remembered the word/phrase, not whether they typed it perfectly:
-// accents, casing, punctuation (including ¿¡), and extra spaces are forgiven
-// but reported, while word order and word identity must match exactly.
+// accents, casing, punctuation (including ¿¡), and extra spaces are forgiven.
+// Word order and word identity must match exactly.
+// Verdict is derived from the diff: no highlights → correct, highlights + normalized
+// match → correctWithDifferences, otherwise incorrect.
 
 import { diffArrays } from 'diff';
 
@@ -31,15 +33,14 @@ interface AnnotatedChar {
 
 export function checkAnswer(submitted: string, correctAnswer: string): AnswerCheckResult {
   const correct = correctAnswer.trim();
-  if (submitted.trim() === correct) {
-    return { verdict: 'correct', correctSegments: [{ text: correct, kind: 'unchanged' }] };
-  }
   const normalizedSubmitted = normalizeAnswer(submitted);
-  const verdict: Verdict =
-    normalizedSubmitted !== '' && normalizedSubmitted === normalizeAnswer(correct)
-      ? 'correctWithDifferences'
-      : 'incorrect';
-  return { verdict, correctSegments: diffSegments(submitted, correct) };
+  const correctSegments = diffSegments(submitted, correct);
+  const verdict: Verdict = correctSegments.every((s) => s.kind === 'unchanged')
+    ? 'correct'
+    : normalizedSubmitted !== '' && normalizedSubmitted === normalizeAnswer(correct)
+    ? 'correctWithDifferences'
+    : 'incorrect';
+  return { verdict, correctSegments };
 }
 
 // Lowercased, diacritics stripped, punctuation removed, whitespace collapsed.

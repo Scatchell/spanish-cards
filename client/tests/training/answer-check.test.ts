@@ -33,7 +33,7 @@ describe('checkAnswer verdicts', () => {
 
   it('forgives capitalization differences without highlighting them', () => {
     const result = checkAnswer('hola', 'Hola');
-    expect(result.verdict).toBe('correctWithDifferences');
+    expect(result.verdict).toBe('correct');
     expect(missing(result.correctSegments)).toEqual([]);
   });
 
@@ -51,9 +51,7 @@ describe('checkAnswer verdicts', () => {
   });
 
   it('forgives extra and repeated spaces', () => {
-    expect(checkAnswer('  buenos   días ', 'buenos días').verdict).toBe(
-      'correctWithDifferences',
-    );
+    expect(checkAnswer('  buenos   días ', 'buenos días').verdict).toBe('correct');
   });
 
   it('requires word order to match', () => {
