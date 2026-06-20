@@ -17,7 +17,7 @@ export function trainingRoutes(pool: DbPool): Router {
     if (!request) {
       res.status(400).json({
         error:
-          'Body must be { cardId, rating, direction, detectedCorrect } with rating one of again/hard/good/easy',
+          'Body must be { cardId, rating, direction, verdict, submittedText } with rating one of again/hard/good/easy and verdict one of correct/correctWithDifferences/incorrect',
       });
       return;
     }

@@ -41,7 +41,8 @@ async function reviewCard(page: Page, spanishText: string) {
       cardId: card!.id,
       rating: 'good',
       direction: 'spanish-to-english',
-      detectedCorrect: true,
+      verdict: 'correct',
+      submittedText: spanishText,
     },
   });
   expect(response.ok()).toBe(true);

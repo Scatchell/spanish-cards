@@ -5,7 +5,8 @@ const validBody = {
   cardId: 7,
   rating: 'good',
   direction: 'spanish-to-english',
-  detectedCorrect: true,
+  verdict: 'correct',
+  submittedText: 'hola',
 };
 
 describe('parseReviewRequest', () => {
@@ -41,8 +42,23 @@ describe('parseReviewRequest', () => {
     expect(parseReviewRequest({ ...validBody, direction: 'english-to-french' })).toBeNull();
   });
 
-  it('rejects a non-boolean detectedCorrect', () => {
-    expect(parseReviewRequest({ ...validBody, detectedCorrect: 'yes' })).toBeNull();
-    expect(parseReviewRequest({ ...validBody, detectedCorrect: undefined })).toBeNull();
+  it('accepts every verdict', () => {
+    for (const verdict of ['correct', 'correctWithDifferences', 'incorrect']) {
+      expect(parseReviewRequest({ ...validBody, verdict })).toEqual({ ...validBody, verdict });
+    }
+  });
+
+  it('rejects unknown verdicts', () => {
+    expect(parseReviewRequest({ ...validBody, verdict: 'maybe' })).toBeNull();
+    expect(parseReviewRequest({ ...validBody, verdict: undefined })).toBeNull();
+  });
+
+  it('requires submittedText to be a string but allows an empty one', () => {
+    expect(parseReviewRequest({ ...validBody, submittedText: '' })).toEqual({
+      ...validBody,
+      submittedText: '',
+    });
+    expect(parseReviewRequest({ ...validBody, submittedText: 42 })).toBeNull();
+    expect(parseReviewRequest({ ...validBody, submittedText: undefined })).toBeNull();
   });
 });

@@ -1,3 +1,5 @@
+import type { Verdict } from './training/answer-check.js';
+
 export interface Card {
   id: number;
   spanishText: string;
@@ -46,9 +48,11 @@ export interface ReviewSubmission {
   cardId: number;
   rating: ReviewRating;
   direction: 'spanish-to-english' | 'english-to-spanish';
-  // Whether answer matching judged the typed answer correct, before any
-  // manual rating override.
-  detectedCorrect: boolean;
+  // The answer-checker's three-state verdict. The server derives its own
+  // detectedCorrect from this.
+  verdict: Verdict;
+  // The raw text the user typed (may be empty).
+  submittedText: string;
 }
 
 export interface DayActivity {

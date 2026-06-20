@@ -109,7 +109,13 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       const detectedCorrect = reveal.result.verdict !== 'incorrect';
       setSaving(true);
       try {
-        await submitReview({ cardId: currentCard.id, rating, direction, detectedCorrect });
+        await submitReview({
+          cardId: currentCard.id,
+          rating,
+          direction,
+          verdict: reveal.result.verdict,
+          submittedText: reveal.submitted,
+        });
         setQueue((cards) => cards.slice(1));
         setSession((s) => ({
           ...s,

@@ -1,6 +1,6 @@
 import type { DbQueryable } from '../db.js';
 import type { CardSchedule, ReviewRating } from './scheduler.js';
-import type { PromptDirection } from './validation.js';
+import type { PromptDirection, Verdict } from './validation.js';
 
 // A card as presented in the training queue. `due` is the effective due time:
 // the FSRS due date, or the card's creation time if it has never been reviewed.
@@ -170,6 +170,39 @@ export async function insertReview(db: DbQueryable, review: NewReview): Promise<
       review.rating,
       review.wasDue,
       review.reviewedAt,
+    ],
+  );
+}
+
+// One row of the independent review_history log (see the review-history
+// migration for field semantics). Every analysis field is snapshotted here, so
+// the row has no referential dependency on cards/reviews.
+export interface NewReviewHistory {
+  cardId: number;
+  direction: PromptDirection;
+  verdict: Verdict;
+  rating: ReviewRating;
+  correctText: string;
+  submittedText: string;
+  attemptedAt: Date;
+}
+
+export async function insertReviewHistory(
+  db: DbQueryable,
+  history: NewReviewHistory,
+): Promise<void> {
+  await db.query(
+    `INSERT INTO review_history
+       (card_id, direction, verdict, rating, correct_text, submitted_text, attempted_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+    [
+      history.cardId,
+      history.direction,
+      history.verdict,
+      history.rating,
+      history.correctText,
+      history.submittedText,
+      history.attemptedAt,
     ],
   );
 }
