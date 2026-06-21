@@ -71,6 +71,23 @@ export function restartPass(session: LearningSession, rng: Rng = Math.random): L
   return { selected: session.selected, queue, rememberedIds: [] };
 }
 
+// Patches one card's fields wherever it appears in the session (both the
+// active queue and the original selected set), after a server-confirmed text
+// edit. This only mutates the locally-held copy — it never touches FSRS state,
+// review history, or due dates, preserving the learning-is-preview invariant.
+export function updateCardInSession(
+  session: LearningSession,
+  cardId: number,
+  patch: Partial<Pick<Card, 'spanishText' | 'englishText'>>,
+): LearningSession {
+  const apply = (card: Card): Card => (card.id === cardId ? { ...card, ...patch } : card);
+  return {
+    ...session,
+    selected: session.selected.map(apply),
+    queue: session.queue.map(apply),
+  };
+}
+
 // Fisher-Yates shuffle of a copy; the input array is left untouched.
 export function shuffle<T>(items: T[], rng: Rng = Math.random): T[] {
   const result = [...items];

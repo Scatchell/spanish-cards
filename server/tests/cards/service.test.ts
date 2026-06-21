@@ -1,7 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import type { Card } from '../../src/cards/repository.js';
-import { saveCardBatch } from '../../src/cards/service.js';
+import { saveCardBatch, updateCardText } from '../../src/cards/service.js';
 import type { CardInput } from '../../src/cards/validation.js';
+
+function fakeCard(id: number, input: CardInput): Card {
+  return {
+    id,
+    spanishText: input.spanishText,
+    englishText: input.englishText,
+    languagePair: 'en<->es',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+    due: '2026-01-01T00:00:00.000Z',
+    reviewed: false,
+  };
+}
 
 function fakeInsert(inserted: CardInput[][]) {
   return async (inputs: CardInput[]): Promise<Card[]> => {
@@ -63,5 +76,50 @@ describe('saveCardBatch', () => {
     expect(result.saved).toEqual([]);
     expect(result.failures).toHaveLength(1);
     expect(inserted[0]).toEqual([]);
+  });
+});
+
+describe('updateCardText', () => {
+  it('normalizes input and persists when valid', async () => {
+    const calls: CardInput[] = [];
+    const result = await updateCardText(
+      7,
+      { spanishText: '  hola  ', englishText: ' hello ' },
+      async (id, input) => {
+        calls.push(input);
+        return fakeCard(id, input);
+      },
+    );
+    expect(result).toEqual({ ok: true, card: fakeCard(7, { spanishText: 'hola', englishText: 'hello' }) });
+    expect(calls).toEqual([{ spanishText: 'hola', englishText: 'hello' }]);
+  });
+
+  it('short-circuits with validation errors before calling updateCard', async () => {
+    let called = false;
+    const result = await updateCardText(
+      7,
+      { spanishText: '', englishText: 'hello' },
+      async (id, input) => {
+        called = true;
+        return fakeCard(id, input);
+      },
+    );
+    expect(called).toBe(false);
+    expect(result.ok).toBe(false);
+    expect(result).toMatchObject({ ok: false });
+    if (!result.ok && 'errors' in result) {
+      expect(result.errors[0]?.field).toBe('spanishText');
+    } else {
+      throw new Error('expected validation errors');
+    }
+  });
+
+  it('returns notFound when no row matched', async () => {
+    const result = await updateCardText(
+      999,
+      { spanishText: 'hola', englishText: 'hello' },
+      async () => null,
+    );
+    expect(result).toEqual({ ok: false, notFound: true });
   });
 });

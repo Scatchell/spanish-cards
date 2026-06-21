@@ -70,6 +70,24 @@ export async function getCard(db: DbQueryable, id: number): Promise<Card | null>
   return result.rows[0] ? toCard(result.rows[0]) : null;
 }
 
+export async function updateCard(
+  db: DbQueryable,
+  id: number,
+  input: CardInput,
+): Promise<Card | null> {
+  // cards.updated_at has no update trigger, so set it explicitly here.
+  const result = await db.query(
+    `UPDATE cards SET spanish_text = $1, english_text = $2, updated_at = now()
+     WHERE id = $3`,
+    [input.spanishText, input.englishText, id],
+  );
+  if ((result.rowCount ?? 0) === 0) {
+    return null;
+  }
+  // Re-read so due/reviewed reflect the (untouched) schedule join.
+  return getCard(db, id);
+}
+
 export async function deleteCard(db: DbQueryable, id: number): Promise<boolean> {
   const result = await db.query('DELETE FROM cards WHERE id = $1', [id]);
   return (result.rowCount ?? 0) > 0;

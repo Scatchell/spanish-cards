@@ -7,6 +7,7 @@ import {
   restartPass,
   shuffle,
   startSession,
+  updateCardInSession,
 } from '../../src/learning/session.js';
 
 function makeCard(id: number): Card {
@@ -14,6 +15,7 @@ function makeCard(id: number): Card {
     id,
     spanishText: `es-${id}`,
     englishText: `en-${id}`,
+    languagePair: 'en<->es',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     due: '2026-01-01T00:00:00.000Z',
@@ -36,6 +38,24 @@ describe('startSession', () => {
     expect([...queueIds(session)].sort((a, b) => a - b)).toEqual([1, 2, 3, 4, 5]);
     expect(session.rememberedIds).toEqual([]);
     expect(session.selected).toEqual(cards);
+  });
+});
+
+describe('updateCardInSession', () => {
+  it('patches the matching card in both the queue and the selected set', () => {
+    const session = startSession(makeCards(3));
+    const updated = updateCardInSession(session, 2, { spanishText: 'nuevo' });
+    expect(updated.queue.find((c) => c.id === 2)?.spanishText).toBe('nuevo');
+    expect(updated.selected.find((c) => c.id === 2)?.spanishText).toBe('nuevo');
+    // Other cards untouched, and rememberedIds preserved.
+    expect(updated.queue.find((c) => c.id === 1)?.spanishText).toBe('es-1');
+    expect(updated.rememberedIds).toEqual(session.rememberedIds);
+  });
+
+  it('is a no-op when no card matches', () => {
+    const session = startSession(makeCards(2));
+    const updated = updateCardInSession(session, 99, { englishText: 'x' });
+    expect(updated.queue.map((c) => c.englishText).sort()).toEqual(['en-1', 'en-2']);
   });
 });
 

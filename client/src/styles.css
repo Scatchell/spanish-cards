@@ -320,17 +320,24 @@ label {
   }
 }
 
-.learn-answer {
-  font-size: 1.35rem;
-  font-weight: 600;
+/* The divider/spacing lives on the row wrapper; .learn-answer itself (now
+   applied to the inline text span inside EditableSentence) only sets the
+   sentence's own typography, so its element's text stays exactly the
+   sentence. */
+.learn-answer-row {
   margin: 0;
-  overflow-wrap: anywhere;
   border-top: 1px solid var(--border);
   padding-top: 0.75rem;
 }
 
+.learn-answer {
+  font-size: 1.35rem;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
 /* Hidden answer keeps its space so flipping never shifts the buttons. */
-.learn-answer.concealed {
+.learn-answer-row.concealed {
   visibility: hidden;
 }
 
@@ -607,6 +614,49 @@ button.rating.emphasized {
 
 .explain-button.concealed {
   visibility: hidden;
+}
+
+/* ---- Inline sentence editing (Train/Learn) ---- */
+
+/* Row pairing an editable sentence's text/input with its pencil button. The
+   text/input is a plain child (not wrapped by the page-specific class) so
+   that class's selector always matches exactly the sentence, with no
+   edit-affordance noise — e2e specs assert on its exact text. */
+.editable-sentence {
+  display: flex;
+  align-items: baseline;
+  gap: 0.4rem;
+  flex-wrap: wrap;
+}
+
+.editable-sentence > :first-child {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* Small, low-weight pencil that sits inline after an editable sentence,
+   modelled on .explain-button but lighter so it never competes with the text. */
+.edit-sentence-button {
+  padding: 0.1rem 0.4rem;
+  font-size: 0.8em;
+  line-height: 1;
+  vertical-align: middle;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.edit-sentence-button:hover {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+
+/* Inherit the surrounding sentence's font so toggling modes doesn't resize. */
+.edit-sentence-input {
+  font: inherit;
+  box-sizing: border-box;
 }
 
 .learn-show-answer-row {

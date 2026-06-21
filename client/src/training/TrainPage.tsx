@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { ReviewRating, TrainingCard, TrainingScope } from '../api.js';
-import { ApiError, fetchTrainingQueue, submitReview } from '../api.js';
+import { ApiError, fetchTrainingQueue, submitReview, updateCardText } from '../api.js';
+import { EditableSentence } from '../cards/EditableSentence.js';
 import { canExplain } from '../explain/canExplain.js';
 import { ExplainButton } from '../explain/ExplainButton.js';
 import { ExplanationModal } from '../explain/ExplanationModal.js';
@@ -37,6 +38,9 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [direction, setDirection] = useState<Direction>(loadDirection);
   const [typed, setTyped] = useState('');
   const [reveal, setReveal] = useState<Reveal | null>(null);
+  // Holds the corrected answer text after an inline edit during reveal; reset
+  // per card so an edit never leaks onto the next card's answer.
+  const [answerOverride, setAnswerOverride] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const answerInput = useRef<HTMLInputElement>(null);
@@ -100,6 +104,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   function handleSubmit(event: SubmitEvent) {
     event.preventDefault();
     if (!currentCard || reveal) return;
+    setAnswerOverride(null);
     setReveal({ submitted: typed, result: checkAnswer(typed, answerText(currentCard, direction)) });
   }
 
@@ -123,6 +128,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           correct: s.correct + (detectedCorrect ? 1 : 0),
         }));
         setReveal(null);
+        setAnswerOverride(null);
         setTyped('');
         setExplainOpen(false);
       } catch (err) {
@@ -135,6 +141,21 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     },
     [currentCard, reveal, saving, direction, handleUnauthenticated],
   );
+
+  // Persists a single field's text for a card, then patches the local queue so
+  // the correction shows for the rest of the session. Throws on failure so
+  // EditableSentence reverts and surfaces the error; never touches schedule.
+  async function saveCardField(
+    card: TrainingCard,
+    field: 'spanishText' | 'englishText',
+    newText: string,
+  ) {
+    await updateCardText(card.id, {
+      spanishText: field === 'spanishText' ? newText : card.spanishText,
+      englishText: field === 'englishText' ? newText : card.englishText,
+    });
+    setQueue((cards) => cards.map((c) => (c.id === card.id ? { ...c, [field]: newText } : c)));
+  }
 
   function toggleDirection() {
     const next = oppositeDirection(direction);
@@ -151,6 +172,11 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
 
   const isCorrect = reveal !== null && reveal.result.verdict !== 'incorrect';
   const cardPosition = session.total - queue.length + 1;
+  // Which card field each slot edits, given the current direction.
+  const promptField = direction === 'spanish-to-english' ? 'spanishText' : 'englishText';
+  const answerField = direction === 'spanish-to-english' ? 'englishText' : 'spanishText';
+  const promptLabel = direction === 'spanish-to-english' ? 'Spanish prompt' : 'English prompt';
+  const answerLabel = direction === 'spanish-to-english' ? 'English answer' : 'Spanish answer';
 
   return (
     <div className="app-shell train-page">
@@ -190,9 +216,13 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
               </button>
             </div>
 
-            <p className="train-prompt" aria-label="Prompt">
-              {promptText(currentCard, direction)}
-            </p>
+            <EditableSentence
+              className="train-prompt"
+              text={promptText(currentCard, direction)}
+              ariaLabel={promptLabel}
+              sentenceAriaLabel="Prompt"
+              onSave={(newText) => saveCardField(currentCard, promptField, newText)}
+            />
 
             {reveal === null ? (
               <form onSubmit={handleSubmit}>
@@ -213,7 +243,17 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
               </form>
             ) : (
               <>
-                <AnswerReveal submitted={reveal.submitted} result={reveal.result} />
+                <AnswerReveal
+                  submitted={reveal.submitted}
+                  result={reveal.result}
+                  answerOverride={answerOverride}
+                  answerAriaLabel={answerLabel}
+                  onSaveAnswer={(newText) =>
+                    saveCardField(currentCard, answerField, newText).then(() =>
+                      setAnswerOverride(newText),
+                    )
+                  }
+                />
                 {canExplain(currentCard) && (
                   <ExplainButton onClick={() => setExplainOpen(true)} />
                 )}

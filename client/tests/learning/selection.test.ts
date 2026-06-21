@@ -16,6 +16,7 @@ function makeCard(id: number, overrides: Partial<Card> = {}): Card {
     id,
     spanishText: `es-${id}`,
     englishText: `en-${id}`,
+    languagePair: 'en<->es',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
     due: '2026-01-01T00:00:00.000Z',

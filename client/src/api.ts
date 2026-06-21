@@ -119,6 +119,14 @@ export function saveCardBatch(cards: CardDraftInput[]): Promise<BatchSaveResult>
   return request('/api/cards/batch', { method: 'POST', body: JSON.stringify({ cards }) });
 }
 
+export async function updateCardText(id: number, input: CardDraftInput): Promise<Card> {
+  const { card } = await request<{ card: Card }>(`/api/cards/${id}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+  return card;
+}
+
 export function deleteCardById(id: number): Promise<void> {
   return request(`/api/cards/${id}`, { method: 'DELETE' });
 }

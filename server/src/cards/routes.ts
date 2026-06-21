@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { DbPool } from '../db.js';
-import { deleteCard, insertCards, listCards } from './repository.js';
-import { saveCardBatch } from './service.js';
+import { deleteCard, insertCards, listCards, updateCard } from './repository.js';
+import { saveCardBatch, updateCardText } from './service.js';
 import type { CardInput } from './validation.js';
 
 export function cardRoutes(pool: DbPool): Router {
@@ -19,6 +19,31 @@ export function cardRoutes(pool: DbPool): Router {
     }
     const result = await saveCardBatch(inputs, (valid) => insertCards(pool, valid));
     res.status(201).json(result);
+  });
+
+  router.patch('/:id', async (req, res) => {
+    const id = Number(req.params.id);
+    if (!Number.isInteger(id)) {
+      res.status(400).json({ error: 'Card id must be an integer' });
+      return;
+    }
+    const input = parseCardInputBody(req.body);
+    if (input === null) {
+      res.status(400).json({ error: 'Body must be { spanishText, englishText }' });
+      return;
+    }
+    const result = await updateCardText(id, input, (cardId, valid) =>
+      updateCard(pool, cardId, valid),
+    );
+    if (!result.ok && 'notFound' in result) {
+      res.status(404).json({ error: 'Card not found' });
+      return;
+    }
+    if (!result.ok) {
+      res.status(400).json({ errors: result.errors });
+      return;
+    }
+    res.json({ card: result.card });
   });
 
   router.delete('/:id', async (req, res) => {
@@ -43,13 +68,23 @@ function parseBatchBody(body: unknown): CardInput[] | null {
     return null;
   }
   const cards = (body as { cards: unknown[] }).cards;
-  const inputs: CardInput[] = [];
-  for (const card of cards) {
-    const { spanishText, englishText } = (card ?? {}) as Record<string, unknown>;
-    inputs.push({
-      spanishText: typeof spanishText === 'string' ? spanishText : '',
-      englishText: typeof englishText === 'string' ? englishText : '',
-    });
+  return cards.map(coerceCardInput);
+}
+
+// Parses a single { spanishText, englishText } body, returning null only when
+// the body isn't an object at all. Missing/non-string fields coerce to '' so
+// validation can report them per-field, matching the batch path.
+function parseCardInputBody(body: unknown): CardInput | null {
+  if (typeof body !== 'object' || body === null || Array.isArray(body)) {
+    return null;
   }
-  return inputs;
+  return coerceCardInput(body);
+}
+
+function coerceCardInput(card: unknown): CardInput {
+  const { spanishText, englishText } = (card ?? {}) as Record<string, unknown>;
+  return {
+    spanishText: typeof spanishText === 'string' ? spanishText : '',
+    englishText: typeof englishText === 'string' ? englishText : '',
+  };
 }

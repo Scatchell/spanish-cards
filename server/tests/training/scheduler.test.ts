@@ -16,9 +16,9 @@ describe('rateSchedule', () => {
     const dues = (['again', 'hard', 'good', 'easy'] as ReviewRating[]).map(
       (rating) => rateSchedule(null, rating, NOW).due.getTime(),
     );
-    expect(dues[0]).toBeLessThan(dues[1]);
-    expect(dues[1]).toBeLessThan(dues[2]);
-    expect(dues[2]).toBeLessThan(dues[3]);
+    expect(dues[0]).toBeLessThan(dues[1]!);
+    expect(dues[1]).toBeLessThan(dues[2]!);
+    expect(dues[2]).toBeLessThan(dues[3]!);
   });
 
   it('pushes the due date further out on each successful review', () => {

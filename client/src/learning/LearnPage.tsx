@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Card } from '../api.js';
-import { ApiError, listCards, logout } from '../api.js';
+import { ApiError, listCards, logout, updateCardText } from '../api.js';
 import { CardDueStatus } from '../cards/CardDueStatus.js';
+import { EditableSentence } from '../cards/EditableSentence.js';
 import { canExplain } from '../explain/canExplain.js';
 import { ExplainButton } from '../explain/ExplainButton.js';
 import { ExplanationModal } from '../explain/ExplanationModal.js';
@@ -15,7 +16,14 @@ import {
   saveDirection,
 } from '../training/direction.js';
 import type { LearningSession } from './session.js';
-import { currentCard, markRemembered, markStillLearning, restartPass, startSession } from './session.js';
+import {
+  currentCard,
+  markRemembered,
+  markStillLearning,
+  restartPass,
+  startSession,
+  updateCardInSession,
+} from './session.js';
 import {
   allCardIds,
   cardIdsWithStatus,
@@ -102,6 +110,29 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const card = session ? currentCard(session) : undefined;
   const hasCard = card !== undefined;
 
+  // Which card field each slot edits, given the current direction.
+  const promptField = direction === 'spanish-to-english' ? 'spanishText' : 'englishText';
+  const answerField = direction === 'spanish-to-english' ? 'englishText' : 'spanishText';
+  const promptLabel = direction === 'spanish-to-english' ? 'Spanish prompt' : 'English prompt';
+  const answerLabel = direction === 'spanish-to-english' ? 'English answer' : 'Spanish answer';
+
+  // Persists a single field's text, then patches the in-memory session so the
+  // correction shows if the card reappears later this pass. Throws on failure
+  // so EditableSentence reverts; never touches FSRS/schedule state.
+  async function saveCardField(
+    target: Card,
+    field: 'spanishText' | 'englishText',
+    newText: string,
+  ) {
+    await updateCardText(target.id, {
+      spanishText: field === 'spanishText' ? newText : target.spanishText,
+      englishText: field === 'englishText' ? newText : target.englishText,
+    });
+    setSession((current) =>
+      current ? updateCardInSession(current, target.id, { [field]: newText }) : current,
+    );
+  }
+
   // Shortcuts while a card is shown: Space flips, 1 = Remembered,
   // 2 = Still learning, E = Explain. Space is intercepted even on a focused
   // button so flicking the answer back and forth never activates that button.
@@ -177,18 +208,31 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
               </button>
             </div>
 
-            <p className="train-prompt" aria-label="Prompt">
-              {promptText(card, direction)}
-            </p>
+            <EditableSentence
+              className="train-prompt"
+              text={promptText(card, direction)}
+              ariaLabel={promptLabel}
+              sentenceAriaLabel="Prompt"
+              onSave={(newText) => saveCardField(card, promptField, newText)}
+            />
 
             {/* The answer text always occupies its slot so showing/hiding it
-                never moves the buttons below. */}
+                never moves the buttons below. While concealed (visibility:
+                hidden) its edit control is also non-focusable. The divider
+                styling lives on this row wrapper, not on .learn-answer
+                itself, so .learn-answer's own text stays exactly the
+                sentence (no edit-button noise) for callers/specs. */}
             <p
-              className={showBack ? 'learn-answer' : 'learn-answer concealed'}
+              className={showBack ? 'learn-answer-row' : 'learn-answer-row concealed'}
               aria-label="Answer"
               aria-hidden={!showBack}
             >
-              {answerText(card, direction)}
+              <EditableSentence
+                className="learn-answer"
+                text={answerText(card, direction)}
+                ariaLabel={answerLabel}
+                onSave={(newText) => saveCardField(card, answerField, newText)}
+              />
             </p>
             <div className="learn-show-answer-row">
               <button type="button" className="secondary" onClick={() => setShowBack((s) => !s)}>

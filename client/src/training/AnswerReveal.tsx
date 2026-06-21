@@ -1,11 +1,24 @@
+import { EditableSentence } from '../cards/EditableSentence.js';
 import type { AnswerCheckResult } from './answer-check.js';
 
 interface AnswerRevealProps {
   submitted: string;
   result: AnswerCheckResult;
+  // When provided, the correct answer becomes inline-editable. Once an edit
+  // has been saved, `answerOverride` holds the corrected text and the diff is
+  // suppressed (we show the plain corrected sentence instead).
+  onSaveAnswer?: (newText: string) => Promise<void>;
+  answerOverride?: string | null;
+  answerAriaLabel?: string;
 }
 
-export function AnswerReveal({ submitted, result }: AnswerRevealProps) {
+export function AnswerReveal({
+  submitted,
+  result,
+  onSaveAnswer,
+  answerOverride = null,
+  answerAriaLabel,
+}: AnswerRevealProps) {
   const submittedTrimmed = submitted.trim();
   const { verdict, correctSegments } = result;
   const correctText = correctSegments
@@ -13,7 +26,8 @@ export function AnswerReveal({ submitted, result }: AnswerRevealProps) {
     .map((s) => s.text)
     .join('')
     .replace(/  +/g, ' ');
-  const showDiff = verdict !== 'correct' && submittedTrimmed !== '';
+  // Editing the answer replaces the diffed view with the plain corrected text.
+  const showDiff = verdict !== 'correct' && submittedTrimmed !== '' && answerOverride === null;
 
   return (
     <div className="answer-reveal" data-verdict={verdict}>
@@ -33,7 +47,17 @@ export function AnswerReveal({ submitted, result }: AnswerRevealProps) {
         </p>
       )}
 
-      <p className="correct-answer" aria-label="Correct answer">{correctText}</p>
+      {onSaveAnswer ? (
+        <EditableSentence
+          className="correct-answer"
+          text={answerOverride ?? correctText}
+          onSave={onSaveAnswer}
+          ariaLabel={answerAriaLabel ?? 'correct answer'}
+          sentenceAriaLabel="Correct answer"
+        />
+      ) : (
+        <p className="correct-answer" aria-label="Correct answer">{correctText}</p>
+      )}
 
       {showDiff && (
         <p className="answer-diff">
