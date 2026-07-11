@@ -3,16 +3,11 @@ import { Link } from 'react-router-dom';
 import type { Card } from '../api.js';
 import { ApiError, listCards, logout, updateCardText } from '../api.js';
 import { CardDueStatus } from '../cards/CardDueStatus.js';
-import { EditableSentence } from '../cards/EditableSentence.js';
-import { canExplain } from '../explain/canExplain.js';
-import { ExplainButton } from '../explain/ExplainButton.js';
-import { ExplanationModal } from '../explain/ExplanationModal.js';
+import { FlipCard } from '../cards/FlipCard.js';
 import type { Direction } from '../training/direction.js';
 import {
-  answerText,
   loadDirection,
   oppositeDirection,
-  promptText,
   saveDirection,
 } from '../training/direction.js';
 import type { LearningSession } from './session.js';
@@ -35,13 +30,6 @@ import {
 
 type LoadState = 'loading' | 'ready' | 'error';
 
-const DIGIT_BY_CODE: Record<string, string> = {
-  Digit1: '1',
-  Numpad1: '1',
-  Digit2: '2',
-  Numpad2: '2',
-};
-
 // Learn is a preview flow, deliberately separate from Train: it never calls
 // review APIs, so nothing here can change FSRS schedules, review history, or
 // progress metrics. The session is ephemeral and resets on refresh.
@@ -51,8 +39,6 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [selected, setSelected] = useState<ReadonlySet<number>>(new Set());
   const [session, setSession] = useState<LearningSession | null>(null);
   const [direction, setDirection] = useState<Direction>(loadDirection);
-  const [showBack, setShowBack] = useState(false);
-  const [explainOpen, setExplainOpen] = useState(false);
 
   const handleUnauthenticated = useCallback(
     (err: unknown) => {
@@ -89,13 +75,10 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     if (selectedCards.length === 0) {
       return;
     }
-    setShowBack(false);
     setSession(startSession(selectedCards));
   }
 
   const advance = useCallback((next: (session: LearningSession) => LearningSession) => {
-    setShowBack(false);
-    setExplainOpen(false);
     setSession((current) => (current ? next(current) : current));
   }, []);
 
@@ -103,18 +86,13 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     const next = oppositeDirection(direction);
     saveDirection(next);
     setDirection(next);
-    setShowBack(false);
-    setExplainOpen(false);
   }
 
   const card = session ? currentCard(session) : undefined;
-  const hasCard = card !== undefined;
 
   // Which card field each slot edits, given the current direction.
   const promptField = direction === 'spanish-to-english' ? 'spanishText' : 'englishText';
   const answerField = direction === 'spanish-to-english' ? 'englishText' : 'spanishText';
-  const promptLabel = direction === 'spanish-to-english' ? 'Spanish prompt' : 'English prompt';
-  const answerLabel = direction === 'spanish-to-english' ? 'English answer' : 'Spanish answer';
 
   // Persists a single field's text, then patches the in-memory session so the
   // correction shows if the card reappears later this pass. Throws on failure
@@ -132,39 +110,6 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       current ? updateCardInSession(current, target.id, { [field]: newText }) : current,
     );
   }
-
-  // Shortcuts while a card is shown: Space flips, 1 = Remembered,
-  // 2 = Still learning, E = Explain. Space is intercepted even on a focused
-  // button so flicking the answer back and forth never activates that button.
-  // All shortcuts are suspended while the explain modal is open.
-  useEffect(() => {
-    if (!hasCard || explainOpen) {
-      return;
-    }
-    function onKeyDown(event: KeyboardEvent) {
-      if (event.metaKey || event.ctrlKey || event.altKey) return;
-      if (event.code === 'Space') {
-        event.preventDefault();
-        setShowBack((s) => !s);
-        return;
-      }
-      if (event.code === 'KeyE' && showBack && card && canExplain(card)) {
-        event.preventDefault();
-        setExplainOpen(true);
-        return;
-      }
-      const digit = /^[12]$/.test(event.key) ? event.key : DIGIT_BY_CODE[event.code];
-      if (digit === '1') {
-        event.preventDefault();
-        advance(markRemembered);
-      } else if (digit === '2') {
-        event.preventDefault();
-        advance((s) => markStillLearning(s));
-      }
-    }
-    window.addEventListener('keydown', onKeyDown);
-    return () => window.removeEventListener('keydown', onKeyDown);
-  }, [hasCard, explainOpen, showBack, card, advance]);
 
   return (
     <div className={session ? 'app-shell train-page' : 'app-shell'}>
@@ -208,63 +153,14 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
               </button>
             </div>
 
-            <EditableSentence
-              className="train-prompt"
-              text={promptText(card, direction)}
-              ariaLabel={promptLabel}
-              sentenceAriaLabel="Prompt"
-              onSave={(newText) => saveCardField(card, promptField, newText)}
+            <FlipCard
+              card={card}
+              direction={direction}
+              onRemembered={() => advance(markRemembered)}
+              onStillLearning={() => advance((s) => markStillLearning(s))}
+              onSavePrompt={(newText) => saveCardField(card, promptField, newText)}
+              onSaveAnswer={(newText) => saveCardField(card, answerField, newText)}
             />
-
-            {/* The answer text always occupies its slot so showing/hiding it
-                never moves the buttons below. While concealed (visibility:
-                hidden) its edit control is also non-focusable. The divider
-                styling lives on this row wrapper, not on .learn-answer
-                itself, so .learn-answer's own text stays exactly the
-                sentence (no edit-button noise) for callers/specs. */}
-            <p
-              className={showBack ? 'learn-answer-row' : 'learn-answer-row concealed'}
-              aria-label="Answer"
-              aria-hidden={!showBack}
-            >
-              <EditableSentence
-                className="learn-answer"
-                text={answerText(card, direction)}
-                ariaLabel={answerLabel}
-                onSave={(newText) => saveCardField(card, answerField, newText)}
-              />
-            </p>
-            <div className="learn-show-answer-row">
-              <button type="button" className="secondary" onClick={() => setShowBack((s) => !s)}>
-                {showBack ? 'Hide answer' : 'Show answer'}{' '}
-                <span className="shortcut-hint">(Space)</span>
-              </button>
-              {canExplain(card) && (
-                <ExplainButton onClick={() => setExplainOpen(true)} concealed={!showBack} />
-              )}
-            </div>
-
-            {explainOpen && (
-              <ExplanationModal
-                cardId={card.id}
-                spanishText={card.spanishText}
-                englishText={card.englishText}
-                onClose={() => setExplainOpen(false)}
-              />
-            )}
-
-            <div className="learn-actions">
-              <button type="button" onClick={() => advance(markRemembered)}>
-                Remembered <span className="shortcut-hint">(1)</span>
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => advance((s) => markStillLearning(s))}
-              >
-                Still learning <span className="shortcut-hint">(2)</span>
-              </button>
-            </div>
           </section>
         )}
 

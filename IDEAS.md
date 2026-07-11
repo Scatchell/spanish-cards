@@ -1,3 +1,9 @@
+# Check translations on newly added cards
+- Users sometimes upload cards that have a mistranslation on them. Two possible solutions for this:
+1. Either use an already existing translation service to translate each sentence and flag any differences before saving
+2. Or simply use LLM to do the same (more expensive long term, easier)
+- The goal would be to alert the user / agent that the translation seems slightly off in some ways, and give them the option to change or keep
+
 # Start with cards that are scheduled, end with newly added cards
 - This can help a user keep up to date with scheduled cards and their memory plan, even if they are consistently adding a lot of new cards
 

@@ -105,8 +105,15 @@ test('empty answer reveals the correct answer and defaults to Don\'t remember', 
   const dontRemember = page.getByRole('button', { name: /Don't remember/ });
   await expect(dontRemember).toBeFocused();
 
-  // Rate via the keyboard shortcut (0 = Don't remember).
+  // Rate via the keyboard shortcut (0 = Don't remember). With no other
+  // cards due, the missed card immediately resurfaces as an in-session
+  // retry (flip card) rather than ending the session outright.
   await page.keyboard.press('0');
+  await expect(page.locator('.retry-badge')).toBeVisible();
+  await expect(page.locator('.train-prompt')).toHaveText('the cat');
+  await page.getByRole('button', { name: /Show answer/ }).click();
+  await expect(page.locator('.learn-answer')).toHaveText('el gato');
+  await page.getByRole('button', { name: /Remembered/ }).click();
   await expect(page.getByText('All done')).toBeVisible();
 });
 
