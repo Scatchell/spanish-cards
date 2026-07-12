@@ -10,6 +10,9 @@ interface AnswerRevealProps {
   onSaveAnswer?: (newText: string) => Promise<void>;
   answerOverride?: string | null;
   answerAriaLabel?: string;
+  // Adopt: when set to a new token, the answer field enters edit mode pre-filled
+  // with the suggested wording.
+  answerEditRequest?: { value: string; token: number };
 }
 
 export function AnswerReveal({
@@ -18,6 +21,7 @@ export function AnswerReveal({
   onSaveAnswer,
   answerOverride = null,
   answerAriaLabel,
+  answerEditRequest,
 }: AnswerRevealProps) {
   const submittedTrimmed = submitted.trim();
   const { verdict, correctSegments } = result;
@@ -54,6 +58,7 @@ export function AnswerReveal({
           onSave={onSaveAnswer}
           ariaLabel={answerAriaLabel ?? 'correct answer'}
           sentenceAriaLabel="Correct answer"
+          editRequest={answerEditRequest}
         />
       ) : (
         <p className="correct-answer" aria-label="Correct answer">{correctText}</p>

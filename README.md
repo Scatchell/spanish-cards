@@ -143,6 +143,13 @@ docker compose --profile app run --rm app \
   default to `Don't remember` but can be overridden to any rating.
 - Keyboard shortcuts after reveal: `0` Don't remember (incorrect only),
   `1` Hard, `2` Good, `3` Easy.
+- After a reveal, `Explain` (or pressing `E`) opens an LLM-backed modal that
+  breaks down the card and answers follow-up questions. On an incorrect typed
+  answer, `Explain more` (or pressing `E` again in the modal) additionally
+  checks *your* submission: it shows a critique and, when your wording is a
+  valid/better translation, an `Adopt` button that pre-fills the inline answer
+  edit with the suggested wording (Enter/blur to save). Results are cached in
+  Postgres; the e2e stub covers the whole flow with no real OpenAI calls.
 - Rating persists the card's FSRS state, which decides when it is next due,
   and appends a review-history row that powers the progress dashboard.
 - Session progress shows `Card 3 of 12 scheduled`; extra-practice cards are

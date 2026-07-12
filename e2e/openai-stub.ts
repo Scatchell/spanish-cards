@@ -39,17 +39,34 @@ const server = http.createServer((req, res) => {
         // ignore parse errors — stub always responds
       }
 
-      if (typeof parsed.input === 'string' && parsed.input.includes('TRIGGER-EXPLAIN-FAILURE')) {
+      const input = typeof parsed.input === 'string' ? parsed.input : '';
+
+      // Order matters: the answer-check failure sentinel lives in the submitted
+      // answer, so it only ever appears in an answer-check call's input — the
+      // base explanation for the same card still succeeds.
+      if (input.includes('TRIGGER-CHECK-FAILURE')) {
+        res.writeHead(500, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: { message: 'Stub triggered answer-check failure' } }));
+        return;
+      }
+
+      if (input.includes('TRIGGER-EXPLAIN-FAILURE')) {
         res.writeHead(500, { 'Content-Type': 'application/json' });
         res.end(JSON.stringify({ error: { message: 'Stub triggered failure' } }));
         return;
       }
 
-      const isFollowUp =
-        typeof parsed.input === 'string' && parsed.input.includes("Learner's question:");
-      const text = isFollowUp
-        ? '- **stubbed** follow-up answer'
-        : '- **stubbed** explanation for e2e';
+      // Answer-check calls carry this marker (the generator JSON.parses
+      // output_text, so the stubbed text is the JSON verdict itself).
+      const isAnswerCheck = input.includes("Learner's submitted answer:");
+      const isFollowUp = input.includes("Learner's question:");
+      const text = isAnswerCheck
+        ? input.includes('ADOPT-ME')
+          ? '{"verdict":"valid","suggestedAnswer":"la mejor versión","critiqueMarkdown":"- **valid** alternative"}'
+          : '{"verdict":"invalid","suggestedAnswer":null,"critiqueMarkdown":"- **wrong**: stubbed critique"}'
+        : isFollowUp
+          ? '- **stubbed** follow-up answer'
+          : '- **stubbed** explanation for e2e';
 
       const payload = {
         id: 'stub-resp-001',

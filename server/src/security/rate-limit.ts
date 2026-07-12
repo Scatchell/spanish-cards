@@ -17,6 +17,13 @@ function clientKey(req: Request): string {
 
 const TOO_MANY = { error: 'Too many requests, please slow down and try again later.' };
 
+// The e2e suite makes hundreds of authenticated API calls from one loopback IP
+// in a single server lifetime, which legitimately exceeds the human-scaled
+// ceilings below. Setting DISABLE_RATE_LIMITS=true (only ever in the e2e
+// webServer env) turns every limiter into a pass-through. Unset in dev/prod.
+const rateLimitsDisabled = process.env.DISABLE_RATE_LIMITS === 'true';
+const skip = () => rateLimitsDisabled;
+
 // Strict guard on /login. skipSuccessfulRequests means only FAILED logins count,
 // so ordinary password typos never lock the single user out — only sustained
 // guessing (10 failures in 15 min from one IP) trips it.
@@ -28,6 +35,7 @@ export const loginLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: clientKey,
   message: TOO_MANY,
+  skip,
 });
 
 // Blanket flood guard for the authenticated JSON API (generous for one user).
@@ -38,6 +46,7 @@ export const apiLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: clientKey,
   message: TOO_MANY,
+  skip,
 });
 
 // MCP is machine-to-machine; a tighter ceiling, with a JSON-RPC shaped error.
@@ -48,4 +57,5 @@ export const mcpLimiter = rateLimit({
   legacyHeaders: false,
   keyGenerator: clientKey,
   message: { jsonrpc: '2.0', error: { code: -32000, message: 'Too many requests' }, id: null },
+  skip,
 });

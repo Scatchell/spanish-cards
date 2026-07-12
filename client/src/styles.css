@@ -806,3 +806,58 @@ button.rating.emphasized {
   font-size: 0.8rem;
   color: var(--text-muted);
 }
+
+/* ---- Explain more (answer check) ---- */
+
+.answer-check {
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--border);
+  padding-top: 1rem;
+}
+
+.answer-check-loading {
+  margin: 0;
+  font-style: italic;
+}
+
+.answer-check-retry {
+  margin-top: 0.5rem;
+}
+
+.answer-check-result {
+  margin-top: 0.25rem;
+}
+
+/* The "valid alternative" block is visually distinct from the plain critique so
+   an accepted answer reads as a positive, actionable suggestion. */
+.answer-check-adopt {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #2c7a3f;
+  border-radius: var(--radius);
+  background: rgba(44, 122, 63, 0.08);
+}
+
+.answer-check-adopt-lead {
+  margin: 0 0 0.5rem;
+  font-weight: 600;
+  color: #2c7a3f;
+}
+
+.answer-check-suggested {
+  margin: 0 0 0.6rem;
+  font-size: 1.05rem;
+}
+
+.answer-check-adopt-button {
+  background: #2c7a3f;
+  color: #fff;
+  border: none;
+  border-radius: var(--radius);
+  padding: 0.4rem 0.9rem;
+  cursor: pointer;
+}
+
+.answer-check-adopt-button:hover {
+  filter: brightness(1.08);
+}

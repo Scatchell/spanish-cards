@@ -169,6 +169,29 @@ export function askFollowUp(
   });
 }
 
+export interface AnswerCheckResponse {
+  answerCheck: {
+    verdict: 'valid' | 'invalid';
+    suggestedAnswer: string | null;
+    critiqueMarkdown: string;
+    createdAt: string;
+  };
+  source: 'cached' | 'generated';
+}
+
+export function checkSubmittedAnswer(
+  cardId: number,
+  submittedAnswer: string,
+  direction: 'spanish-to-english' | 'english-to-spanish',
+  signal?: AbortSignal,
+): Promise<AnswerCheckResponse> {
+  return request(`/api/cards/${cardId}/explanation/answer-check`, {
+    method: 'POST',
+    body: JSON.stringify({ submittedAnswer, direction }),
+    signal,
+  });
+}
+
 export function fetchProgress(): Promise<ProgressSummary> {
   // The server buckets days in local time using this offset (minutes ahead
   // of UTC, the negation of Date#getTimezoneOffset).

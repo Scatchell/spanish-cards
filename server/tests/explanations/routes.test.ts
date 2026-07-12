@@ -4,6 +4,7 @@ import express from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Card } from '../../src/cards/repository.js';
 import type { Explanation } from '../../src/explanations/repository.js';
+import type { AnswerCheck } from '../../src/explanations/answer-check-repository.js';
 import { explanationRoutes } from '../../src/explanations/routes.js';
 
 const FAKE_CARD: Card = {
@@ -46,14 +47,15 @@ afterEach(
 );
 
 async function startServer(
-  overrides: Parameters<typeof explanationRoutes>[3],
+  overrides: Parameters<typeof explanationRoutes>[4],
   generator: Parameters<typeof explanationRoutes>[1] = null,
   followUp: Parameters<typeof explanationRoutes>[2] = null,
+  answerCheck: Parameters<typeof explanationRoutes>[3] = null,
 ): Promise<string> {
   const app = express();
   app.use(express.json());
   // pool is never called because all deps are overridden
-  app.use('/api/cards', explanationRoutes({} as never, generator, followUp, overrides));
+  app.use('/api/cards', explanationRoutes({} as never, generator, followUp, answerCheck, overrides));
   const server = await new Promise<http.Server>((resolve) => {
     const listening = app.listen(0, '127.0.0.1', () => resolve(listening));
   });
@@ -270,5 +272,199 @@ describe('POST /:id/explanation/follow-up', () => {
       explanationMarkdown: validBody.explanationMarkdown,
       question: validBody.question.trim(),
     });
+  });
+});
+
+describe('POST /:id/explanation/answer-check', () => {
+  const FAKE_ANSWER_CHECK: AnswerCheck = {
+    id: 1,
+    spanishText: 'me llamo',
+    englishText: 'my name is',
+    direction: 'english-to-spanish',
+    submittedNormalized: 'me yamo',
+    verdict: 'invalid',
+    suggestedAnswer: null,
+    critiqueMarkdown: '- **wrong**: stubbed critique',
+    model: 'gpt-5.4-mini',
+    createdAt: '2026-01-01T00:00:00.000Z',
+  };
+
+  const validBody = { submittedAnswer: 'me yamo', direction: 'english-to-spanish' };
+
+  it('returns 400 for a non-integer id', async () => {
+    const base = await startServer({ getCard: vi.fn() });
+    const res = await post(base, '/abc/explanation/answer-check', validBody);
+    expect(res.status).toBe(400);
+  });
+
+  it('returns 400 when submittedAnswer is not a string', async () => {
+    const base = await startServer({ getCard: vi.fn() });
+    const res = await post(base, '/1/explanation/answer-check', {
+      submittedAnswer: 42,
+      direction: 'english-to-spanish',
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('Invalid submitted answer');
+  });
+
+  it('returns 400 when submittedAnswer is oversized', async () => {
+    const base = await startServer({ getCard: vi.fn() });
+    const res = await post(base, '/1/explanation/answer-check', {
+      submittedAnswer: 'a'.repeat(501),
+      direction: 'english-to-spanish',
+    });
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('Invalid submitted answer');
+  });
+
+  it('allows an empty submitted answer', async () => {
+    const base = await startServer(
+      {
+        getCard: async () => FAKE_CARD,
+        findAnswerCheck: async () => null,
+        insertAnswerCheck: async () => FAKE_ANSWER_CHECK,
+      },
+      null,
+      null,
+      async () => ({ verdict: 'invalid', suggestedAnswer: null, critiqueMarkdown: '- empty' }),
+    );
+    const res = await post(base, '/1/explanation/answer-check', {
+      submittedAnswer: '',
+      direction: 'english-to-spanish',
+    });
+    expect(res.status).toBe(200);
+  });
+
+  it('returns 400 when direction is missing or invalid', async () => {
+    const base = await startServer({ getCard: vi.fn() });
+    const missing = await post(base, '/1/explanation/answer-check', { submittedAnswer: 'x' });
+    expect(missing.status).toBe(400);
+    const bad = await post(base, '/1/explanation/answer-check', {
+      submittedAnswer: 'x',
+      direction: 'french-to-spanish',
+    });
+    expect(bad.status).toBe(400);
+    const body = (await bad.json()) as { error: string };
+    expect(body.error).toBe('Invalid direction');
+  });
+
+  it('returns 404 when card is not found', async () => {
+    const base = await startServer({ getCard: async () => null });
+    const res = await post(base, '/1/explanation/answer-check', validBody);
+    expect(res.status).toBe(404);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('Card not found');
+  });
+
+  it('returns 400 for unsupported language pair', async () => {
+    const base = await startServer({
+      getCard: async () => ({ ...FAKE_CARD, languagePair: 'fr<->es' }),
+    });
+    const res = await post(base, '/1/explanation/answer-check', validBody);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('Explanations are not supported for this card type');
+  });
+
+  it('returns 502 when the generator is not configured', async () => {
+    const base = await startServer({
+      getCard: async () => FAKE_CARD,
+      findAnswerCheck: async () => null,
+    });
+    const res = await post(base, '/1/explanation/answer-check', validBody);
+    expect(res.status).toBe(502);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('Answer check is not configured');
+  });
+
+  it('returns 502 when the generator throws', async () => {
+    const base = await startServer(
+      {
+        getCard: async () => FAKE_CARD,
+        findAnswerCheck: async () => null,
+        insertAnswerCheck: vi.fn(),
+      },
+      null,
+      null,
+      async () => {
+        throw new Error('API down');
+      },
+    );
+    const res = await post(base, '/1/explanation/answer-check', validBody);
+    expect(res.status).toBe(502);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('Answer check failed');
+  });
+
+  it('returns 200 with invalid verdict shape (generated)', async () => {
+    const base = await startServer(
+      {
+        getCard: async () => FAKE_CARD,
+        findAnswerCheck: async () => null,
+        insertAnswerCheck: async () => FAKE_ANSWER_CHECK,
+      },
+      null,
+      null,
+      async () => ({ verdict: 'invalid', suggestedAnswer: null, critiqueMarkdown: '- wrong' }),
+    );
+    const res = await post(base, '/1/explanation/answer-check', validBody);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      answerCheck: {
+        verdict: string;
+        suggestedAnswer: string | null;
+        critiqueMarkdown: string;
+        createdAt: string;
+      };
+      source: string;
+    };
+    expect(body.source).toBe('generated');
+    expect(body.answerCheck.verdict).toBe('invalid');
+    expect(body.answerCheck.suggestedAnswer).toBeNull();
+  });
+
+  it('returns 200 with valid verdict + suggestedAnswer (generated)', async () => {
+    const base = await startServer(
+      {
+        getCard: async () => FAKE_CARD,
+        findAnswerCheck: async () => null,
+        insertAnswerCheck: async (input) => ({ ...FAKE_ANSWER_CHECK, ...input }),
+      },
+      null,
+      null,
+      async () => ({
+        verdict: 'valid',
+        suggestedAnswer: 'me llamo',
+        critiqueMarkdown: '- valid alternative',
+      }),
+    );
+    const res = await post(base, '/1/explanation/answer-check', validBody);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      answerCheck: { verdict: string; suggestedAnswer: string | null };
+      source: string;
+    };
+    expect(body.answerCheck.verdict).toBe('valid');
+    expect(body.answerCheck.suggestedAnswer).toBe('me llamo');
+  });
+
+  it('returns cached source without calling the generator', async () => {
+    const generate = vi.fn();
+    const base = await startServer(
+      {
+        getCard: async () => FAKE_CARD,
+        findAnswerCheck: async () => FAKE_ANSWER_CHECK,
+      },
+      null,
+      null,
+      generate,
+    );
+    const res = await post(base, '/1/explanation/answer-check', validBody);
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as { source: string };
+    expect(body.source).toBe('cached');
+    expect(generate).not.toHaveBeenCalled();
   });
 });

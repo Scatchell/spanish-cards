@@ -1,18 +1,36 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { askFollowUp, fetchExplanation } from '../api.js';
+import { askFollowUp, checkSubmittedAnswer, fetchExplanation } from '../api.js';
+import type { AnswerCheckResponse } from '../api.js';
+import type { Verdict } from '../training/answer-check.js';
 
 interface Props {
   cardId: number;
   spanishText: string;
   englishText: string;
   onClose: () => void;
+  // Present only when opened after a typed Train check:
+  submittedAnswer?: string;
+  direction?: 'spanish-to-english' | 'english-to-spanish';
+  verdict?: Verdict;
+  // Adopts the suggested wording (closes the modal + pre-fills the inline edit):
+  onAdoptAnswer?: (suggested: string) => void;
 }
 
 type State = 'loading' | 'ready' | 'error';
 type FollowUpState = 'idle' | 'asking' | 'error';
+type AnswerCheckState = 'idle' | 'loading' | 'ready' | 'error';
 
-export function ExplanationModal({ cardId, spanishText, englishText, onClose }: Props) {
+export function ExplanationModal({
+  cardId,
+  spanishText,
+  englishText,
+  onClose,
+  submittedAnswer,
+  direction,
+  verdict,
+  onAdoptAnswer,
+}: Props) {
   const [state, setState] = useState<State>('loading');
   const [markdown, setMarkdown] = useState('');
 
@@ -21,6 +39,38 @@ export function ExplanationModal({ cardId, spanishText, englishText, onClose }: 
   const [answerMarkdown, setAnswerMarkdown] = useState('');
   const [followUpState, setFollowUpState] = useState<FollowUpState>('idle');
   const followUpAbortRef = useRef<AbortController | null>(null);
+
+  // "Explain more": an LLM check of the learner's actual submitted answer. Only
+  // meaningful for an `incorrect` typed submission from the Train flow, so it is
+  // absent whenever the modal is opened without those props (Learn / retry).
+  const canExplainMore =
+    verdict === 'incorrect' &&
+    submittedAnswer !== undefined &&
+    direction !== undefined &&
+    onAdoptAnswer !== undefined;
+  const [answerCheckState, setAnswerCheckState] = useState<AnswerCheckState>('idle');
+  const [answerCheck, setAnswerCheck] = useState<AnswerCheckResponse['answerCheck'] | null>(null);
+  const answerCheckAbortRef = useRef<AbortController | null>(null);
+
+  function runAnswerCheck() {
+    if (!canExplainMore) return;
+    if (answerCheckState !== 'idle' && answerCheckState !== 'error') return;
+
+    answerCheckAbortRef.current?.abort();
+    const controller = new AbortController();
+    answerCheckAbortRef.current = controller;
+
+    setAnswerCheckState('loading');
+    checkSubmittedAnswer(cardId, submittedAnswer!, direction!, controller.signal)
+      .then(({ answerCheck: result }) => {
+        setAnswerCheck(result);
+        setAnswerCheckState('ready');
+      })
+      .catch((err: unknown) => {
+        if (err instanceof Error && err.name === 'AbortError') return;
+        setAnswerCheckState('error');
+      });
+  }
 
   useEffect(() => {
     const controller = new AbortController();
@@ -39,6 +89,7 @@ export function ExplanationModal({ cardId, spanishText, englishText, onClose }: 
   useEffect(() => {
     return () => {
       followUpAbortRef.current?.abort();
+      answerCheckAbortRef.current?.abort();
     };
   }, []);
 
@@ -47,11 +98,24 @@ export function ExplanationModal({ cardId, spanishText, englishText, onClose }: 
       if (event.key === 'Escape') {
         event.stopPropagation();
         onClose();
+        return;
+      }
+      // Pressing the Explain shortcut again while the modal is open runs the
+      // answer check — but never while typing in the follow-up input.
+      if (event.metaKey || event.ctrlKey || event.altKey) return;
+      if (
+        event.target instanceof HTMLInputElement ||
+        event.target instanceof HTMLTextAreaElement
+      )
+        return;
+      if (event.code === 'KeyE' && canExplainMore) {
+        event.preventDefault();
+        runAnswerCheck();
       }
     }
     window.addEventListener('keydown', onKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
-  }, [onClose]);
+  }, [onClose, canExplainMore, answerCheckState]);
 
   function handleAsk(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -141,6 +205,57 @@ export function ExplanationModal({ cardId, spanishText, englishText, onClose }: 
               <p className="hint followup-disclaimer">
                 Each question is independent — conversation history isn't stored.
               </p>
+            </div>
+          )}
+          {canExplainMore && (
+            <div className="answer-check">
+              {answerCheckState === 'idle' && (
+                <button
+                  type="button"
+                  className="explain-button answer-check-trigger"
+                  aria-label="Explain more"
+                  onClick={runAnswerCheck}
+                >
+                  Explain more <span className="shortcut-hint">(E)</span>
+                </button>
+              )}
+              {answerCheckState === 'loading' && (
+                <p className="hint answer-check-loading">Checking your answer…</p>
+              )}
+              {answerCheckState === 'error' && (
+                <>
+                  <p className="form-error" role="alert">
+                    Sorry! Couldn't check that answer — try again.
+                  </p>
+                  <button
+                    type="button"
+                    className="secondary answer-check-retry"
+                    onClick={runAnswerCheck}
+                  >
+                    Retry
+                  </button>
+                </>
+              )}
+              {answerCheckState === 'ready' && answerCheck && (
+                <div className="answer-check-result">
+                  <ReactMarkdown>{answerCheck.critiqueMarkdown}</ReactMarkdown>
+                  {answerCheck.verdict === 'valid' && answerCheck.suggestedAnswer && (
+                    <div className="answer-check-adopt">
+                      <p className="answer-check-adopt-lead">
+                        Your answer works — here's a cleaner version to store:
+                      </p>
+                      <p className="answer-check-suggested">{answerCheck.suggestedAnswer}</p>
+                      <button
+                        type="button"
+                        className="answer-check-adopt-button"
+                        onClick={() => onAdoptAnswer!(answerCheck.suggestedAnswer!)}
+                      >
+                        Adopt
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>

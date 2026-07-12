@@ -36,6 +36,9 @@ export default defineConfig({
         DATABASE_URL: E2E_DATABASE_URL,
         OPENAI_SECRET_KEY: 'e2e-test-key',
         OPENAI_BASE_URL: `http://localhost:${E2E_OPENAI_STUB_PORT}`,
+        // The whole suite runs from one loopback IP against one server process,
+        // legitimately blowing past the human-scaled per-IP API rate limit.
+        DISABLE_RATE_LIMITS: 'true',
       },
     },
     {

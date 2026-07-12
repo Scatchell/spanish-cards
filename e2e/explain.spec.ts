@@ -192,6 +192,126 @@ test('Follow-up: ask a question, see answer block, second question replaces firs
   await expect(page.locator('.followup-answer')).toHaveCount(0);
 });
 
+test('Explain more: absent for a correct answer, present for an incorrect one', async ({
+  page,
+}) => {
+  // Two cards so we can rate the first (advancing) and check the second without
+  // draining the due queue via a reload.
+  await createCard(page, 'me llamo', 'my name is');
+  await createCard(page, 'la casa', 'the house');
+  await page.goto('/train');
+  await expect(page.locator('.train-prompt')).toHaveText('my name is');
+
+  // Correct answer (english-to-spanish: prompt english, type spanish) — no Explain more
+  await page.getByLabel(/Your answer/).fill('me llamo');
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Explain' }).click();
+  const modal = page.getByRole('dialog');
+  await expect(modal).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Explain more' })).toHaveCount(0);
+  await page.getByRole('button', { name: 'Close' }).click();
+
+  // Rate it Good to advance to the second card
+  await page.keyboard.press('2');
+  await expect(page.locator('.train-prompt')).toHaveText('the house');
+
+  // Incorrect answer on the second card — Explain more is present
+  await page.getByLabel(/Your answer/).fill('la kasa wrong');
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Explain' }).click();
+  await expect(modal.getByRole('button', { name: 'Explain more' })).toBeVisible();
+});
+
+test('Explain more: invalid critique shown, no Adopt, cached on reopen', async ({ page }) => {
+  await createCard(page, 'me llamo', 'my name is');
+  await page.goto('/train');
+  await page.getByLabel(/Your answer/).fill('me yamo');
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Explain' }).click();
+  const modal = page.getByRole('dialog');
+  await expect(modal).toContainText('stubbed');
+
+  await modal.getByRole('button', { name: 'Explain more' }).click();
+  await expect(modal.locator('.answer-check-result')).toContainText('stubbed critique');
+  await expect(modal.getByRole('button', { name: 'Adopt' })).toHaveCount(0);
+
+  // Close/reopen and run again — served from cache (no new stub calls)
+  const countBeforeReopen = await stubRequestCount(page);
+  await page.getByRole('button', { name: 'Close' }).click();
+  await expect(modal).toHaveCount(0);
+  await page.getByRole('button', { name: 'Explain' }).click();
+  await modal.getByRole('button', { name: 'Explain more' }).click();
+  await expect(modal.locator('.answer-check-result')).toContainText('stubbed critique');
+  const countAfterReopen = await stubRequestCount(page);
+  expect(countAfterReopen).toBe(countBeforeReopen);
+});
+
+test('Explain more: valid verdict → Adopt pre-fills the answer edit and saves', async ({
+  page,
+}) => {
+  await createCard(page, 'me llamo', 'my name is');
+  await page.goto('/train');
+  await page.getByLabel(/Your answer/).fill('ADOPT-ME instead');
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Explain' }).click();
+  const modal = page.getByRole('dialog');
+  await modal.getByRole('button', { name: 'Explain more' }).click();
+
+  // Valid framing + Adopt visible
+  await expect(modal).toContainText('valid alternative');
+  const adopt = modal.getByRole('button', { name: 'Adopt' });
+  await expect(adopt).toBeVisible();
+
+  // Adopt closes the modal and pre-fills the answer edit input. Target the input
+  // specifically: the view-mode pencil button shares the "Edit Spanish answer"
+  // label, and it lingers until edit mode flips on a tick after the modal closes.
+  await adopt.click();
+  await expect(modal).toHaveCount(0);
+  const editInput = page.locator('input[aria-label="Edit Spanish answer"]');
+  await expect(editInput).toHaveValue('la mejor versión');
+
+  // Commit the edit → the corrected answer shows and is persisted
+  await editInput.press('Enter');
+  await expect(page.locator('.correct-answer')).toHaveText('la mejor versión');
+  const res = await page.request.get('/api/cards');
+  const { cards } = (await res.json()) as { cards: { spanishText: string }[] };
+  expect(cards.some((c) => c.spanishText === 'la mejor versión')).toBe(true);
+});
+
+test('Explain more: pressing E while the modal is open triggers the check', async ({ page }) => {
+  await createCard(page, 'me llamo', 'my name is');
+  await page.goto('/train');
+  await page.getByLabel(/Your answer/).fill('me yamo');
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Explain' }).click();
+  const modal = page.getByRole('dialog');
+  await expect(modal).toContainText('stubbed');
+
+  await page.keyboard.press('e');
+  await expect(modal.locator('.answer-check-result')).toContainText('stubbed critique');
+  // Modal stays open
+  await expect(modal).toBeVisible();
+});
+
+test('Explain more: answer-check failure is isolated from the base explanation', async ({
+  page,
+}) => {
+  await createCard(page, 'hola', 'hello');
+  await page.goto('/train');
+  await page.getByLabel(/Your answer/).fill('TRIGGER-CHECK-FAILURE');
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Explain' }).click();
+  const modal = page.getByRole('dialog');
+
+  // Base explanation still renders
+  await expect(modal).toContainText('stubbed');
+
+  // Explain more fails with a recoverable inline error + Retry
+  await modal.getByRole('button', { name: 'Explain more' }).click();
+  await expect(modal.getByRole('alert')).toContainText("Couldn't check that answer");
+  await expect(modal.getByRole('button', { name: 'Retry' })).toBeVisible();
+});
+
 test('Cross-card cache: second card with identical texts does not call the stub again', async ({
   page,
 }) => {

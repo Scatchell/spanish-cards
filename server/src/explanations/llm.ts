@@ -73,6 +73,111 @@ export function createFollowUpGenerator(config: AppConfig): FollowUpGenerator | 
   };
 }
 
+export interface AnswerCheckOutput {
+  verdict: 'valid' | 'invalid';
+  suggestedAnswer: string | null;
+  critiqueMarkdown: string;
+}
+
+export type AnswerCheckGenerator = (input: {
+  promptText: string; // the side shown to the learner
+  expectedAnswer: string; // the card's stored answer for this direction
+  submittedAnswer: string; // raw text the learner typed (may be empty)
+}) => Promise<AnswerCheckOutput>;
+
+const ANSWER_CHECK_INSTRUCTIONS = [
+  'You are a strict, conservative Spanish/English translation examiner for one flashcard.',
+  'You are given the prompt the learner saw, the expected answer stored on the card, and',
+  'the answer the learner actually submitted.',
+  '1. Judge, strictly, whether the submitted answer is an equal-or-better translation of',
+  '   the prompt than the expected answer. Favor the most natural, native phrasing; do',
+  '   NOT be lenient or eager to validate the learner. A different-but-equally-correct',
+  '   rendering counts as "valid"; anything with a real error (wrong tense, gender/number',
+  '   agreement, wrong preposition, wrong word, missing/added meaning, nonsense/empty)',
+  '   counts as "invalid".',
+  '2. Write a brief GitHub-flavored-markdown critique in English: when invalid, name the',
+  '   specific error(s) concretely; when valid, briefly say why it is an acceptable or',
+  '   better alternative. A few short bullets, no headings, no preamble.',
+  '3. Set suggestedAnswer to the exact wording to store on the card ONLY when verdict is',
+  '   "valid" (otherwise null). Keep suggestedAnswer a single line, at most 70 characters.',
+].join(' ');
+
+// Structured Outputs: the Responses API constrains decoding so the model's JSON
+// literally cannot violate this schema (missing keys, wrong types, an out-of-enum
+// verdict). This is enforced by OpenAI, not by us — it does not touch the e2e
+// stub, which never inspects the request's `text.format`.
+const ANSWER_CHECK_SCHEMA = {
+  type: 'object',
+  properties: {
+    verdict: { type: 'string', enum: ['valid', 'invalid'] },
+    suggestedAnswer: { type: ['string', 'null'] },
+    critiqueMarkdown: { type: 'string' },
+  },
+  required: ['verdict', 'suggestedAnswer', 'critiqueMarkdown'],
+  additionalProperties: false,
+} as const;
+
+// The schema guarantees shape and types but can't express the cross-field rule
+// (suggestedAnswer must be null unless verdict is valid) or the length cap, so
+// those still need a boundary check. Throws on violation so the route maps it
+// to a retryable 502.
+function parseAnswerCheck(raw: string | undefined): AnswerCheckOutput {
+  if (!raw || raw.trim() === '') {
+    throw new Error('Empty answer-check response from model');
+  }
+  const obj = JSON.parse(raw) as {
+    verdict: 'valid' | 'invalid';
+    suggestedAnswer: string | null;
+    critiqueMarkdown: string;
+  };
+  const critiqueMarkdown = obj.critiqueMarkdown.trim();
+  if (critiqueMarkdown === '') {
+    throw new Error('Answer-check critique was missing');
+  }
+  let suggestedAnswer: string | null = null;
+  if (obj.verdict === 'valid' && typeof obj.suggestedAnswer === 'string') {
+    const trimmed = obj.suggestedAnswer.trim();
+    if (trimmed !== '') {
+      suggestedAnswer = trimmed.slice(0, 70);
+    }
+  }
+  return { verdict: obj.verdict, suggestedAnswer, critiqueMarkdown };
+}
+
+export function createAnswerCheckGenerator(config: AppConfig): AnswerCheckGenerator | null {
+  if (!config.openaiSecretKey) {
+    return null;
+  }
+  const client = new OpenAI({
+    apiKey: config.openaiSecretKey,
+    ...(config.openaiBaseUrl ? { baseURL: config.openaiBaseUrl } : {}),
+    timeout: 20_000,
+    maxRetries: 1,
+  });
+  return async ({ promptText, expectedAnswer, submittedAnswer }) => {
+    const response = await client.responses.create({
+      model: EXPLANATION_MODEL,
+      instructions: ANSWER_CHECK_INSTRUCTIONS,
+      input: [
+        `Prompt shown to the learner: ${promptText}`,
+        `Expected answer on the card: ${expectedAnswer}`,
+        `Learner's submitted answer: ${submittedAnswer}`,
+      ].join('\n'),
+      text: {
+        format: {
+          type: 'json_schema',
+          name: 'answer_check',
+          strict: true,
+          schema: ANSWER_CHECK_SCHEMA,
+        },
+      },
+      max_output_tokens: 500,
+      reasoning: { effort: 'none' },
+    });
+    return parseAnswerCheck(response.output_text);
+  };
+}
+
 export function createExplanationGenerator(config: AppConfig): ExplanationGenerator | null {
   if (!config.openaiSecretKey) {
     return null;

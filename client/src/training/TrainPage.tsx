@@ -41,6 +41,9 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [typed, setTyped] = useState('');
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [answerOverride, setAnswerOverride] = useState<string | null>(null);
+  const [answerEditRequest, setAnswerEditRequest] = useState<
+    { value: string; token: number } | undefined
+  >();
   const [saving, setSaving] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const answerInput = useRef<HTMLInputElement>(null);
@@ -105,6 +108,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     event.preventDefault();
     if (!card || reveal) return;
     setAnswerOverride(null);
+    setAnswerEditRequest(undefined);
     setReveal({ submitted: typed, result: checkAnswer(typed, answerText(card, direction)) });
   }
 
@@ -129,6 +133,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         );
         setReveal(null);
         setAnswerOverride(null);
+        setAnswerEditRequest(undefined);
         setTyped('');
         setExplainOpen(false);
       } catch (err) {
@@ -272,6 +277,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                       result={reveal.result}
                       answerOverride={answerOverride}
                       answerAriaLabel={answerLabel}
+                      answerEditRequest={answerEditRequest}
                       onSaveAnswer={(newText) =>
                         saveCardField(answerField, newText).then(() =>
                           setAnswerOverride(newText),
@@ -292,6 +298,13 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                         cardId={card.id}
                         spanishText={card.spanishText}
                         englishText={card.englishText}
+                        submittedAnswer={reveal.submitted}
+                        direction={direction}
+                        verdict={reveal.result.verdict}
+                        onAdoptAnswer={(suggested) => {
+                          setAnswerEditRequest({ value: suggested, token: Date.now() });
+                          setExplainOpen(false);
+                        }}
                         onClose={() => setExplainOpen(false)}
                       />
                     )}

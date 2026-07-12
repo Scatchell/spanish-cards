@@ -14,6 +14,9 @@ interface EditableSentenceProps {
   // Optional aria-label for the sentence text itself (e.g. "Prompt"), applied
   // to the same node `className` is, so it never affects that node's text.
   sentenceAriaLabel?: string;
+  // When this changes to a new token, enter edit mode pre-filled with `value`.
+  // Used by Adopt to drop a suggested wording into the field in edit mode.
+  editRequest?: { value: string; token: number };
 }
 
 // One inline editor used for every editable sentence in Train/Learn: a pencil
@@ -26,6 +29,7 @@ export function EditableSentence({
   className,
   ariaLabel,
   sentenceAriaLabel,
+  editRequest,
 }: EditableSentenceProps) {
   const [editing, setEditing] = useState(false);
   const [value, setValue] = useState(text);
@@ -39,6 +43,16 @@ export function EditableSentence({
       setValue(text);
     }
   }, [text, editing]);
+
+  // Adopt: when a new edit request arrives, enter edit mode pre-filled with the
+  // requested value. The sync effect above won't clobber it (editing is true).
+  useEffect(() => {
+    if (!editRequest) return;
+    setValue(editRequest.value);
+    setError(null);
+    setEditing(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editRequest?.token]);
 
   async function commit() {
     if (saving) {
