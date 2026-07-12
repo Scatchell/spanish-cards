@@ -117,6 +117,27 @@ export function ExplanationModal({
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
   }, [onClose, canExplainMore, answerCheckState]);
 
+  // Everything currently visible to the learner in this modal, so a follow-up
+  // question is answered with full context — not just the base explanation —
+  // whenever "Explain more" has also been run and is showing a critique.
+  function visibleExplanationContext(): string {
+    const sections = [markdown];
+    if (answerCheckState === 'ready' && answerCheck) {
+      sections.push(
+        [
+          "Additional check of the learner's own submitted answer:",
+          answerCheck.critiqueMarkdown,
+          answerCheck.verdict === 'valid' && answerCheck.suggestedAnswer
+            ? `Suggested better wording shown to the learner: ${answerCheck.suggestedAnswer}`
+            : null,
+        ]
+          .filter(Boolean)
+          .join('\n'),
+      );
+    }
+    return sections.join('\n\n');
+  }
+
   function handleAsk(e: React.SyntheticEvent<HTMLFormElement>) {
     e.preventDefault();
     const trimmed = question.trim();
@@ -128,7 +149,7 @@ export function ExplanationModal({
 
     setFollowUpState('asking');
 
-    askFollowUp(cardId, trimmed, markdown, controller.signal)
+    askFollowUp(cardId, trimmed, visibleExplanationContext(), controller.signal)
       .then(({ answerMarkdown: answer }) => {
         setAskedQuestion(trimmed);
         setAnswerMarkdown(answer);
@@ -167,45 +188,6 @@ export function ExplanationModal({
             <p className="form-error" role="alert">
               Sorry! Something went wrong with this explanation.
             </p>
-          )}
-          {state === 'ready' && (
-            <div className="explanation-followup">
-              {askedQuestion && (
-                <div className="followup-answer" aria-live="polite">
-                  <p className="followup-question">{askedQuestion}</p>
-                  <hr className="followup-divider" />
-                  <ReactMarkdown>{answerMarkdown}</ReactMarkdown>
-                  {followUpState === 'asking' && (
-                    <p className="hint followup-loading">Thinking…</p>
-                  )}
-                </div>
-              )}
-              {!askedQuestion && followUpState === 'asking' && (
-                <p className="hint followup-loading">Thinking…</p>
-              )}
-              {followUpState === 'error' && (
-                <p className="form-error" role="alert">
-                  Sorry! Couldn't answer that one — try again.
-                </p>
-              )}
-              <form className="followup-form" onSubmit={handleAsk}>
-                <input
-                  type="text"
-                  className="followup-input"
-                  placeholder="Ask a question about this sentence…"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  aria-label="Ask a question about this sentence"
-                />
-                <button type="submit" disabled={followUpState === 'asking' || !question.trim()}>
-                  Ask
-                </button>
-              </form>
-              <p className="hint followup-disclaimer">
-                Each question is independent — conversation history isn't stored.
-              </p>
-            </div>
           )}
           {canExplainMore && (
             <div className="answer-check">
@@ -256,6 +238,48 @@ export function ExplanationModal({
                   )}
                 </div>
               )}
+            </div>
+          )}
+          {/* Always the last thing in the modal, regardless of whether "Explain
+              more" is present/expanded above it, so the ask box never gets
+              buried mid-content. */}
+          {state === 'ready' && (
+            <div className="explanation-followup">
+              {askedQuestion && (
+                <div className="followup-answer" aria-live="polite">
+                  <p className="followup-question">{askedQuestion}</p>
+                  <hr className="followup-divider" />
+                  <ReactMarkdown>{answerMarkdown}</ReactMarkdown>
+                  {followUpState === 'asking' && (
+                    <p className="hint followup-loading">Thinking…</p>
+                  )}
+                </div>
+              )}
+              {!askedQuestion && followUpState === 'asking' && (
+                <p className="hint followup-loading">Thinking…</p>
+              )}
+              {followUpState === 'error' && (
+                <p className="form-error" role="alert">
+                  Sorry! Couldn't answer that one — try again.
+                </p>
+              )}
+              <form className="followup-form" onSubmit={handleAsk}>
+                <input
+                  type="text"
+                  className="followup-input"
+                  placeholder="Ask a question about this sentence…"
+                  value={question}
+                  onChange={(e) => setQuestion(e.target.value)}
+                  onKeyDown={(e) => e.stopPropagation()}
+                  aria-label="Ask a question about this sentence"
+                />
+                <button type="submit" disabled={followUpState === 'asking' || !question.trim()}>
+                  Ask
+                </button>
+              </form>
+              <p className="hint followup-disclaimer">
+                Each question is independent — conversation history isn't stored.
+              </p>
             </div>
           )}
         </div>
