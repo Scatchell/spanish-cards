@@ -1,3 +1,8 @@
+# Offline training mode (automatic)
+- Explore how hard: could the client download an entire batch and upload whenever connection is present, allowing for offline work?
+- If client manages all correction logic this should be feasible 
+- LLM and other external calls could be disabled or error out without effecting flow
+
 # Check translations on newly added cards
 - Users sometimes upload cards that have a mistranslation on them. Two possible solutions for this:
 1. Either use an already existing translation service to translate each sentence and flag any differences before saving
@@ -7,10 +12,11 @@
 # Start with cards that are scheduled, end with newly added cards
 - This can help a user keep up to date with scheduled cards and their memory plan, even if they are consistently adding a lot of new cards
 
-# Re-trainin missed cards in the same session
+# [x] Re-trainin missed cards in the same session
 - This works more or less but feels odd - if I miss 5 words in a session, it doesn't replay them and at the end says training is done. Think I should decide either:
 1. Ask the user if they want to review the missed cards at the end
 2. Automatically keep reviewing until all are remembered (user can always drop out at anytime) - the numbered card part at the top can change from 16/16 to Reviewing missed cards 3/4 instead to indicate this
+- [x] The 'learn' cycle was put into the main trainin workflow, so this was more or less fixed with that
 
 # Spanish specific matching
 época de el año
