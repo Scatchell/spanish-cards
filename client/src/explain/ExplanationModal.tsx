@@ -39,6 +39,7 @@ export function ExplanationModal({
   const [answerMarkdown, setAnswerMarkdown] = useState('');
   const [followUpState, setFollowUpState] = useState<FollowUpState>('idle');
   const followUpAbortRef = useRef<AbortController | null>(null);
+  const followUpInputRef = useRef<HTMLInputElement | null>(null);
 
   // "Explain more": an LLM check of the learner's actual submitted answer. Only
   // meaningful for an `incorrect` typed submission from the Train flow, so it is
@@ -265,6 +266,8 @@ export function ExplanationModal({
               )}
               <form className="followup-form" onSubmit={handleAsk}>
                 <input
+                  ref={followUpInputRef}
+                  tabIndex={1}
                   type="text"
                   className="followup-input"
                   placeholder="Ask a question about this sentence…"
