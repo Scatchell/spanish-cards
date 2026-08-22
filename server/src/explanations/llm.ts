@@ -1,3 +1,6 @@
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import OpenAI from 'openai';
 import type { AppConfig } from '../config.js';
 
@@ -8,15 +11,16 @@ export type ExplanationGenerator = (
   englishText: string,
 ) => Promise<string>;
 
-const INSTRUCTIONS = [
-  'You are a concise Spanish grammar tutor helping an English speaker memorize flashcards.',
-  'You are given a Spanish word or phrase and the English translation the learner memorizes for it.',
-  'Explain why the Spanish supports that English translation: break the phrase into meaningful chunks',
-  'and add brief grammar notes (reflexives, articles, tense, idiom, word order) only where they help.',
-  'For a single vocabulary word, give a short note on usage, gender, or memorable structure instead of a breakdown.',
-  'Treat the provided English translation as the answer being explained; do not propose a different translation as the main output.',
-  'Respond in GitHub-flavored markdown using short bullet points. Be scannable and brief: usually 3-6 bullets, no headings, no preamble.',
-].join(' ');
+// Prompts live as editable markdown files under src/prompts (copied to
+// dist/prompts on build) rather than inline strings, so they can be tuned
+// without touching code.
+const PROMPTS_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), '../prompts');
+
+function loadPrompt(filename: string): string {
+  return readFileSync(path.join(PROMPTS_DIR, filename), 'utf-8').trim();
+}
+
+const INSTRUCTIONS = loadPrompt('explain.md');
 
 export type FollowUpGenerator = (input: {
   spanishText: string;
@@ -25,22 +29,7 @@ export type FollowUpGenerator = (input: {
   question: string;
 }) => Promise<string>;
 
-const FOLLOWUP_INSTRUCTIONS = [
-  'You are a concise Spanish language tutor answering a single follow-up question',
-  'about one specific flashcard sentence. You are given the Spanish text, its',
-  'English translation, the explanation already shown to the learner, and their',
-  'question.',
-  'Answer ONLY that question, strictly about the Spanish language content shown',
-  '(grammar, word choice, tense, alternatives, nuance).',
-  'Explain in English (of course, using Spanish examples) so the learner can more',
-  'easily understand the response.',
-  'Do not introduce unrelated vocabulary or new sentences to study.',
-  'Be brief and scannable: a few short sentences or up to ~4 bullets, no preamble,',
-  'no headings. Respond in GitHub-flavored markdown.',
-  'NEVER offer follow ups. This is not a long running conversation, just a quick one off follow up answer.',
-  'If the question is not about this sentence or about Spanish, briefly say you can',
-  'only help with this sentence.',
-].join(' ');
+const FOLLOWUP_INSTRUCTIONS = loadPrompt('explain-followup.md');
 
 export function createFollowUpGenerator(config: AppConfig): FollowUpGenerator | null {
   if (!config.openaiSecretKey) {
@@ -85,37 +74,7 @@ export type AnswerCheckGenerator = (input: {
   submittedAnswer: string; // raw text the learner typed (may be empty)
 }) => Promise<AnswerCheckOutput>;
 
-const ANSWER_CHECK_INSTRUCTIONS = [
-  'You are a strict, conservative Spanish/English translation examiner for one flashcard.',
-  'You are given the prompt the learner saw, the expected answer stored on the card, and',
-  'the answer the learner actually submitted.',
-  '1. Judge, strictly, whether the submitted answer is an equal-or-better translation of',
-  '   the prompt than the expected answer. Favor the most natural, native phrasing; do',
-  '   NOT be lenient or eager to validate the learner. A different-but-equally-correct',
-  '   rendering counts as "valid"; anything with a real error (wrong tense, gender/number',
-  '   agreement, wrong preposition, wrong word, missing/added meaning, nonsense/empty)',
-  '   counts as "invalid".',
-  '2. Write a brief GitHub-flavored-markdown critique addressed directly to the learner as',
-  '   "you"/"your", in plain language a language learner would use — never internal terms',
-  '   like "prompt", "the card", or "expected answer". Refer to the two texts naturally,',
-  '   e.g. "your translation" or "the Spanish/English phrase". When invalid, name the',
-  '   specific error(s) concretely (say what is actually wrong, e.g. "this is a different',
-  '   verb tense" or "your answer doesn\'t translate to that phrase", not vague labels like',
-  '   "unrelated to the prompt"); when valid, briefly say why it is an acceptable or better',
-  '   alternative. Do not call out small typo/style slips (missing accents, missing inverted',
-  '   punctuation, capitalization, extra spacing) as their own bullet point — they are not',
-  '   meaningful errors. A few short bullets, no headings, no preamble.',
-  '3. When invalid, end with one final bullet giving your best-effort translation of exactly',
-  '   what the learner typed, corrected only for spelling/accents/punctuation/spacing (never',
-  '   for grammar or word choice), so they can see what their own words actually mean.',
-  '   Format it as: `<cleaned-up version of what they typed> :: <its best English',
-  '   translation>` compared against `<the correct phrase> :: <its translation>`, e.g.',
-  '   "What you typed reads: No me da cuenta :: I don\'t realize. The correct phrase is:',
-  '   No me di cuenta :: I didn\'t realize." If the learner\'s answer is unintelligible or',
-  '   empty, say so briefly instead of forcing a translation.',
-  '4. Set suggestedAnswer to the exact wording to store on the card ONLY when verdict is',
-  '   "valid" (otherwise null). Keep suggestedAnswer a single line, at most 70 characters.',
-].join(' ');
+const ANSWER_CHECK_INSTRUCTIONS = loadPrompt('answer-check.md');
 
 // Structured Outputs: the Responses API constrains decoding so the model's JSON
 // literally cannot violate this schema (missing keys, wrong types, an out-of-enum

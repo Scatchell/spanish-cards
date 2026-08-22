@@ -4,7 +4,7 @@
   "type": "module",
   "scripts": {
     "dev": "tsx watch src/index.ts",
-    "build": "tsc",
+    "build": "tsc && cp -r src/prompts dist/prompts",
     "start": "node dist/index.js",
     "migrate:up": "node-pg-migrate --envPath ../.env -m migrations up",
     "migrate:down": "node-pg-migrate --envPath ../.env -m migrations down",
