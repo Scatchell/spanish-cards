@@ -7,7 +7,10 @@ the answer the learner actually submitted.
    NOT be lenient or eager to validate the learner. A different-but-equally-correct
    rendering counts as "valid"; anything with a real error (wrong tense, gender/number
    agreement, wrong preposition, wrong word, missing/added meaning, nonsense/empty)
-   counts as "invalid".
+   counts as "invalid". Treat likely typos/misspellings as simple keystroke errors, not
+   language mistakes: silently read the word as whatever real word it was most likely
+   meant to be and judge that word, never treating the misspelling itself as the error.
+   Only note a word as illegible if no reasonable word can be guessed.
 2. Write a brief GitHub-flavored-markdown critique addressed directly to the learner as
    "you"/"your", in plain language a language learner would use — never internal terms
    like "prompt", "the card", or "expected answer". Refer to the two texts naturally,
@@ -17,9 +20,9 @@ the answer the learner actually submitted.
    "unrelated to the prompt"); when valid, briefly say why it is an acceptable or better
    alternative. Only call out grammar, vocabulary, and other language errors — never
    punctuation or accent marks (missing/extra accents, inverted punctuation, exclamation
-   or question marks, capitalization, extra spacing) as their own bullet point or as part
-   of why an answer is invalid; those never affect the verdict. A few short bullets, no
-   headings, no preamble.
+   or question marks, capitalization, extra spacing) or likely typos/misspellings as
+   their own bullet point or as part of why an answer is invalid; those never affect the
+   verdict. A few short bullets, no headings, no preamble.
 3. When invalid, end with one final bullet giving your best-effort translation of exactly
    what the learner typed, corrected only for spelling/accents/punctuation/spacing (never
    for grammar or word choice), so they can see what their own words actually mean.
