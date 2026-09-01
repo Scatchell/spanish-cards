@@ -400,6 +400,13 @@ label {
   min-height: 60px;
 }
 
+.answer-label input[type='text']:disabled {
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  border-color: var(--border);
+  opacity: 1;
+}
+
 .answer-reveal {
   border-top: 1px solid var(--border);
   padding-top: 0.75rem;
@@ -418,20 +425,12 @@ label {
   color: var(--danger);
 }
 
-.submitted-answer {
-  margin: 0 0 0.35rem;
-  color: var(--text-muted);
-}
-
-.submitted-answer span {
-  color: var(--text);
-}
-
 .correct-answer {
   font-size: 1.55rem;
   font-weight: 600;
   margin: 0;
   overflow-wrap: anywhere;
+  color: #234d2e;
 }
 
 .answer-diff {
@@ -441,21 +440,19 @@ label {
 }
 
 .answer-diff mark {
-  background: #fde293;
-  border-radius: 3px;
-  padding: 0 0.05em;
+  background: none;
+  padding: 0;
   color: var(--text);
+  text-decoration: underline;
+  text-decoration-color: #2c7a3f;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 2px;
 }
 
 .answer-diff mark.extra {
-  background: #f5c4c4;
-  text-decoration: line-through;
-  text-decoration-thickness: 2px;
-}
-
-.answer-reveal .hint {
-  font-size: 0.85rem;
-  margin: 0.5rem 0 0;
+  text-decoration-line: underline line-through;
+  text-decoration-color: var(--danger);
+  text-decoration-thickness: 1px;
 }
 
 .rating-bar {

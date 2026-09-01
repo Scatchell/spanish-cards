@@ -253,24 +253,27 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                   onSave={(newText) => saveCardField(promptField, newText)}
                 />
 
-                {reveal === null ? (
-                  <form onSubmit={handleSubmit}>
-                    <label className="answer-label">
-                      Your answer ({direction === 'spanish-to-english' ? 'English' : 'Spanish'})
-                      <input
-                        ref={answerInput}
-                        type="text"
-                        value={typed}
-                        onChange={(event) => setTyped(event.target.value)}
-                        autoComplete="off"
-                        autoCapitalize="off"
-                        autoCorrect="off"
-                        spellCheck={false}
-                      />
-                    </label>
+                <form onSubmit={handleSubmit}>
+                  <label className="answer-label">
+                    Your answer ({direction === 'spanish-to-english' ? 'English' : 'Spanish'})
+                    <input
+                      ref={answerInput}
+                      type="text"
+                      value={typed}
+                      onChange={(event) => setTyped(event.target.value)}
+                      autoComplete="off"
+                      autoCapitalize="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      disabled={reveal !== null}
+                    />
+                  </label>
+                  {reveal === null && (
                     <p className="hint">Press Enter to check — leave empty if you don't remember.</p>
-                  </form>
-                ) : (
+                  )}
+                </form>
+
+                {reveal !== null && (
                   <>
                     <AnswerReveal
                       submitted={reveal.submitted}

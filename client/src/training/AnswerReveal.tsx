@@ -45,12 +45,6 @@ export function AnswerReveal({
         </p>
       )}
 
-      {verdict !== 'correct' && submittedTrimmed !== '' && (
-        <p className="submitted-answer">
-          You typed: <span>{submittedTrimmed}</span>
-        </p>
-      )}
-
       {onSaveAnswer ? (
         <EditableSentence
           className="correct-answer"
@@ -71,12 +65,6 @@ export function AnswerReveal({
             const className = segment.kind === 'extra' ? 'extra' : undefined;
             return <mark key={i} className={className}>{segment.text}</mark>;
           })}
-        </p>
-      )}
-
-      {verdict === 'incorrect' && submittedTrimmed !== '' && (
-        <p className="hint">
-          Remembered it anyway? Rate it Hard, Good, or Easy instead of &ldquo;Don&rsquo;t remember&rdquo;.
         </p>
       )}
     </div>

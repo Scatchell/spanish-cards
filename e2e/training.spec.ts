@@ -63,7 +63,7 @@ test('trains due cards oldest-first: typed answers, rating, and studying ahead',
   await page.getByLabel(/Your answer/).fill('la silla');
   await page.keyboard.press('Enter');
   await expect(page.locator('.verdict')).toHaveText('Not quite');
-  await expect(page.locator('.submitted-answer')).toContainText('la silla');
+  await expect(page.getByLabel(/Your answer/)).toHaveValue('la silla');
   await expect(page.locator('.answer-diff mark:not(.extra)')).toHaveText('casa');
   await expect(page.locator('.answer-diff mark.extra')).toHaveText('silla');
   await expect(page.getByRole('button', { name: /Don't remember/ })).toBeVisible();
