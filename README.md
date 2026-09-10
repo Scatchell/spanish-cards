@@ -82,6 +82,7 @@ exist before their corresponding commands are run.
 | `npm run migrate:up`   | Apply pending migrations                         |
 | `npm run migrate:down` | Roll back the most recent migration              |
 | `npm test`             | Run unit tests (server, then client)             |
+| `npm run test:integration` | Integration tests against a real dev Postgres (starts dev DB, runs migrations, then runs `*.integration.test.ts` files) |
 | `npm run e2e`          | Run Playwright E2E tests (see below)             |
 | `npm run typecheck`    | TypeScript checks for both workspaces            |
 | `npm run build`        | Production build (server `dist/`, client `dist/`)|
@@ -127,6 +128,12 @@ docker compose --profile app run --rm app \
   local OpenAI stub on port 4115 (Playwright manages its lifecycle), and
   removes the test Compose volume during teardown. No real OpenAI calls are
   made during e2e. First run: `npx playwright install chromium`.
+- **Integration** (`npm run test:integration`): requires the dev Postgres
+  running (the script starts it automatically) and exercises real SQL
+  behavior mocks can't verify, e.g. foreign-key cascades and anti-join
+  queries. Do not run while `pnpm dev` is also running against the same dev
+  DB — the live categorization scheduler would pick up the test's synthetic
+  rows and send them to the real OpenAI API.
 
 ## Training UX
 

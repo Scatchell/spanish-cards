@@ -14,6 +14,7 @@ Express 5 API (`server/`), PostgreSQL 16 via Docker Compose. Full docs in
 | `pnpm db:up` / `db:down` | Start/stop just the dev postgres container                         |
 | `pnpm migrate:up` / `migrate:down` | Migrations against the dev DB (reads `.env`)             |
 | `pnpm test` / `typecheck` | Unit tests / TS checks for both workspaces                        |
+| `pnpm run test:integration` | Integration tests against real dev Postgres — starts dev DB + migrates first; do not run while `pnpm dev` is also running (see gotcha below) |
 
 The pnpm scripts wrap all `--env-file` / `--profile` complexity; if you find
 yourself typing a raw `docker compose` command, check for a script first.
@@ -72,3 +73,8 @@ Key facts:
   server now exits loudly on EADDRINUSE, but check `freeport 4102` first.
 - E2E removes its compose volume on teardown; dev postgres data persists in
   the `spanish-cards-dev` project's `pgdata` volume.
+- Do not run `pnpm run test:integration` while `pnpm dev` is also running: the
+  dev server's categorization scheduler polls `review_history` on an hourly
+  tick and could pick up the integration test's synthetic rows mid-test,
+  sending them to the real OpenAI API (real cost) and potentially flaking an
+  assertion if a tick lands between an insert and a query.

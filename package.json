@@ -17,6 +17,7 @@
     "migrate:up": "pnpm --filter server run migrate:up",
     "migrate:down": "pnpm --filter server run migrate:down",
     "test": "pnpm --filter server run test && pnpm --filter client run test",
+    "test:integration": "pnpm run db:up && pnpm run migrate:up && pnpm --filter server run test:integration",
     "typecheck": "pnpm --filter server run typecheck && pnpm --filter client run typecheck",
     "e2e": "node scripts/require-env-file.mjs test .test-env .test-env.example && playwright test"
   },
