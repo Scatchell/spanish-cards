@@ -27,6 +27,7 @@ export interface NewCategorization {
   reviewHistoryId: number;
   category: Category;
   rationale: string;
+  keyTerms: string[];
   model: string;
 }
 
@@ -82,10 +83,10 @@ export async function insertCategorizationBatch(
   await withTransaction(pool, async (tx) => {
     for (const input of inputs) {
       await tx.query(
-        `INSERT INTO review_categorizations (review_history_id, category, rationale, model)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO review_categorizations (review_history_id, category, rationale, key_terms, model)
+         VALUES ($1, $2, $3, $4, $5)
          ON CONFLICT (review_history_id) DO NOTHING`,
-        [input.reviewHistoryId, input.category, input.rationale, input.model],
+        [input.reviewHistoryId, input.category, input.rationale, input.keyTerms, input.model],
       );
     }
   });

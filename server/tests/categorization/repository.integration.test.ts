@@ -79,6 +79,7 @@ describe('findUncategorizedReviewHistory', () => {
         reviewHistoryId: alreadyCategorizedId,
         category: 'verb_form',
         rationale: 'pre-seeded as already processed',
+        keyTerms: [],
         model: 'gpt-5.4-mini',
       },
     ]);
@@ -107,6 +108,7 @@ describe('insertCategorizationBatch', () => {
         reviewHistoryId: historyId,
         category: 'agreement',
         rationale: 'la casa blanco should be la casa blanca',
+        keyTerms: ['blanco', 'blanca'],
         model: 'gpt-5.4-mini',
       },
     ]);
@@ -115,8 +117,9 @@ describe('insertCategorizationBatch', () => {
       review_history_id: number;
       category: string;
       rationale: string;
+      key_terms: string[];
       model: string;
-    }>('SELECT review_history_id, category, rationale, model FROM review_categorizations WHERE review_history_id = $1', [
+    }>('SELECT review_history_id, category, rationale, key_terms, model FROM review_categorizations WHERE review_history_id = $1', [
       historyId,
     ]);
 
@@ -125,6 +128,7 @@ describe('insertCategorizationBatch', () => {
         review_history_id: historyId,
         category: 'agreement',
         rationale: 'la casa blanco should be la casa blanca',
+        key_terms: ['blanco', 'blanca'],
         model: 'gpt-5.4-mini',
       },
     ]);
@@ -140,6 +144,7 @@ describe('insertCategorizationBatch', () => {
         reviewHistoryId: historyId,
         category: 'spelling_accents',
         rationale: 'tambien vs también',
+        keyTerms: ['tambien', 'también'],
         model: 'gpt-5.4-mini',
       },
     ]);

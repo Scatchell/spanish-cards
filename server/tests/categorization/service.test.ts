@@ -18,6 +18,7 @@ function echoResults(items: CategorizationInput[]): CategorizationOutput[] {
     index: item.index,
     category: 'agreement',
     rationale: 'gender agreement error',
+    keyTerms: ['blanco', 'blanca'],
   }));
 }
 
@@ -80,8 +81,20 @@ describe('runCategorizationTick', () => {
     expect(result).toEqual({ processedCount: 2, failedBatchCount: 0 });
     expect(inserted).toHaveLength(1);
     expect(inserted[0]).toEqual([
-      { reviewHistoryId: 1, category: 'agreement', rationale: 'gender agreement error', model: 'gpt-5.4-mini' },
-      { reviewHistoryId: 2, category: 'agreement', rationale: 'gender agreement error', model: 'gpt-5.4-mini' },
+      {
+        reviewHistoryId: 1,
+        category: 'agreement',
+        rationale: 'gender agreement error',
+        keyTerms: ['blanco', 'blanca'],
+        model: 'gpt-5.4-mini',
+      },
+      {
+        reviewHistoryId: 2,
+        category: 'agreement',
+        rationale: 'gender agreement error',
+        keyTerms: ['blanco', 'blanca'],
+        model: 'gpt-5.4-mini',
+      },
     ]);
   });
 
@@ -126,7 +139,9 @@ describe('runCategorizationTick', () => {
     const result = await runCategorizationTick({
       findUncategorized: async () => [fakeRow(1), fakeRow(2)],
       insertCategorizationBatch: vi.fn(),
-      generate: async () => [{ index: 0, category: 'agreement', rationale: 'only one result' }],
+      generate: async () => [
+        { index: 0, category: 'agreement', rationale: 'only one result', keyTerms: [] },
+      ],
     });
     expect(result).toEqual({ processedCount: 0, failedBatchCount: 1 });
   });
@@ -136,8 +151,8 @@ describe('runCategorizationTick', () => {
       findUncategorized: async () => [fakeRow(1), fakeRow(2)],
       insertCategorizationBatch: vi.fn(),
       generate: async () => [
-        { index: 0, category: 'agreement', rationale: 'ok' },
-        { index: 0, category: 'agreement', rationale: 'duplicate index, index 1 missing' },
+        { index: 0, category: 'agreement', rationale: 'ok', keyTerms: [] },
+        { index: 0, category: 'agreement', rationale: 'duplicate index, index 1 missing', keyTerms: [] },
       ],
     });
     expect(result).toEqual({ processedCount: 0, failedBatchCount: 1 });

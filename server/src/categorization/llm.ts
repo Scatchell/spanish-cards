@@ -28,6 +28,7 @@ export interface CategorizationOutput {
   index: number;
   category: Category;
   rationale: string;
+  keyTerms: string[];
 }
 
 export type CategorizationGenerator = (
@@ -47,8 +48,9 @@ const CATEGORIZE_BATCH_SCHEMA = {
           index: { type: 'number' },
           category: { type: 'string', enum: [...CATEGORIES] },
           rationale: { type: 'string' },
+          keyTerms: { type: 'array', items: { type: 'string' } },
         },
-        required: ['index', 'category', 'rationale'],
+        required: ['index', 'category', 'rationale', 'keyTerms'],
         additionalProperties: false,
       },
     },

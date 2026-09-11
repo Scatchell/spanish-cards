@@ -45,6 +45,7 @@ function mapResultsToInserts(
       reviewHistoryId: row.id,
       category: result.category,
       rationale: result.rationale,
+      keyTerms: result.keyTerms,
       model: CATEGORIZATION_MODEL,
     };
   });
