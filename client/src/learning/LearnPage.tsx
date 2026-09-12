@@ -119,6 +119,15 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <Link to="/" className="back-link">
             Back to cards
           </Link>
+          <Link to="/train" className="train-link">
+            Train
+          </Link>
+          <Link to="/progress" className="progress-link">
+            Progress
+          </Link>
+          <Link to="/mistakes" className="mistakes-link">
+            Mistakes
+          </Link>
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>

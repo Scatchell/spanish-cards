@@ -5,6 +5,7 @@
   --text: #2b2a27;
   --text-muted: #7d7a72;
   --accent: #b3541e;
+  --accent-secondary: #3d7a6e;
   --danger: #b0322c;
   --border: #ddd8cd;
   --radius: 10px;
@@ -267,6 +268,31 @@ label {
   min-height: 44px;
   display: inline-flex;
   align-items: center;
+}
+
+/* Progress and Mistakes share the secondary accent so both read as
+   first-class nav destinations distinct from the Learn/Train flow. */
+.progress-link {
+  color: var(--accent-secondary);
+  text-decoration: none;
+  border: 1px solid var(--accent-secondary);
+  border-radius: var(--radius);
+  padding: 0.55rem 1.25rem;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.mistakes-link {
+  color: var(--accent-secondary);
+  text-decoration: none;
+  border: 1px solid var(--accent-secondary);
+  border-radius: var(--radius);
+  padding: 0.55rem 1.25rem;
+  min-height: 44px;
+  display: inline-flex;
+  align-items: center;
+  background: color-mix(in srgb, var(--accent-secondary) 12%, transparent);
 }
 
 /* ---- Learning ---- */

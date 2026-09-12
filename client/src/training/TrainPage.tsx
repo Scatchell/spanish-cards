@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { ReviewRating, TrainingScope } from '../api.js';
-import { ApiError, fetchTrainingQueue, submitReview, updateCardText } from '../api.js';
+import { ApiError, fetchTrainingQueue, logout, submitReview, updateCardText } from '../api.js';
 import { FlipCard } from '../cards/FlipCard.js';
 import { EditableSentence } from '../cards/EditableSentence.js';
 import { canExplain } from '../explain/canExplain.js';
@@ -62,6 +62,11 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     },
     [onLoggedOut],
   );
+
+  async function handleLogout() {
+    await logout().catch(() => undefined);
+    onLoggedOut();
+  }
 
   const loadQueue = useCallback(
     (scope: TrainingScope) => {
@@ -188,9 +193,23 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     <div className="app-shell train-page">
       <header className="app-header">
         <h1>Training</h1>
-        <Link to="/" className="back-link">
-          Back to cards
-        </Link>
+        <div className="header-actions">
+          <Link to="/" className="back-link">
+            Back to cards
+          </Link>
+          <Link to="/learn" className="learn-link">
+            Learn
+          </Link>
+          <Link to="/progress" className="progress-link">
+            Progress
+          </Link>
+          <Link to="/mistakes" className="mistakes-link">
+            Mistakes
+          </Link>
+          <button type="button" className="secondary" onClick={handleLogout}>
+            Log out
+          </button>
+        </div>
       </header>
 
       <main>

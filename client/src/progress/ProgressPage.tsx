@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { DayActivity, ProgressSummary } from '../api.js';
-import { ApiError, fetchProgress } from '../api.js';
+import { ApiError, fetchProgress, logout } from '../api.js';
 import { formatPercent } from '../format.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
@@ -30,17 +30,31 @@ export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     load();
   }, [load]);
 
+  async function handleLogout() {
+    await logout().catch(() => undefined);
+    onLoggedOut();
+  }
+
   return (
     <div className="app-shell progress-page">
       <header className="app-header">
         <h1>Progress</h1>
         <div className="header-actions">
-          <Link to="/train" className="train-link">
-            Train
-          </Link>
           <Link to="/" className="back-link">
             Back to cards
           </Link>
+          <Link to="/learn" className="learn-link">
+            Learn
+          </Link>
+          <Link to="/train" className="train-link">
+            Train
+          </Link>
+          <Link to="/mistakes" className="mistakes-link">
+            Mistakes
+          </Link>
+          <button type="button" className="secondary" onClick={handleLogout}>
+            Log out
+          </button>
         </div>
       </header>
 
