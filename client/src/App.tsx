@@ -4,6 +4,7 @@ import { getMe } from './api.js';
 import { LoginPage } from './auth/LoginPage.js';
 import { CardsPage } from './cards/CardsPage.js';
 import { LearnPage } from './learning/LearnPage.js';
+import { MistakesPage } from './mistakes/MistakesPage.js';
 import { ProgressPage } from './progress/ProgressPage.js';
 import { TrainPage } from './training/TrainPage.js';
 
@@ -69,6 +70,16 @@ export function App() {
         element={
           auth === 'authenticated' ? (
             <ProgressPage onLoggedOut={() => setAuth('anonymous')} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/mistakes"
+        element={
+          auth === 'authenticated' ? (
+            <MistakesPage onLoggedOut={() => setAuth('anonymous')} />
           ) : (
             <Navigate to="/login" replace />
           )
