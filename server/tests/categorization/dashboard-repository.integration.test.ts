@@ -61,9 +61,9 @@ describe('getCategorySummary', () => {
     const before = await getCategorySummary(pool);
     const untouchedCategoryBefore = new Map(before.map((row) => [row.category, row.count])).get('word_order');
 
-    await insertMistake({ category: 'agreement', createdAt: '2026-09-01T00:00:00Z', submittedTextSuffix: 'a1' });
-    await insertMistake({ category: 'agreement', createdAt: '2026-09-02T00:00:00Z', submittedTextSuffix: 'a2' });
-    await insertMistake({ category: 'idiom', createdAt: '2026-09-01T00:00:00Z', submittedTextSuffix: 'i1' });
+    await insertMistake({ category: 'agreement', createdAt: '2099-09-01T00:00:00Z', submittedTextSuffix: 'a1' });
+    await insertMistake({ category: 'agreement', createdAt: '2099-09-02T00:00:00Z', submittedTextSuffix: 'a2' });
+    await insertMistake({ category: 'idiom', createdAt: '2099-09-01T00:00:00Z', submittedTextSuffix: 'i1' });
 
     const summary = await getCategorySummary(pool);
     const byCategory = new Map(summary.map((row) => [row.category, row.count]));
@@ -80,9 +80,9 @@ describe('getCategorySummary', () => {
 
 describe('getCategoryMistakes', () => {
   it('returns only the requested category, newest first', async () => {
-    await insertMistake({ category: 'verb_form', createdAt: '2026-09-01T00:00:00Z', submittedTextSuffix: 'v1' });
-    await insertMistake({ category: 'verb_form', createdAt: '2026-09-03T00:00:00Z', submittedTextSuffix: 'v2' });
-    await insertMistake({ category: 'agreement', createdAt: '2026-09-02T00:00:00Z', submittedTextSuffix: 'a1' });
+    await insertMistake({ category: 'verb_form', createdAt: '2099-09-01T00:00:00Z', submittedTextSuffix: 'v1' });
+    await insertMistake({ category: 'verb_form', createdAt: '2099-09-03T00:00:00Z', submittedTextSuffix: 'v2' });
+    await insertMistake({ category: 'agreement', createdAt: '2099-09-02T00:00:00Z', submittedTextSuffix: 'a1' });
 
     const page = await getCategoryMistakes(pool, 'verb_form', { cursor: null, limit: 50 });
     const ours = page.items.filter((item) => item.submittedText.startsWith(MARKER));
@@ -93,7 +93,7 @@ describe('getCategoryMistakes', () => {
   });
 
   it('paginates with a stable tie-break when created_at is identical, and sets nextCursor', async () => {
-    const sameTimestamp = '2026-09-05T00:00:00Z';
+    const sameTimestamp = '2099-09-05T00:00:00Z';
     const firstId = await insertMistake({ category: 'spelling_accents', createdAt: sameTimestamp, submittedTextSuffix: 's1' });
     const secondId = await insertMistake({ category: 'spelling_accents', createdAt: sameTimestamp, submittedTextSuffix: 's2' });
     const orderedIds = [firstId, secondId].sort((a, b) => b - a); // (created_at DESC, id DESC)
@@ -111,7 +111,7 @@ describe('getCategoryMistakes', () => {
   });
 
   it('returns nextCursor null when the page is short of the limit', async () => {
-    await insertMistake({ category: 'idiom', createdAt: '2026-09-01T00:00:00Z', submittedTextSuffix: 'i-only' });
+    await insertMistake({ category: 'idiom', createdAt: '2099-09-01T00:00:00Z', submittedTextSuffix: 'i-only' });
     const page = await getCategoryMistakes(pool, 'idiom', { cursor: null, limit: 50 });
     expect(page.nextCursor).toBeNull();
   });

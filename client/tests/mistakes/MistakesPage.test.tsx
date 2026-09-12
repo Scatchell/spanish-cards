@@ -134,6 +134,7 @@ describe('MistakesPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: /load more/i }));
     await waitFor(() => expect(screen.getByText('c1')).toBeInTheDocument());
+    expect(screen.getByText('c2')).toBeInTheDocument();
     expect(mockedMistakes).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('button', { name: /load more/i })).not.toBeInTheDocument();
   });

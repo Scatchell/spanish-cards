@@ -144,7 +144,6 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
             </ul>
             {openCategory && (
               <CategoryAccordion
-                category={openCategory}
                 label={CATEGORY_INFO.find((c) => c.category === openCategory)?.label ?? openCategory}
                 state={categoryStates.get(openCategory) ?? { items: [], nextCursor: null, loadState: 'loading' }}
                 onRetry={() => loadCategoryPage(openCategory, null)}
@@ -193,13 +192,11 @@ function CategoryCard({
 }
 
 function CategoryAccordion({
-  category,
   label,
   state,
   onRetry,
   onLoadMore,
 }: {
-  category: Category;
   label: string;
   state: CategoryState;
   onRetry: () => void;
