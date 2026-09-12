@@ -74,6 +74,39 @@ export interface ProgressSummary {
   recentDays: DayActivity[];
 }
 
+export type Category =
+  | 'vocabulary'
+  | 'verb_form'
+  | 'agreement'
+  | 'grammar_words'
+  | 'word_order'
+  | 'missing_extra_meaning'
+  | 'spelling_accents'
+  | 'idiom'
+  | 'recall_failure';
+
+export interface CategoryCount {
+  category: Category;
+  count: number;
+}
+
+export interface CategoryMistake {
+  id: number;
+  category: Category;
+  rationale: string;
+  keyTerms: string[];
+  correctText: string;
+  submittedText: string;
+  direction: string;
+  verdict: string;
+  createdAt: string;
+}
+
+export interface MistakesPageResponse {
+  items: CategoryMistake[];
+  nextCursor: string | null;
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,
@@ -197,4 +230,20 @@ export function fetchProgress(): Promise<ProgressSummary> {
   // of UTC, the negation of Date#getTimezoneOffset).
   const tzOffset = -new Date().getTimezoneOffset();
   return request(`/api/progress?tzOffset=${tzOffset}`);
+}
+
+export function fetchCategorizationSummary(): Promise<{ categories: CategoryCount[] }> {
+  return request('/api/categorization/summary');
+}
+
+export function fetchCategorizationMistakes(
+  category: Category,
+  cursor: string | null,
+  limit = 50,
+): Promise<MistakesPageResponse> {
+  const params = new URLSearchParams({ category, limit: String(limit) });
+  if (cursor) {
+    params.set('cursor', cursor);
+  }
+  return request(`/api/categorization/mistakes?${params.toString()}`);
 }
