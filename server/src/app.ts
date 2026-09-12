@@ -6,6 +6,7 @@ import { requireAuth } from './auth/middleware.js';
 import { authRoutes } from './auth/routes.js';
 import { insertCards, listCards } from './cards/repository.js';
 import { cardRoutes } from './cards/routes.js';
+import { categorizationRoutes } from './categorization/routes.js';
 import {
   createAnswerCheckGenerator,
   createExplanationGenerator,
@@ -60,6 +61,7 @@ export function createApp(config: AppConfig, pool: DbPool): express.Express {
   );
   app.use('/api/training', requireAuth(config), trainingRoutes(pool));
   app.use('/api/progress', requireAuth(config), progressRoutes(pool));
+  app.use('/api/categorization', requireAuth(config), categorizationRoutes(pool));
 
   // MCP (AI agent) access: bearer-token authenticated, separate from the
   // browser session. Tool handlers reuse the card domain functions directly.
