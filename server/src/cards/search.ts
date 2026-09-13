@@ -1,5 +1,6 @@
 import Fuse from 'fuse.js';
 import type { Card } from './repository.js';
+import { stripDiacritics } from '../text/diacritics.js';
 
 export type SearchLanguage = 'english' | 'spanish' | 'both';
 export type MatchedField = 'spanishText' | 'englishText';
@@ -27,10 +28,7 @@ const CONTAINMENT_MIN_SCORE = 0.7;
 const FUZZY_SCORE_SCALE = 0.7;
 
 export function normalizeForSearch(text: string): string {
-  return text
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
+  return stripDiacritics(text.toLowerCase())
     .replace(/[^\p{L}\p{N}\s]/gu, ' ')
     .replace(/\s+/g, ' ')
     .trim();

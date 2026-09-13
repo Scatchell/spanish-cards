@@ -1,3 +1,5 @@
+import { stripDiacritics } from '../text/diacritics.js';
+
 // Mirrors the client-side `normalizeAnswer`
 // (client/src/training/answer-check.ts): lowercased, diacritics stripped,
 // punctuation removed, whitespace collapsed. Kept intentionally simple — exact
@@ -8,7 +10,7 @@ export function normalizeSubmitted(text: string): string {
   for (const rawWord of text.split(/\s+/)) {
     const word = [...rawWord]
       .map((ch) => {
-        const base = ch.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+        const base = stripDiacritics(ch).toLowerCase();
         return /^[\p{L}\p{N}]+$/u.test(base) ? base : '';
       })
       .join('');
