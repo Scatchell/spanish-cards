@@ -16,6 +16,17 @@ vi.mock('../../src/api.js', async () => {
   };
 });
 
+vi.mock('../../src/mistakes/PracticeModal.js', () => ({
+  PracticeModal: ({ mistake, onClose }: { mistake: { correctText: string }; onClose: () => void }) => (
+    <div role="dialog" aria-label="mock practice modal">
+      <p>{mistake.correctText}</p>
+      <button type="button" onClick={onClose}>
+        Close mock modal
+      </button>
+    </div>
+  ),
+}));
+
 const mockedSummary = api.fetchCategorizationSummary as unknown as ReturnType<typeof vi.fn>;
 const mockedMistakes = api.fetchCategorizationMistakes as unknown as ReturnType<typeof vi.fn>;
 
@@ -54,7 +65,7 @@ describe('MistakesPage', () => {
 
     await waitFor(() => expect(screen.getByText('Agreement')).toBeInTheDocument());
     expect(screen.getByText('Vocabulary')).toBeInTheDocument();
-    expect(screen.getAllByText(/Coming soon|Practice this category/i).length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Practice this category/i)).not.toBeInTheDocument();
 
     const vocabButton = screen.getByRole('button', { name: /vocabulary/i });
     fireEvent.click(vocabButton);
@@ -69,7 +80,7 @@ describe('MistakesPage', () => {
           id: 1,
           category: 'agreement',
           rationale: 'la casa blanco should be la casa blanca',
-          keyTerms: ['blanco', 'blanca'],
+          practiceTargets: [{ expected: 'blanca', submitted: 'blanco' }],
           correctText: 'la casa blanca',
           submittedText: 'la casa blanco',
           direction: 'english-to-spanish',
@@ -87,8 +98,38 @@ describe('MistakesPage', () => {
     await waitFor(() => expect(screen.getByText('la casa blanca')).toBeInTheDocument());
     expect(screen.getByText('la casa blanco')).toBeInTheDocument();
     expect(screen.getByText(/la casa blanco should be la casa blanca/)).toBeInTheDocument();
-    expect(screen.getByText('blanco')).toBeInTheDocument();
-    expect(screen.getByText('blanca')).toBeInTheDocument();
+    expect(screen.getByText('blanco → blanca')).toBeInTheDocument();
+  });
+
+  it('opens the practice modal for a mistake row and closes it', async () => {
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 1 }));
+    mockedMistakes.mockResolvedValue({
+      items: [
+        {
+          id: 1,
+          category: 'agreement',
+          rationale: 'la casa blanco should be la casa blanca',
+          practiceTargets: [{ expected: 'blanca', submitted: 'blanco' }],
+          correctText: 'la casa blanca',
+          submittedText: 'la casa blanco',
+          direction: 'english-to-spanish',
+          verdict: 'incorrect',
+          createdAt: '2026-09-12T14:03:11.000Z',
+        },
+      ],
+      nextCursor: null,
+    });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Agreement')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /agreement/i }));
+    await waitFor(() => expect(screen.getByText('la casa blanca')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /practice this mistake/i }));
+    expect(screen.getByRole('dialog', { name: /mock practice modal/i })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /close mock modal/i }));
+    expect(screen.queryByRole('dialog', { name: /mock practice modal/i })).not.toBeInTheDocument();
   });
 
   it('loads more mistakes when Load more is clicked', async () => {
@@ -100,7 +141,7 @@ describe('MistakesPage', () => {
             id: 2,
             category: 'agreement',
             rationale: 'r2',
-            keyTerms: [],
+            practiceTargets: [],
             correctText: 'c2',
             submittedText: 's2',
             direction: 'english-to-spanish',
@@ -116,7 +157,7 @@ describe('MistakesPage', () => {
             id: 1,
             category: 'agreement',
             rationale: 'r1',
-            keyTerms: [],
+            practiceTargets: [],
             correctText: 'c1',
             submittedText: 's1',
             direction: 'english-to-spanish',

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Category, CategoryCount, CategoryMistake } from '../api.js';
 import { ApiError, fetchCategorizationMistakes, fetchCategorizationSummary, logout } from '../api.js';
 import { CATEGORY_INFO } from './categoryInfo.js';
+import { PracticeModal } from './PracticeModal.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -17,6 +18,7 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [counts, setCounts] = useState<Map<Category, number>>(new Map());
   const [openCategory, setOpenCategory] = useState<Category | null>(null);
   const [categoryStates, setCategoryStates] = useState<Map<Category, CategoryState>>(new Map());
+  const [practiceMistake, setPracticeMistake] = useState<CategoryMistake | null>(null);
 
   const handleUnauthenticated = useCallback(
     (err: unknown) => {
@@ -148,11 +150,15 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                 state={categoryStates.get(openCategory) ?? { items: [], nextCursor: null, loadState: 'loading' }}
                 onRetry={() => loadCategoryPage(openCategory, null)}
                 onLoadMore={(cursor) => loadCategoryPage(openCategory, cursor)}
+                onPractice={setPracticeMistake}
               />
             )}
           </>
         )}
       </main>
+      {practiceMistake && (
+        <PracticeModal mistake={practiceMistake} onClose={() => setPracticeMistake(null)} />
+      )}
     </div>
   );
 }
@@ -184,9 +190,6 @@ function CategoryCard({
         <span className="category-card-description hint">{info.description}</span>
         <span className="category-card-count">{count} mistake{count === 1 ? '' : 's'}</span>
       </button>
-      <button type="button" className="secondary" disabled title="Coming soon">
-        Practice this category
-      </button>
     </li>
   );
 }
@@ -196,11 +199,13 @@ function CategoryAccordion({
   state,
   onRetry,
   onLoadMore,
+  onPractice,
 }: {
   label: string;
   state: CategoryState;
   onRetry: () => void;
   onLoadMore: (cursor: string) => void;
+  onPractice: (mistake: CategoryMistake) => void;
 }) {
   return (
     <section className="mistakes-accordion" aria-label={`${label} mistakes`}>
@@ -224,7 +229,8 @@ function CategoryAccordion({
                 <th>Correct</th>
                 <th>Submitted</th>
                 <th>Rationale</th>
-                <th>Key terms</th>
+                <th>Practice targets</th>
+                <th>Practice</th>
                 <th>When</th>
               </tr>
             </thead>
@@ -235,11 +241,16 @@ function CategoryAccordion({
                   <td>{item.submittedText}</td>
                   <td>{item.rationale}</td>
                   <td>
-                    {item.keyTerms.map((term) => (
-                      <span key={term} className="key-term-pill">
-                        {term}
+                    {item.practiceTargets.map((target, i) => (
+                      <span key={i} className="practice-target-pill">
+                        {target.submitted ?? '(nothing entered)'} &rarr; {target.expected}
                       </span>
                     ))}
+                  </td>
+                  <td>
+                    <button type="button" className="secondary" onClick={() => onPractice(item)}>
+                      Practice this mistake
+                    </button>
                   </td>
                   <td>{new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td>
                 </tr>
