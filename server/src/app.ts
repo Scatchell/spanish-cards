@@ -14,6 +14,8 @@ import {
 } from './explanations/llm.js';
 import { explanationRoutes } from './explanations/routes.js';
 import { mcpRoutes } from './mcp/routes.js';
+import { createPracticeSentenceGenerator } from './practice/generator.js';
+import { practiceRoutes } from './practice/routes.js';
 import { progressRoutes } from './progress/routes.js';
 import { apiLimiter, loginLimiter, mcpLimiter } from './security/rate-limit.js';
 import { trainingRoutes } from './training/routes.js';
@@ -62,6 +64,7 @@ export function createApp(config: AppConfig, pool: DbPool): express.Express {
   app.use('/api/training', requireAuth(config), trainingRoutes(pool));
   app.use('/api/progress', requireAuth(config), progressRoutes(pool));
   app.use('/api/categorization', requireAuth(config), categorizationRoutes(pool));
+  app.use('/api/practice', requireAuth(config), practiceRoutes(pool, createPracticeSentenceGenerator(config)));
 
   // MCP (AI agent) access: bearer-token authenticated, separate from the
   // browser session. Tool handlers reuse the card domain functions directly.
