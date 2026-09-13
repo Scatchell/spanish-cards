@@ -90,11 +90,16 @@ export interface CategoryCount {
   count: number;
 }
 
+export interface PracticeTarget {
+  expected: string;
+  submitted: string | null;
+}
+
 export interface CategoryMistake {
   id: number;
   category: Category;
   rationale: string;
-  keyTerms: string[];
+  practiceTargets: PracticeTarget[];
   correctText: string;
   submittedText: string;
   direction: string;
@@ -246,4 +251,58 @@ export function fetchCategorizationMistakes(
     params.set('cursor', cursor);
   }
   return request(`/api/categorization/mistakes?${params.toString()}`);
+}
+
+export interface PracticeTargetRef {
+  expected: string;
+  submitted: string | null;
+}
+
+export interface MistakeDetail {
+  cardId: number;
+  category: Category;
+  correctText: string;
+  submittedText: string;
+  direction: string;
+  rationale: string;
+  spanishText: string | null;
+  englishText: string | null;
+  practiceTargets: PracticeTargetRef[];
+}
+
+export interface PracticeExampleDto extends MistakeDetail {
+  tier: 1 | 2 | 3 | 4;
+}
+
+export interface PracticeSentenceDto {
+  spanish: string;
+  english: string;
+}
+
+export interface PracticeSessionDto {
+  id: number;
+  reviewCategorizationId: number;
+  model: string;
+  generatedAt: string;
+  examples: PracticeExampleDto[];
+  sentences: PracticeSentenceDto[];
+}
+
+export async function fetchPracticeSession(categorizationId: number): Promise<PracticeSessionDto | null> {
+  try {
+    const { session } = await request<{ session: PracticeSessionDto }>(`/api/practice/${categorizationId}`);
+    return session;
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404) {
+      return null;
+    }
+    throw err;
+  }
+}
+
+export async function generatePracticeSession(categorizationId: number): Promise<PracticeSessionDto> {
+  const { session } = await request<{ session: PracticeSessionDto }>(`/api/practice/${categorizationId}`, {
+    method: 'POST',
+  });
+  return session;
 }
