@@ -70,6 +70,9 @@ function toMistakeDetail(row: MistakeDetailRow): MistakeDetail {
   };
 }
 
+// LEFT JOIN to cards is load-bearing, not incidental: review_history.card_id
+// is not a real foreign key, so a card can be deleted after the mistake was
+// recorded — spanish_text/english_text must be allowed to come back null.
 const MISTAKE_DETAIL_SELECT = `
   SELECT rh.card_id, rc.category, rh.correct_text, rh.submitted_text, rh.direction,
          rc.rationale, c.spanish_text, c.english_text,
