@@ -30,6 +30,39 @@ export interface ExplanationRouteDeps {
   answerCheck?: AnswerCheckGenerator | null;
 }
 
+type ResolvedTexts =
+  | { spanishText: string; englishText: string }
+  | 'not-found'
+  | 'unsupported-language'
+  | 'missing-text';
+
+// Non-positive ids identify transient, client-only cards (e.g. practice
+// sentences) that never exist in the DB — the explanation cache is keyed by
+// text, not card id, so those only need the text supplied directly.
+async function resolveCardTexts(
+  deps: ExplanationRouteDeps,
+  id: number,
+  body: unknown,
+): Promise<ResolvedTexts> {
+  if (id > 0) {
+    const card = await deps.getCard(id);
+    if (!card) return 'not-found';
+    if (card.languagePair !== 'en<->es') return 'unsupported-language';
+    return { spanishText: card.spanishText, englishText: card.englishText };
+  }
+
+  const { spanishText, englishText } = (body ?? {}) as { spanishText?: unknown; englishText?: unknown };
+  if (
+    typeof spanishText !== 'string' ||
+    spanishText.trim().length === 0 ||
+    typeof englishText !== 'string' ||
+    englishText.trim().length === 0
+  ) {
+    return 'missing-text';
+  }
+  return { spanishText, englishText };
+}
+
 export function explanationRoutes(
   pool: DbPool,
   generator: ExplanationGenerator | null,
@@ -53,19 +86,22 @@ export function explanationRoutes(
 
   router.post('/:id/explanation', async (req, res) => {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isInteger(id)) {
       res.status(400).json({ error: 'Card id must be a positive integer' });
       return;
     }
 
-    const card = await deps.getCard(id);
-    if (!card) {
+    const texts = await resolveCardTexts(deps, id, req.body);
+    if (texts === 'not-found') {
       res.status(404).json({ error: 'Card not found' });
       return;
     }
-
-    if (card.languagePair !== 'en<->es') {
+    if (texts === 'unsupported-language') {
       res.status(400).json({ error: 'Explanations are not supported for this card type' });
+      return;
+    }
+    if (texts === 'missing-text') {
+      res.status(400).json({ error: 'spanishText and englishText are required for a transient card' });
       return;
     }
 
@@ -77,8 +113,8 @@ export function explanationRoutes(
           insertExplanation: deps.insertExplanation,
           generate: generator,
         },
-        card.spanishText,
-        card.englishText,
+        texts.spanishText,
+        texts.englishText,
       );
     } catch (err) {
       console.error('Explanation generation failed:', err);
@@ -103,7 +139,7 @@ export function explanationRoutes(
 
   router.post('/:id/explanation/follow-up', async (req, res) => {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isInteger(id)) {
       res.status(400).json({ error: 'Card id must be a positive integer' });
       return;
     }
@@ -126,13 +162,17 @@ export function explanationRoutes(
       return;
     }
 
-    const card = await deps.getCard(id);
-    if (!card) {
+    const texts = await resolveCardTexts(deps, id, req.body);
+    if (texts === 'not-found') {
       res.status(404).json({ error: 'Card not found' });
       return;
     }
-    if (card.languagePair !== 'en<->es') {
+    if (texts === 'unsupported-language') {
       res.status(400).json({ error: 'Explanations are not supported for this card type' });
+      return;
+    }
+    if (texts === 'missing-text') {
+      res.status(400).json({ error: 'spanishText and englishText are required for a transient card' });
       return;
     }
 
@@ -144,8 +184,8 @@ export function explanationRoutes(
 
     try {
       const answerMarkdown = await generate({
-        spanishText: card.spanishText,
-        englishText: card.englishText,
+        spanishText: texts.spanishText,
+        englishText: texts.englishText,
         explanationMarkdown,
         question: question.trim(),
       });
@@ -158,7 +198,7 @@ export function explanationRoutes(
 
   router.post('/:id/explanation/answer-check', async (req, res) => {
     const id = Number(req.params.id);
-    if (!Number.isInteger(id) || id <= 0) {
+    if (!Number.isInteger(id)) {
       res.status(400).json({ error: 'Card id must be a positive integer' });
       return;
     }
@@ -178,13 +218,17 @@ export function explanationRoutes(
       return;
     }
 
-    const card = await deps.getCard(id);
-    if (!card) {
+    const texts = await resolveCardTexts(deps, id, req.body);
+    if (texts === 'not-found') {
       res.status(404).json({ error: 'Card not found' });
       return;
     }
-    if (card.languagePair !== 'en<->es') {
+    if (texts === 'unsupported-language') {
       res.status(400).json({ error: 'Explanations are not supported for this card type' });
+      return;
+    }
+    if (texts === 'missing-text') {
+      res.status(400).json({ error: 'spanishText and englishText are required for a transient card' });
       return;
     }
 
@@ -202,8 +246,8 @@ export function explanationRoutes(
           generate: deps.answerCheck,
         },
         {
-          spanishText: card.spanishText,
-          englishText: card.englishText,
+          spanishText: texts.spanishText,
+          englishText: texts.englishText,
           direction: direction as AnswerCheckDirection,
           submittedAnswer,
         },

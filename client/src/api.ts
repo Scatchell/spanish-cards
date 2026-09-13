@@ -186,8 +186,24 @@ export interface ExplanationResponse {
   source: 'cached' | 'generated';
 }
 
-export function fetchExplanation(cardId: number, signal?: AbortSignal): Promise<ExplanationResponse> {
-  return request(`/api/cards/${cardId}/explanation`, { method: 'POST', signal });
+// Sent on every call so a transient (non-positive id) card — e.g. a practice
+// sentence never persisted server-side — still works: the server looks the
+// card up by id when positive, and falls back to this text otherwise.
+export interface CardText {
+  spanishText: string;
+  englishText: string;
+}
+
+export function fetchExplanation(
+  cardId: number,
+  cardText: CardText,
+  signal?: AbortSignal,
+): Promise<ExplanationResponse> {
+  return request(`/api/cards/${cardId}/explanation`, {
+    method: 'POST',
+    body: JSON.stringify(cardText),
+    signal,
+  });
 }
 
 export interface FollowUpResponse {
@@ -196,13 +212,14 @@ export interface FollowUpResponse {
 
 export function askFollowUp(
   cardId: number,
+  cardText: CardText,
   question: string,
   explanationMarkdown: string,
   signal?: AbortSignal,
 ): Promise<FollowUpResponse> {
   return request(`/api/cards/${cardId}/explanation/follow-up`, {
     method: 'POST',
-    body: JSON.stringify({ question, explanationMarkdown }),
+    body: JSON.stringify({ ...cardText, question, explanationMarkdown }),
     signal,
   });
 }
@@ -219,13 +236,14 @@ export interface AnswerCheckResponse {
 
 export function checkSubmittedAnswer(
   cardId: number,
+  cardText: CardText,
   submittedAnswer: string,
   direction: 'spanish-to-english' | 'english-to-spanish',
   signal?: AbortSignal,
 ): Promise<AnswerCheckResponse> {
   return request(`/api/cards/${cardId}/explanation/answer-check`, {
     method: 'POST',
-    body: JSON.stringify({ submittedAnswer, direction }),
+    body: JSON.stringify({ ...cardText, submittedAnswer, direction }),
     signal,
   });
 }

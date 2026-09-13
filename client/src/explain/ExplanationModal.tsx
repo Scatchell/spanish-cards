@@ -62,7 +62,7 @@ export function ExplanationModal({
     answerCheckAbortRef.current = controller;
 
     setAnswerCheckState('loading');
-    checkSubmittedAnswer(cardId, submittedAnswer!, direction!, controller.signal)
+    checkSubmittedAnswer(cardId, { spanishText, englishText }, submittedAnswer!, direction!, controller.signal)
       .then(({ answerCheck: result }) => {
         setAnswerCheck(result);
         setAnswerCheckState('ready');
@@ -75,7 +75,7 @@ export function ExplanationModal({
 
   useEffect(() => {
     const controller = new AbortController();
-    fetchExplanation(cardId, controller.signal)
+    fetchExplanation(cardId, { spanishText, englishText }, controller.signal)
       .then(({ explanation }) => {
         setMarkdown(explanation.contentMarkdown);
         setState('ready');
@@ -150,7 +150,7 @@ export function ExplanationModal({
 
     setFollowUpState('asking');
 
-    askFollowUp(cardId, trimmed, visibleExplanationContext(), controller.signal)
+    askFollowUp(cardId, { spanishText, englishText }, trimmed, visibleExplanationContext(), controller.signal)
       .then(({ answerMarkdown: answer }) => {
         setAskedQuestion(trimmed);
         setAnswerMarkdown(answer);

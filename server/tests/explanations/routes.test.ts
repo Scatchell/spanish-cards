@@ -159,6 +159,32 @@ describe('POST /:id/explanation', () => {
     expect(body.source).toBe('cached');
     expect(generate).not.toHaveBeenCalled();
   });
+
+  it('uses body-supplied text for a transient (non-positive) id instead of looking up a card', async () => {
+    const getCard = vi.fn();
+    const base = await startServer(
+      {
+        getCard,
+        findExplanation: async () => null,
+        insertExplanation: async () => FAKE_EXPLANATION,
+      },
+      async (spanish: string, english: string) => `explaining ${spanish} / ${english}`,
+    );
+    const res = await post(base, '/-1/explanation', {
+      spanishText: 'una silla blanca',
+      englishText: 'a white chair',
+    });
+    expect(res.status).toBe(200);
+    expect(getCard).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for a transient id without spanishText/englishText in the body', async () => {
+    const base = await startServer({ getCard: vi.fn() });
+    const res = await post(base, '/-1/explanation', {});
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('spanishText and englishText are required for a transient card');
+  });
 });
 
 describe('POST /:id/explanation/follow-up', () => {
@@ -272,6 +298,33 @@ describe('POST /:id/explanation/follow-up', () => {
       explanationMarkdown: validBody.explanationMarkdown,
       question: validBody.question.trim(),
     });
+  });
+
+  it('uses body-supplied text for a transient (non-positive) id instead of looking up a card', async () => {
+    const getCard = vi.fn();
+    const generate = vi.fn().mockResolvedValue('answer');
+    const base = await startServer({ getCard }, null, generate);
+    const res = await post(base, '/-1/explanation/follow-up', {
+      ...validBody,
+      spanishText: 'una silla blanca',
+      englishText: 'a white chair',
+    });
+    expect(res.status).toBe(200);
+    expect(getCard).not.toHaveBeenCalled();
+    expect(generate).toHaveBeenCalledWith({
+      spanishText: 'una silla blanca',
+      englishText: 'a white chair',
+      explanationMarkdown: validBody.explanationMarkdown,
+      question: validBody.question.trim(),
+    });
+  });
+
+  it('returns 400 for a transient id without spanishText/englishText in the body', async () => {
+    const base = await startServer({ getCard: vi.fn() });
+    const res = await post(base, '/-1/explanation/follow-up', validBody);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('spanishText and englishText are required for a transient card');
   });
 });
 
@@ -466,5 +519,34 @@ describe('POST /:id/explanation/answer-check', () => {
     const body = (await res.json()) as { source: string };
     expect(body.source).toBe('cached');
     expect(generate).not.toHaveBeenCalled();
+  });
+
+  it('uses body-supplied text for a transient (non-positive) id instead of looking up a card', async () => {
+    const getCard = vi.fn();
+    const base = await startServer(
+      {
+        getCard,
+        findAnswerCheck: async () => null,
+        insertAnswerCheck: async () => FAKE_ANSWER_CHECK,
+      },
+      null,
+      null,
+      async () => ({ verdict: 'invalid', suggestedAnswer: null, critiqueMarkdown: '- stubbed' }),
+    );
+    const res = await post(base, '/-1/explanation/answer-check', {
+      ...validBody,
+      spanishText: 'una silla blanca',
+      englishText: 'a white chair',
+    });
+    expect(res.status).toBe(200);
+    expect(getCard).not.toHaveBeenCalled();
+  });
+
+  it('returns 400 for a transient id without spanishText/englishText in the body', async () => {
+    const base = await startServer({ getCard: vi.fn() });
+    const res = await post(base, '/-1/explanation/answer-check', validBody);
+    expect(res.status).toBe(400);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe('spanishText and englishText are required for a transient card');
   });
 });
