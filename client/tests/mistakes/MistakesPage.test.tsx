@@ -16,17 +16,6 @@ vi.mock('../../src/api.js', async () => {
   };
 });
 
-vi.mock('../../src/mistakes/PracticeModal.js', () => ({
-  PracticeModal: ({ mistake, onClose }: { mistake: { correctText: string }; onClose: () => void }) => (
-    <div role="dialog" aria-label="mock practice modal">
-      <p>{mistake.correctText}</p>
-      <button type="button" onClick={onClose}>
-        Close mock modal
-      </button>
-    </div>
-  ),
-}));
-
 const mockedSummary = api.fetchCategorizationSummary as unknown as ReturnType<typeof vi.fn>;
 const mockedMistakes = api.fetchCategorizationMistakes as unknown as ReturnType<typeof vi.fn>;
 
@@ -101,7 +90,7 @@ describe('MistakesPage', () => {
     expect(screen.getByText('blanco → blanca')).toBeInTheDocument();
   });
 
-  it('opens the practice modal for a mistake row and closes it', async () => {
+  it('links "Practice this mistake" to the transient practice session route', async () => {
     mockedSummary.mockResolvedValue(summaryWith({ agreement: 1 }));
     mockedMistakes.mockResolvedValue({
       items: [
@@ -125,11 +114,10 @@ describe('MistakesPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /agreement/i }));
     await waitFor(() => expect(screen.getByText('la casa blanca')).toBeInTheDocument());
 
-    fireEvent.click(screen.getByRole('button', { name: /practice this mistake/i }));
-    expect(screen.getByRole('dialog', { name: /mock practice modal/i })).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: /close mock modal/i }));
-    expect(screen.queryByRole('dialog', { name: /mock practice modal/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /practice this mistake/i })).toHaveAttribute(
+      'href',
+      '/mistakes/1/practice',
+    );
   });
 
   it('loads more mistakes when Load more is clicked', async () => {

@@ -99,6 +99,24 @@ describe('FlipCard', () => {
     expect(container.textContent).toContain('Not yet');
   });
 
+  it('hides edit affordances when editable is false', () => {
+    const onRemembered = vi.fn();
+    const onStillLearning = vi.fn();
+    render(
+      <FlipCard
+        card={makeCard()}
+        direction="spanish-to-english"
+        onRemembered={onRemembered}
+        onStillLearning={onStillLearning}
+        editable={false}
+      />,
+    );
+    fireEvent.click(screen.getByText('Show answer'));
+    expect(screen.getByText('gato')).toBeInTheDocument();
+    expect(screen.getByText('cat')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^Edit/ })).not.toBeInTheDocument();
+  });
+
   it('resets to hidden when card id changes', () => {
     const onRemembered = vi.fn();
     const onStillLearning = vi.fn();

@@ -3,13 +3,13 @@ import { Link } from 'react-router-dom';
 import type { Card } from '../api.js';
 import { ApiError, listCards, logout, updateCardText } from '../api.js';
 import { CardDueStatus } from '../cards/CardDueStatus.js';
-import { FlipCard } from '../cards/FlipCard.js';
 import type { Direction } from '../training/direction.js';
 import {
   loadDirection,
   oppositeDirection,
   saveDirection,
 } from '../training/direction.js';
+import { LearningSessionView } from './LearningSessionView.js';
 import type { LearningSession } from './session.js';
 import {
   currentCard,
@@ -151,45 +151,18 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           />
         )}
 
-        {session && card && (
-          <section className="train-card" aria-label="Learning card">
-            <div className="train-meta">
-              <span className="queue-count">
-                Remembered {session.rememberedIds.length} of {session.selected.length}
-              </span>
-              <button type="button" className="secondary direction-toggle" onClick={toggleDirection}>
-                {direction === 'spanish-to-english' ? 'Spanish → English' : 'English → Spanish'}
-              </button>
-            </div>
-
-            <FlipCard
-              card={card}
-              direction={direction}
-              onRemembered={() => advance(markRemembered)}
-              onStillLearning={() => advance((s) => markStillLearning(s))}
-              onSavePrompt={(newText) => saveCardField(card, promptField, newText)}
-              onSaveAnswer={(newText) => saveCardField(card, answerField, newText)}
-            />
-          </section>
-        )}
-
-        {session && !card && (
-          <section className="train-done" aria-label="Learning pass complete">
-            <h2>Pass complete! 🎉</h2>
-            <p>
-              You remembered all {session.selected.length} card
-              {session.selected.length === 1 ? '' : 's'} in this pass.
-            </p>
-            <button type="button" onClick={() => advance((s) => restartPass(s))}>
-              Keep learning these cards
-            </button>
-            <Link to="/train" className="train-link">
-              Start training
-            </Link>
-            <button type="button" className="secondary" onClick={() => setSession(null)}>
-              Choose different cards
-            </button>
-          </section>
+        {session && (
+          <LearningSessionView
+            session={session}
+            direction={direction}
+            onToggleDirection={toggleDirection}
+            onRemembered={() => advance(markRemembered)}
+            onStillLearning={() => advance((s) => markStillLearning(s))}
+            onSavePrompt={card ? (newText) => saveCardField(card, promptField, newText) : undefined}
+            onSaveAnswer={card ? (newText) => saveCardField(card, answerField, newText) : undefined}
+            onKeepLearning={() => advance((s) => restartPass(s))}
+            onChooseDifferentCards={() => setSession(null)}
+          />
         )}
       </main>
     </div>

@@ -5,6 +5,7 @@ import { LoginPage } from './auth/LoginPage.js';
 import { CardsPage } from './cards/CardsPage.js';
 import { LearnPage } from './learning/LearnPage.js';
 import { MistakesPage } from './mistakes/MistakesPage.js';
+import { PracticeMistakePage } from './mistakes/PracticeMistakePage.js';
 import { ProgressPage } from './progress/ProgressPage.js';
 import { TrainPage } from './training/TrainPage.js';
 
@@ -80,6 +81,16 @@ export function App() {
         element={
           auth === 'authenticated' ? (
             <MistakesPage onLoggedOut={() => setAuth('anonymous')} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route
+        path="/mistakes/:categorizationId/practice"
+        element={
+          auth === 'authenticated' ? (
+            <PracticeMistakePage onLoggedOut={() => setAuth('anonymous')} />
           ) : (
             <Navigate to="/login" replace />
           )

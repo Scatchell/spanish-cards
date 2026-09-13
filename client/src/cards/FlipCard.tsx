@@ -32,6 +32,9 @@ interface FlipCardProps {
   onSaveAnswer?: (newText: string) => Promise<void>;
   rememberedLabel?: string;
   stillLearningLabel?: string;
+  // When false, prompt/answer render as plain text with no edit pencil —
+  // used for transient cards (e.g. practice sentences) that can't be saved.
+  editable?: boolean;
 }
 
 export function FlipCard({
@@ -43,6 +46,7 @@ export function FlipCard({
   onSaveAnswer,
   rememberedLabel = 'Remembered',
   stillLearningLabel = 'Still learning',
+  editable = true,
 }: FlipCardProps) {
   const [showBack, setShowBack] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
@@ -84,25 +88,33 @@ export function FlipCard({
 
   return (
     <>
-      <EditableSentence
-        className="train-prompt"
-        text={promptText(card, direction)}
-        ariaLabel={promptLabel}
-        sentenceAriaLabel="Prompt"
-        onSave={onSavePrompt ?? noop}
-      />
+      {editable ? (
+        <EditableSentence
+          className="train-prompt"
+          text={promptText(card, direction)}
+          ariaLabel={promptLabel}
+          sentenceAriaLabel="Prompt"
+          onSave={onSavePrompt ?? noop}
+        />
+      ) : (
+        <span className="train-prompt">{promptText(card, direction)}</span>
+      )}
 
       <p
         className={showBack ? 'learn-answer-row' : 'learn-answer-row concealed'}
         aria-label="Answer"
         aria-hidden={!showBack}
       >
-        <EditableSentence
-          className="learn-answer"
-          text={answerText(card, direction)}
-          ariaLabel={answerLabel}
-          onSave={onSaveAnswer ?? noop}
-        />
+        {editable ? (
+          <EditableSentence
+            className="learn-answer"
+            text={answerText(card, direction)}
+            ariaLabel={answerLabel}
+            onSave={onSaveAnswer ?? noop}
+          />
+        ) : (
+          <span className="learn-answer">{answerText(card, direction)}</span>
+        )}
       </p>
       <div className="learn-show-answer-row">
         <button type="button" className="secondary" onClick={() => setShowBack((s) => !s)}>
