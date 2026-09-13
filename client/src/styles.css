@@ -982,11 +982,69 @@ button.rating.emphasized {
   letter-spacing: 0.05em;
 }
 
-.key-term-pill {
+.practice-target-pill {
   display: inline-block;
   background: var(--surface-muted);
   border-radius: 999px;
   padding: 0.15rem 0.55rem;
   margin: 0 0.25rem 0.25rem 0;
   font-size: 0.75rem;
+}
+
+/* ---- Practice Modal ---- */
+
+.practice-modal {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  width: 100%;
+  max-width: 40rem;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.practice-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+
+.practice-modal-body {
+  padding: 1rem 1.25rem;
+  overflow-y: auto;
+}
+
+.practice-example-list,
+.practice-sentence-list {
+  list-style: none;
+  margin: 0.5rem 0 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.practice-example,
+.practice-sentence {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.practice-example-spanish,
+.practice-sentence-spanish {
+  font-weight: 600;
+}
+
+.practice-example-english,
+.practice-sentence-english {
+  color: var(--text-muted);
 }
