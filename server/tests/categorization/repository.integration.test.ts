@@ -79,7 +79,7 @@ describe('findUncategorizedReviewHistory', () => {
         reviewHistoryId: alreadyCategorizedId,
         category: 'verb_form',
         rationale: 'pre-seeded as already processed',
-        keyTerms: [],
+        practiceTargets: [],
         model: 'gpt-5.4-mini',
       },
     ]);
@@ -108,7 +108,7 @@ describe('insertCategorizationBatch', () => {
         reviewHistoryId: historyId,
         category: 'agreement',
         rationale: 'la casa blanco should be la casa blanca',
-        keyTerms: ['blanco', 'blanca'],
+        practiceTargets: [{ expected: 'blanca', submitted: 'blanco' }],
         model: 'gpt-5.4-mini',
       },
     ]);
@@ -117,9 +117,8 @@ describe('insertCategorizationBatch', () => {
       review_history_id: number;
       category: string;
       rationale: string;
-      key_terms: string[];
       model: string;
-    }>('SELECT review_history_id, category, rationale, key_terms, model FROM review_categorizations WHERE review_history_id = $1', [
+    }>('SELECT review_history_id, category, rationale, model FROM review_categorizations WHERE review_history_id = $1', [
       historyId,
     ]);
 
@@ -128,10 +127,17 @@ describe('insertCategorizationBatch', () => {
         review_history_id: historyId,
         category: 'agreement',
         rationale: 'la casa blanco should be la casa blanca',
-        key_terms: ['blanco', 'blanca'],
         model: 'gpt-5.4-mini',
       },
     ]);
+
+    const targets = await pool.query<{ expected: string; submitted: string | null }>(
+      `SELECT pt.expected, pt.submitted FROM practice_targets pt
+       JOIN review_categorizations rc ON rc.id = pt.review_categorization_id
+       WHERE rc.review_history_id = $1`,
+      [historyId],
+    );
+    expect(targets.rows).toEqual([{ expected: 'blanca', submitted: 'blanco' }]);
   });
 
   it('cascades on delete: removing the review_history row removes its categorization', async () => {
@@ -144,10 +150,15 @@ describe('insertCategorizationBatch', () => {
         reviewHistoryId: historyId,
         category: 'spelling_accents',
         rationale: 'tambien vs también',
-        keyTerms: ['tambien', 'también'],
+        practiceTargets: [{ expected: 'también', submitted: 'tambien' }],
         model: 'gpt-5.4-mini',
       },
     ]);
+    const categorizationRow = await pool.query<{ id: number }>(
+      'SELECT id FROM review_categorizations WHERE review_history_id = $1',
+      [historyId],
+    );
+    const categorizationId = categorizationRow.rows[0]!.id;
 
     await pool.query('DELETE FROM review_history WHERE id = $1', [historyId]);
 
@@ -155,6 +166,11 @@ describe('insertCategorizationBatch', () => {
       historyId,
     ]);
     expect(result.rows).toHaveLength(0);
+
+    const targets = await pool.query('SELECT 1 FROM practice_targets WHERE review_categorization_id = $1', [
+      categorizationId,
+    ]);
+    expect(targets.rows).toHaveLength(0);
   });
 
   it('is a no-op for an empty input array', async () => {

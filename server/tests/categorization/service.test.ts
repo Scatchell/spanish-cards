@@ -18,7 +18,7 @@ function echoResults(items: CategorizationInput[]): CategorizationOutput[] {
     index: item.index,
     category: 'agreement',
     rationale: 'gender agreement error',
-    keyTerms: ['blanco', 'blanca'],
+    practiceTargets: [{ expected: 'blanca', submitted: 'blanco' }],
   }));
 }
 
@@ -85,14 +85,14 @@ describe('runCategorizationTick', () => {
         reviewHistoryId: 1,
         category: 'agreement',
         rationale: 'gender agreement error',
-        keyTerms: ['blanco', 'blanca'],
+        practiceTargets: [{ expected: 'blanca', submitted: 'blanco' }],
         model: 'gpt-5.4-mini',
       },
       {
         reviewHistoryId: 2,
         category: 'agreement',
         rationale: 'gender agreement error',
-        keyTerms: ['blanco', 'blanca'],
+        practiceTargets: [{ expected: 'blanca', submitted: 'blanco' }],
         model: 'gpt-5.4-mini',
       },
     ]);
@@ -140,7 +140,7 @@ describe('runCategorizationTick', () => {
       findUncategorized: async () => [fakeRow(1), fakeRow(2)],
       insertCategorizationBatch: vi.fn(),
       generate: async () => [
-        { index: 0, category: 'agreement', rationale: 'only one result', keyTerms: [] },
+        { index: 0, category: 'agreement', rationale: 'only one result', practiceTargets: [] },
       ],
     });
     expect(result).toEqual({ processedCount: 0, failedBatchCount: 1 });
@@ -151,8 +151,8 @@ describe('runCategorizationTick', () => {
       findUncategorized: async () => [fakeRow(1), fakeRow(2)],
       insertCategorizationBatch: vi.fn(),
       generate: async () => [
-        { index: 0, category: 'agreement', rationale: 'ok', keyTerms: [] },
-        { index: 0, category: 'agreement', rationale: 'duplicate index, index 1 missing', keyTerms: [] },
+        { index: 0, category: 'agreement', rationale: 'ok', practiceTargets: [] },
+        { index: 0, category: 'agreement', rationale: 'duplicate index, index 1 missing', practiceTargets: [] },
       ],
     });
     expect(result).toEqual({ processedCount: 0, failedBatchCount: 1 });

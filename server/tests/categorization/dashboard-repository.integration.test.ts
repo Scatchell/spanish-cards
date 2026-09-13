@@ -30,13 +30,18 @@ async function insertMistake(input: {
   const row = historyResult.rows[0];
   if (!row) throw new Error('Insert did not return an id');
   const categorizationResult = await pool.query<{ id: number }>(
-    `INSERT INTO review_categorizations (review_history_id, category, rationale, key_terms, model, created_at)
-     VALUES ($1, $2, 'test rationale', $3, 'gpt-5.4-mini', $4)
+    `INSERT INTO review_categorizations (review_history_id, category, rationale, model, created_at)
+     VALUES ($1, $2, 'test rationale', 'gpt-5.4-mini', $3)
      RETURNING id`,
-    [row.id, input.category, ['blanco', 'blanca'], input.createdAt],
+    [row.id, input.category, input.createdAt],
   );
   const categorizationRow = categorizationResult.rows[0];
   if (!categorizationRow) throw new Error('Insert did not return an id');
+  await pool.query(
+    `INSERT INTO practice_targets (review_categorization_id, expected, submitted)
+     VALUES ($1, 'blanca', 'blanco')`,
+    [categorizationRow.id],
+  );
   return categorizationRow.id;
 }
 

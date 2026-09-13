@@ -23,11 +23,16 @@ export interface UncategorizedReviewHistoryRow {
   submittedText: string;
 }
 
+export interface NewPracticeTarget {
+  expected: string;
+  submitted: string | null;
+}
+
 export interface NewCategorization {
   reviewHistoryId: number;
   category: Category;
   rationale: string;
-  keyTerms: string[];
+  practiceTargets: NewPracticeTarget[];
   model: string;
 }
 
@@ -82,12 +87,25 @@ export async function insertCategorizationBatch(
   }
   await withTransaction(pool, async (tx) => {
     for (const input of inputs) {
-      await tx.query(
-        `INSERT INTO review_categorizations (review_history_id, category, rationale, key_terms, model)
-         VALUES ($1, $2, $3, $4, $5)
-         ON CONFLICT (review_history_id) DO NOTHING`,
-        [input.reviewHistoryId, input.category, input.rationale, input.keyTerms, input.model],
+      const result = await tx.query<{ id: number }>(
+        `INSERT INTO review_categorizations (review_history_id, category, rationale, model)
+         VALUES ($1, $2, $3, $4)
+         ON CONFLICT (review_history_id) DO NOTHING
+         RETURNING id`,
+        [input.reviewHistoryId, input.category, input.rationale, input.model],
       );
+      // A conflicting review_history_id returns no row; skip its targets.
+      const row = result.rows[0];
+      if (!row) {
+        continue;
+      }
+      for (const target of input.practiceTargets) {
+        await tx.query(
+          `INSERT INTO practice_targets (review_categorization_id, expected, submitted)
+           VALUES ($1, $2, $3)`,
+          [row.id, target.expected, target.submitted],
+        );
+      }
     }
   });
 }

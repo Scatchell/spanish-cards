@@ -24,11 +24,16 @@ export interface CategorizationInput {
   submittedText: string;
 }
 
+export interface PracticeTarget {
+  expected: string;
+  submitted: string | null;
+}
+
 export interface CategorizationOutput {
   index: number;
   category: Category;
   rationale: string;
-  keyTerms: string[];
+  practiceTargets: PracticeTarget[];
 }
 
 export type CategorizationGenerator = (
@@ -48,9 +53,20 @@ const CATEGORIZE_BATCH_SCHEMA = {
           index: { type: 'number' },
           category: { type: 'string', enum: [...CATEGORIES] },
           rationale: { type: 'string' },
-          keyTerms: { type: 'array', items: { type: 'string' } },
+          practiceTargets: {
+            type: 'array',
+            items: {
+              type: 'object',
+              properties: {
+                expected: { type: 'string' },
+                submitted: { type: ['string', 'null'] },
+              },
+              required: ['expected', 'submitted'],
+              additionalProperties: false,
+            },
+          },
         },
-        required: ['index', 'category', 'rationale', 'keyTerms'],
+        required: ['index', 'category', 'rationale', 'practiceTargets'],
         additionalProperties: false,
       },
     },

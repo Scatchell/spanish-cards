@@ -48,12 +48,14 @@ Rules:
 - For each item, write one short, concrete sentence for `rationale` naming the
   specific words or forms involved, e.g. "Confused the present tense of ir
   for the future tense of viajar."
-- For `keyTerms`, list only the specific Spanish word(s) that are the actual
-  locus of the diagnosed mistake, not every word in the phrase. Where the
-  learner used a wrong word/form, include both it and its correct
-  replacement, e.g. expected "cerrada" submitted "cerrado" gives
-  `["cerrado", "cerrada"]` — the learner may need to practice telling both
-  forms apart. Leave `keyTerms` empty when there is no specific word to
-  reference (e.g. a blank or wholly unrelated `recall_failure`).
+- For `practiceTargets`, list one entry per specific Spanish word/form that is
+  an actual locus of the diagnosed mistake, not every word in the phrase.
+  Each entry has `expected` (the correct word/form) and `submitted` (what the
+  learner actually wrote for that locus, or `null` if nothing was submitted
+  for it, e.g. an omitted word). E.g. expected "cerrada" submitted "cerrado"
+  gives `{"expected": "cerrada", "submitted": "cerrado"}`; a missing word
+  gives `{"expected": "formamos parte", "submitted": null}`. Leave
+  `practiceTargets` empty when there is no specific word/form to reference
+  (e.g. a blank or wholly unrelated `recall_failure`).
 - Return exactly one result per input item, using the same `index` value
   given for that item.

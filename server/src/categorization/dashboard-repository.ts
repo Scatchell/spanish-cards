@@ -7,11 +7,16 @@ export interface CategoryCount {
   count: number;
 }
 
+export interface PracticeTarget {
+  expected: string;
+  submitted: string | null;
+}
+
 export interface CategoryMistake {
   id: number;
   category: Category;
   rationale: string;
-  keyTerms: string[];
+  practiceTargets: PracticeTarget[];
   correctText: string;
   submittedText: string;
   direction: string;
@@ -48,7 +53,7 @@ interface MistakeRow {
   id: number;
   category: Category;
   rationale: string;
-  key_terms: string[];
+  practice_targets: PracticeTarget[];
   correct_text: string;
   submitted_text: string;
   direction: string;
@@ -61,7 +66,7 @@ function toCategoryMistake(row: MistakeRow): CategoryMistake {
     id: row.id,
     category: row.category,
     rationale: row.rationale,
-    keyTerms: row.key_terms,
+    practiceTargets: row.practice_targets,
     correctText: row.correct_text,
     submittedText: row.submitted_text,
     direction: row.direction,
@@ -89,10 +94,16 @@ export async function getCategoryMistakes(
   const limitParamIndex = params.length;
 
   const result = await db.query<MistakeRow>(
-    `SELECT rc.id, rc.category, rc.rationale, rc.key_terms, rc.created_at,
-            rh.correct_text, rh.submitted_text, rh.direction, rh.verdict
+    `SELECT rc.id, rc.category, rc.rationale, rc.created_at,
+            rh.correct_text, rh.submitted_text, rh.direction, rh.verdict,
+            COALESCE(pt.targets, '[]') AS practice_targets
      FROM review_categorizations rc
      JOIN review_history rh ON rh.id = rc.review_history_id
+     LEFT JOIN LATERAL (
+       SELECT json_agg(json_build_object('expected', pt.expected, 'submitted', pt.submitted) ORDER BY pt.id) AS targets
+       FROM practice_targets pt
+       WHERE pt.review_categorization_id = rc.id
+     ) pt ON true
      WHERE rc.category = $1
      ${cursorClause}
      ORDER BY rc.created_at DESC, rc.id DESC
