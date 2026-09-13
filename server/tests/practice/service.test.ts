@@ -83,4 +83,31 @@ describe('generatePracticeSession', () => {
       sentences: SESSION.sentences,
     });
   });
+
+  it('dedupes concurrent calls for the same id onto a single generate invocation', async () => {
+    const generate = vi.fn(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+      return SESSION.sentences;
+    });
+    const deps = {
+      getMistakeContext: async () => TARGET,
+      selectPracticeExamples: async () => EXAMPLES,
+      generate,
+      upsertPracticeSession: async () => SESSION,
+    };
+
+    const [first, second] = await Promise.all([
+      generatePracticeSession(deps, 5),
+      generatePracticeSession(deps, 5),
+    ]);
+
+    expect(generate).toHaveBeenCalledTimes(1);
+    expect(first).toEqual({ status: 'ok', session: SESSION });
+    expect(second).toEqual({ status: 'ok', session: SESSION });
+
+    // A later call, after the first has settled, must not be blocked by a stale entry.
+    const third = await generatePracticeSession(deps, 5);
+    expect(generate).toHaveBeenCalledTimes(2);
+    expect(third).toEqual({ status: 'ok', session: SESSION });
+  });
 });

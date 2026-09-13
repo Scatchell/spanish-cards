@@ -102,4 +102,15 @@ describe('POST /api/practice/:categorizationId', () => {
     expect(await res.json()).toEqual({ session: SESSION });
     expect(handleGenerate).toHaveBeenCalledWith(5);
   });
+
+  it('502s when handleGenerate rejects', async () => {
+    const base = await startServer({
+      handleGenerate: async () => {
+        throw new Error('Expected exactly 10 practice sentences, got 3');
+      },
+    });
+    const res = await fetch(`${base}/5`, { method: 'POST' });
+    expect(res.status).toBe(502);
+    expect(await res.json()).toEqual({ error: 'Practice sentence generation failed' });
+  });
 });

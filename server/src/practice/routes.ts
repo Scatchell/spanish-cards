@@ -54,7 +54,14 @@ export function practiceRoutes(
       res.status(400).json({ error: 'Invalid categorization id' });
       return;
     }
-    const result = await deps.handleGenerate(id);
+    let result: GenerateResult;
+    try {
+      result = await deps.handleGenerate(id);
+    } catch (err) {
+      console.error('Practice sentence generation failed:', err);
+      res.status(502).json({ error: 'Practice sentence generation failed' });
+      return;
+    }
     if (result.status === 'unavailable') {
       res.status(503).json({ error: 'Practice sentence generation is not configured' });
       return;
