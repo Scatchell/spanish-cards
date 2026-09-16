@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AnswerReveal } from '../../src/training/AnswerReveal.js';
 import { checkAnswerWithAlternates } from '../../src/training/answer-check.js';
 
@@ -70,5 +70,34 @@ describe('AnswerReveal', () => {
       <AnswerReveal submitted="el coche" result={result} primaryText="el coche" alternates={[]} />,
     );
     expect(screen.queryByText('Matched an alternate answer')).toBeNull();
+  });
+
+  it('shows the real primary answer — not the matched alternate — in the editor when an alternate matched', () => {
+    // Regression: EditableAnswerGroup's primaryText prop was fed correctText
+    // (reconstructed from the diffed segments, i.e. the matched alternate's
+    // text) instead of the card's real primary answer.
+    const result = checkAnswerWithAlternates('el carro', 'el coche', [
+      { id: 1, text: 'el auto' },
+      { id: 2, text: 'el carro' },
+    ]);
+    render(
+      <AnswerReveal
+        submitted="el carro"
+        result={result}
+        primaryText="el coche"
+        alternates={[
+          { id: 1, text: 'el auto' },
+          { id: 2, text: 'el carro' },
+        ]}
+        onSavePrimary={vi.fn().mockResolvedValue(undefined)}
+        onAddAlternate={vi.fn().mockResolvedValue({ id: 3, text: 'x' })}
+        onUpdateAlternate={vi.fn().mockResolvedValue(undefined)}
+        onDeleteAlternate={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+    fireEvent.click(screen.getByLabelText('Edit correct answer'));
+    expect(screen.getByText('Primary answer')).toBeTruthy();
+    const primaryInput = screen.getByLabelText('Edit correct answer') as HTMLInputElement;
+    expect(primaryInput.value).toBe('el coche');
   });
 });

@@ -58,7 +58,7 @@ export function AnswerReveal({
       {onSavePrimary && onAddAlternate && onUpdateAlternate && onDeleteAlternate ? (
         <EditableAnswerGroup
           className="correct-answer"
-          primaryText={answerOverride ?? correctText}
+          primaryText={answerOverride ?? primaryText}
           onSavePrimary={onSavePrimary}
           alternates={alternates}
           onAddAlternate={onAddAlternate}
