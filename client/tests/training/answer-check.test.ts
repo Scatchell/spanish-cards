@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { DiffSegment } from '../../src/training/answer-check.js';
-import { checkAnswer, normalizeAnswer } from '../../src/training/answer-check.js';
+import { checkAnswer, normalizeAnswer, checkAnswerWithAlternates, isDuplicateAnswer } from '../../src/training/answer-check.js';
 
 function missing(segments: DiffSegment[]): string[] {
   return segments.filter((s) => s.kind === 'missing').map((s) => s.text);
@@ -104,8 +104,6 @@ describe('normalizeAnswer', () => {
     expect(normalizeAnswer('  ¡Buenos   DÍAS, señor!  ')).toBe('buenos dias senor');
   });
 });
-
-import { checkAnswerWithAlternates, isDuplicateAnswer } from '../../src/training/answer-check.js';
 
 function alt(id: number, text: string) {
   return { id, text };
