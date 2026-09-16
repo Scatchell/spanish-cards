@@ -104,3 +104,50 @@ describe('normalizeAnswer', () => {
     expect(normalizeAnswer('  ¡Buenos   DÍAS, señor!  ')).toBe('buenos dias senor');
   });
 });
+
+import { checkAnswerWithAlternates, isDuplicateAnswer } from '../../src/training/answer-check.js';
+
+function alt(id: number, text: string) {
+  return { id, text };
+}
+
+describe('checkAnswerWithAlternates', () => {
+  it('short-circuits on a correct primary match without consulting alternates', () => {
+    const result = checkAnswerWithAlternates('el gato', 'el gato', [alt(1, 'el felino')]);
+    expect(result.verdict).toBe('correct');
+    expect(result.matchedText).toBe('el gato');
+  });
+
+  it('short-circuits on a correctWithDifferences primary match', () => {
+    const result = checkAnswerWithAlternates('el gato', 'él gató', [alt(1, 'el felino')]);
+    expect(result.verdict).toBe('correctWithDifferences');
+    expect(result.matchedText).toBe('él gató');
+  });
+
+  it('falls back to the first matching alternate when the primary fails', () => {
+    const result = checkAnswerWithAlternates('el carro', 'el coche', [alt(1, 'el auto'), alt(2, 'el carro')]);
+    expect(result.verdict).toBe('correct');
+    expect(result.matchedText).toBe('el carro');
+  });
+
+  it('stops at the first matching alternate even if a later one would also match', () => {
+    const result = checkAnswerWithAlternates('el auto', 'el coche', [alt(1, 'el auto'), alt(2, 'el auto ')]);
+    expect(result.matchedText).toBe('el auto');
+  });
+
+  it('returns the primary incorrect result when nothing matches', () => {
+    const result = checkAnswerWithAlternates('perro', 'el coche', [alt(1, 'el auto'), alt(2, 'el carro')]);
+    expect(result.verdict).toBe('incorrect');
+    expect(result.matchedText).toBe('el coche');
+  });
+});
+
+describe('isDuplicateAnswer', () => {
+  it('detects a duplicate after normalization', () => {
+    expect(isDuplicateAnswer('El Cóche', ['el coche'])).toBe(true);
+  });
+
+  it('reports no duplicate when nothing matches', () => {
+    expect(isDuplicateAnswer('el auto', ['el coche'])).toBe(false);
+  });
+});

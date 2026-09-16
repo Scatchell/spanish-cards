@@ -141,3 +141,40 @@ function diffSegments(submitted: string, correct: string): DiffSegment[] {
 
   return coalesce(segments);
 }
+
+export interface AlternateAwareResult extends AnswerCheckResult {
+  // The text the returned verdict/diff was actually checked against: the
+  // primary answer, or whichever alternate matched.
+  matchedText: string;
+}
+
+export interface AlternateOption {
+  id: number;
+  text: string;
+}
+
+// Primary always takes precedence: alternates are only consulted when the
+// primary's verdict is 'incorrect'. Among alternates, the first match in
+// stored order wins — no "best match" ranking.
+export function checkAnswerWithAlternates(
+  submitted: string,
+  primary: string,
+  alternates: AlternateOption[],
+): AlternateAwareResult {
+  const primaryResult = checkAnswer(submitted, primary);
+  if (primaryResult.verdict !== 'incorrect') {
+    return { ...primaryResult, matchedText: primary };
+  }
+  for (const alternate of alternates) {
+    const altResult = checkAnswer(submitted, alternate.text);
+    if (altResult.verdict !== 'incorrect') {
+      return { ...altResult, matchedText: alternate.text };
+    }
+  }
+  return { ...primaryResult, matchedText: primary };
+}
+
+export function isDuplicateAnswer(candidate: string, existing: string[]): boolean {
+  const normalizedCandidate = normalizeAnswer(candidate);
+  return existing.some((text) => normalizeAnswer(text) === normalizedCandidate);
+}
