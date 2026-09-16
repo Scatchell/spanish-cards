@@ -169,6 +169,25 @@ describe('FlipCard', () => {
     expect(screen.getByText('feline')).toBeTruthy();
   });
 
+  it('shows all alternates read-only in the collapsed EditableAnswerGroup view used by real Learn sessions', () => {
+    render(
+      <FlipCard
+        card={makeCard({ englishAlternates: [{ id: 1, text: 'kitty' }, { id: 2, text: 'feline' }] })}
+        direction="spanish-to-english"
+        onRemembered={() => {}}
+        onStillLearning={() => {}}
+        onAddAlternate={vi.fn().mockResolvedValue({ id: 3, text: 'new' })}
+        onUpdateAlternate={vi.fn().mockResolvedValue(undefined)}
+        onDeleteAlternate={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+    fireEvent.click(screen.getByText('Show answer'));
+    expect(screen.getByText('cat')).toBeTruthy();
+    expect(screen.getByText('kitty')).toBeTruthy();
+    expect(screen.getByText('feline')).toBeTruthy();
+    expect(screen.queryByRole('textbox', { name: 'Alternate answer' })).toBeNull();
+  });
+
   it('does not render alternate inputs when editable is false', () => {
     render(
       <FlipCard

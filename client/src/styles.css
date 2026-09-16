@@ -688,6 +688,30 @@ button.rating.emphasized {
   box-sizing: border-box;
 }
 
+/* Read-only alternates shown inline in the collapsed EditableAnswerGroup view
+   (Learn/Training reveal, before the pencil is ever clicked). Deliberately
+   subordinate to the primary answer's weight — smaller, muted, comma-joined —
+   so the primary answer still reads as the main text. */
+.answer-group-alternates-readonly {
+  display: flex;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 0.3rem;
+  font-size: 0.85rem;
+  font-weight: 400;
+  color: var(--text-muted);
+}
+
+.answer-group-alternate-readonly {
+  display: inline;
+}
+
+.answer-group-alternate-readonly:not(:last-child)::after {
+  content: ',';
+}
+
 .answer-group {
   display: flex;
   flex-direction: column;

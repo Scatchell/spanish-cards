@@ -21,10 +21,26 @@ function renderGroup(overrides: Partial<Parameters<typeof EditableAnswerGroup>[0
 }
 
 describe('EditableAnswerGroup', () => {
-  it('shows the primary text in view mode with no alternates visible', () => {
-    renderGroup({ alternates: [{ id: 1, text: 'automobile' }] });
+  it('shows the primary text and all alternates read-only in collapsed view', () => {
+    renderGroup({ alternates: [{ id: 1, text: 'ensayo' }] });
     expect(screen.getByText('car')).toBeTruthy();
-    expect(screen.queryByText('automobile')).toBeNull();
+    expect(screen.getByText('ensayo')).toBeTruthy();
+  });
+
+  it('renders no stray alternates wrapper in collapsed view when there are zero alternates', () => {
+    const { container } = render(
+      <EditableAnswerGroup
+        primaryText="car"
+        ariaLabel="English answer"
+        onSavePrimary={vi.fn().mockResolvedValue(undefined)}
+        alternates={[]}
+        onAddAlternate={vi.fn().mockResolvedValue({ id: 1, text: 'automobile' })}
+        onUpdateAlternate={vi.fn().mockResolvedValue(undefined)}
+        onDeleteAlternate={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+    expect(screen.getByText('car')).toBeTruthy();
+    expect(container.querySelectorAll('.answer-group-alternates-readonly').length).toBe(0);
   });
 
   it('expands into edit mode showing primary and alternate inputs', () => {

@@ -46,6 +46,18 @@ export function EditableAnswerGroup({
     return (
       <span className="editable-sentence">
         <span className={className}>{primaryText}</span>
+        {alternates.length > 0 && (
+          // Plain spans, not a <ul>: this whole group renders inside a <p> in
+          // both Learn (FlipCard) and Training (AnswerReveal), where a nested
+          // list is invalid HTML.
+          <span className="answer-group-alternates-readonly">
+            {alternates.map((alt) => (
+              <span key={alt.id} className="answer-group-alternate-readonly">
+                {alt.text}
+              </span>
+            ))}
+          </span>
+        )}
         <button
           type="button"
           className="edit-sentence-button"
