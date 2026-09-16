@@ -1,3 +1,5 @@
+import type { TrainingCard, TrainingAlternate } from '../api.js';
+
 // Training direction: which language is the prompt. The preference persists
 // for the browser session, per the epic requirements.
 export type Direction = 'spanish-to-english' | 'english-to-spanish';
@@ -30,4 +32,8 @@ export function answerText(
   direction: Direction,
 ): string {
   return direction === 'spanish-to-english' ? card.englishText : card.spanishText;
+}
+
+export function answerAlternates(card: TrainingCard, direction: Direction): TrainingAlternate[] {
+  return direction === 'spanish-to-english' ? card.englishAlternates : card.spanishAlternates;
 }
