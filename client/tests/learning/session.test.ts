@@ -20,6 +20,8 @@ function makeCard(id: number): Card {
     updatedAt: '2026-01-01T00:00:00.000Z',
     due: '2026-01-01T00:00:00.000Z',
     reviewed: false,
+    spanishAlternates: [],
+    englishAlternates: [],
   };
 }
 
@@ -56,6 +58,12 @@ describe('updateCardInSession', () => {
     const session = startSession(makeCards(2));
     const updated = updateCardInSession(session, 99, { englishText: 'x' });
     expect(updated.queue.map((c) => c.englishText).sort()).toEqual(['en-1', 'en-2']);
+  });
+
+  it('patches alternates arrays', () => {
+    const session = startSession(makeCards(2));
+    const updated = updateCardInSession(session, 2, { englishAlternates: [{ id: 1, text: 'automobile' }] });
+    expect(updated.queue.find((c) => c.id === 2)?.englishAlternates).toEqual([{ id: 1, text: 'automobile' }]);
   });
 });
 

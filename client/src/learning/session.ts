@@ -78,7 +78,7 @@ export function restartPass(session: LearningSession, rng: Rng = Math.random): L
 export function updateCardInSession(
   session: LearningSession,
   cardId: number,
-  patch: Partial<Pick<Card, 'spanishText' | 'englishText'>>,
+  patch: Partial<Pick<Card, 'spanishText' | 'englishText' | 'spanishAlternates' | 'englishAlternates'>>,
 ): LearningSession {
   const apply = (card: Card): Card => (card.id === cardId ? { ...card, ...patch } : card);
   return {
