@@ -17,6 +17,8 @@ function makeCard(id: number): TrainingCard {
     englishText: `en-${id}`,
     languagePair: 'en<->es',
     due: '2026-01-01T00:00:00.000Z',
+    spanishAlternates: [],
+    englishAlternates: [],
   };
 }
 

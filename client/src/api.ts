@@ -32,12 +32,19 @@ export interface BatchSaveResult {
   failures: BatchFailure[];
 }
 
+export interface TrainingAlternate {
+  id: number;
+  text: string;
+}
+
 export interface TrainingCard {
   id: number;
   spanishText: string;
   englishText: string;
   languagePair: string;
   due: string;
+  spanishAlternates: TrainingAlternate[];
+  englishAlternates: TrainingAlternate[];
 }
 
 export type TrainingScope = 'due' | 'ahead';

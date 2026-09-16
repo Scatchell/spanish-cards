@@ -2,6 +2,11 @@ import type { DbQueryable } from '../db.js';
 import type { CardSchedule, ReviewRating } from './scheduler.js';
 import type { PromptDirection, Verdict } from './validation.js';
 
+export interface TrainingAlternate {
+  id: number;
+  text: string;
+}
+
 // A card as presented in the training queue. `due` is the effective due time:
 // the FSRS due date, or the card's creation time if it has never been reviewed.
 export interface TrainingCard {
@@ -10,6 +15,8 @@ export interface TrainingCard {
   englishText: string;
   languagePair: string;
   due: string;
+  spanishAlternates: TrainingAlternate[];
+  englishAlternates: TrainingAlternate[];
 }
 
 export type QueueScope = 'due' | 'ahead';
@@ -20,6 +27,8 @@ interface QueueRow {
   english_text: string;
   language_pair: string;
   due: Date;
+  spanish_alternates: TrainingAlternate[];
+  english_alternates: TrainingAlternate[];
 }
 
 interface ScheduleRow {
@@ -44,7 +53,13 @@ export async function getTrainingQueue(
 ): Promise<TrainingCard[]> {
   const comparison = scope === 'due' ? '<=' : '>';
   const result = await db.query<QueueRow>(
-    `SELECT c.id, c.spanish_text, c.english_text, c.language_pair, COALESCE(s.due, c.created_at) AS due
+    `SELECT c.id, c.spanish_text, c.english_text, c.language_pair, COALESCE(s.due, c.created_at) AS due,
+            COALESCE((SELECT json_agg(json_build_object('id', a.id, 'text', a.text) ORDER BY a.position)
+                      FROM card_alternate_answers a
+                      WHERE a.card_id = c.id AND a.field = 'spanish'), '[]'::json) AS spanish_alternates,
+            COALESCE((SELECT json_agg(json_build_object('id', a.id, 'text', a.text) ORDER BY a.position)
+                      FROM card_alternate_answers a
+                      WHERE a.card_id = c.id AND a.field = 'english'), '[]'::json) AS english_alternates
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
      WHERE COALESCE(s.due, c.created_at) ${comparison} $1
@@ -57,6 +72,8 @@ export async function getTrainingQueue(
     englishText: row.english_text,
     languagePair: row.language_pair,
     due: row.due.toISOString(),
+    spanishAlternates: row.spanish_alternates,
+    englishAlternates: row.english_alternates,
   }));
 }
 
