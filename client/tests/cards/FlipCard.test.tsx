@@ -5,13 +5,25 @@ import { FlipCard } from '../../src/cards/FlipCard.js';
 
 afterEach(cleanup);
 
-function makeCard(overrides?: Partial<{ id: number; spanishText: string; englishText: string; languagePair: string; due: string }>) {
+function makeCard(
+  overrides?: Partial<{
+    id: number;
+    spanishText: string;
+    englishText: string;
+    languagePair: string;
+    due: string;
+    spanishAlternates: { id: number; text: string }[];
+    englishAlternates: { id: number; text: string }[];
+  }>,
+) {
   return {
     id: 1,
     spanishText: 'gato',
     englishText: 'cat',
     languagePair: 'en<->es',
     due: '2026-01-01T00:00:00.000Z',
+    spanishAlternates: [],
+    englishAlternates: [],
     ...overrides,
   };
 }
@@ -140,5 +152,35 @@ describe('FlipCard', () => {
       />,
     );
     expect(answerHidden()).toBe(true);
+  });
+
+  it('shows all alternates read-only after Show answer', () => {
+    render(
+      <FlipCard
+        card={makeCard({ englishAlternates: [{ id: 1, text: 'kitty' }, { id: 2, text: 'feline' }] })}
+        direction="spanish-to-english"
+        onRemembered={() => {}}
+        onStillLearning={() => {}}
+      />,
+    );
+    fireEvent.click(screen.getByText('Show answer'));
+    expect(screen.getByText('cat')).toBeTruthy();
+    expect(screen.getByText('kitty')).toBeTruthy();
+    expect(screen.getByText('feline')).toBeTruthy();
+  });
+
+  it('does not render alternate inputs when editable is false', () => {
+    render(
+      <FlipCard
+        card={makeCard({ englishAlternates: [{ id: 1, text: 'kitty' }] })}
+        direction="spanish-to-english"
+        onRemembered={() => {}}
+        onStillLearning={() => {}}
+        editable={false}
+      />,
+    );
+    fireEvent.click(screen.getByText('Show answer'));
+    expect(screen.getByText('kitty')).toBeTruthy();
+    expect(screen.queryByRole('textbox')).toBeNull();
   });
 });

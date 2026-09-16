@@ -4,6 +4,8 @@ import { ExplainButton } from '../explain/ExplainButton.js';
 import { ExplanationModal } from '../explain/ExplanationModal.js';
 import type { Direction } from '../training/direction.js';
 import { answerText, promptText } from '../training/direction.js';
+import { EditableAnswerGroup } from './EditableAnswerGroup.js';
+import type { AlternateAnswerData } from './EditableAnswerGroup.js';
 import { EditableSentence } from './EditableSentence.js';
 
 const DIGIT_BY_CODE: Record<string, string> = {
@@ -21,6 +23,8 @@ interface FlipCardCard {
   englishText: string;
   languagePair: string;
   due: string;
+  spanishAlternates: AlternateAnswerData[];
+  englishAlternates: AlternateAnswerData[];
 }
 
 interface FlipCardProps {
@@ -30,6 +34,9 @@ interface FlipCardProps {
   onStillLearning: () => void;
   onSavePrompt?: (newText: string) => Promise<void>;
   onSaveAnswer?: (newText: string) => Promise<void>;
+  onAddAlternate?: (text: string) => Promise<AlternateAnswerData>;
+  onUpdateAlternate?: (id: number, text: string) => Promise<void>;
+  onDeleteAlternate?: (id: number) => Promise<void>;
   rememberedLabel?: string;
   stillLearningLabel?: string;
   // When false, prompt/answer render as plain text with no edit pencil —
@@ -44,6 +51,9 @@ export function FlipCard({
   onStillLearning,
   onSavePrompt,
   onSaveAnswer,
+  onAddAlternate,
+  onUpdateAlternate,
+  onDeleteAlternate,
   rememberedLabel = 'Remembered',
   stillLearningLabel = 'Still learning',
   editable = true,
@@ -105,15 +115,26 @@ export function FlipCard({
         aria-label="Answer"
         aria-hidden={!showBack}
       >
-        {editable ? (
-          <EditableSentence
+        {editable && onAddAlternate && onUpdateAlternate && onDeleteAlternate ? (
+          <EditableAnswerGroup
             className="learn-answer"
-            text={answerText(card, direction)}
+            primaryText={answerText(card, direction)}
             ariaLabel={answerLabel}
-            onSave={onSaveAnswer ?? noop}
+            onSavePrimary={onSaveAnswer ?? noop}
+            alternates={direction === 'spanish-to-english' ? card.englishAlternates : card.spanishAlternates}
+            onAddAlternate={onAddAlternate}
+            onUpdateAlternate={onUpdateAlternate}
+            onDeleteAlternate={onDeleteAlternate}
           />
         ) : (
-          <span className="learn-answer">{answerText(card, direction)}</span>
+          <>
+            <span className="learn-answer">{answerText(card, direction)}</span>
+            {(direction === 'spanish-to-english' ? card.englishAlternates : card.spanishAlternates).map((alt) => (
+              <span key={alt.id} className="learn-answer learn-answer-alternate">
+                {alt.text}
+              </span>
+            ))}
+          </>
         )}
       </p>
       <div className="learn-show-answer-row">
