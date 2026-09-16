@@ -126,6 +126,14 @@ export function FlipCard({
             onUpdateAlternate={onUpdateAlternate}
             onDeleteAlternate={onDeleteAlternate}
           />
+        ) : editable ? (
+          <EditableSentence
+            className="learn-answer"
+            text={answerText(card, direction)}
+            ariaLabel={answerLabel}
+            sentenceAriaLabel="Correct answer"
+            onSave={onSaveAnswer ?? noop}
+          />
         ) : (
           <>
             <span className="learn-answer">{answerText(card, direction)}</span>

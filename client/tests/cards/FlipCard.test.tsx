@@ -161,6 +161,7 @@ describe('FlipCard', () => {
         direction="spanish-to-english"
         onRemembered={() => {}}
         onStillLearning={() => {}}
+        editable={false}
       />,
     );
     fireEvent.click(screen.getByText('Show answer'));
@@ -186,6 +187,25 @@ describe('FlipCard', () => {
     expect(screen.getByText('kitty')).toBeTruthy();
     expect(screen.getByText('feline')).toBeTruthy();
     expect(screen.queryByRole('textbox', { name: 'Alternate answer' })).toBeNull();
+  });
+
+  it('renders an editable single-box answer when editable is true but the alternate callbacks are not all provided', () => {
+    // Regression: retry-mode FlipCard usage passes onSaveAnswer without the
+    // three alternate callbacks, and previously fell through to the fully
+    // read-only list, silently losing answer-editing entirely.
+    render(
+      <FlipCard
+        card={makeCard()}
+        direction="spanish-to-english"
+        onRemembered={() => {}}
+        onStillLearning={() => {}}
+        onSaveAnswer={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+    fireEvent.click(screen.getByText('Show answer'));
+    expect(screen.getByLabelText('Edit English answer')).toBeInTheDocument();
+    fireEvent.click(screen.getByLabelText('Edit English answer'));
+    expect(screen.getByDisplayValue('cat')).toBeInTheDocument();
   });
 
   it('does not render alternate inputs when editable is false', () => {

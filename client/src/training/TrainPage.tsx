@@ -52,6 +52,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [answerOverride, setAnswerOverride] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
+  const [adoptError, setAdoptError] = useState<string | null>(null);
   const answerInput = useRef<HTMLInputElement>(null);
 
   const current = currentCard(session);
@@ -149,6 +150,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         setAnswerOverride(null);
         setTyped('');
         setExplainOpen(false);
+        setAdoptError(null);
       } catch (err) {
         if (!handleUnauthenticated(err)) {
           setLoadState('error');
@@ -318,6 +320,9 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                 }}
                 onSavePrompt={(newText) => saveCardField(promptField, newText)}
                 onSaveAnswer={(newText) => saveCardField(answerField, newText)}
+                onAddAlternate={addAlternate}
+                onUpdateAlternate={saveAlternateEdit}
+                onDeleteAlternate={removeAlternate}
               />
             ) : (
               <>
@@ -366,7 +371,17 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                       onDeleteAlternate={removeAlternate}
                     />
                     {canExplain(card) && (
-                      <ExplainButton onClick={() => setExplainOpen(true)} />
+                      <ExplainButton
+                        onClick={() => {
+                          setAdoptError(null);
+                          setExplainOpen(true);
+                        }}
+                      />
+                    )}
+                    {adoptError && (
+                      <p className="field-error" role="alert">
+                        {adoptError}
+                      </p>
                     )}
                     <RatingBar
                       allowAgain={!isCorrect}
@@ -383,8 +398,14 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                         direction={direction}
                         verdict={reveal.result.verdict}
                         onAdoptAnswer={(suggested) => {
-                          void adoptSuggestedAnswer(suggested);
-                          setExplainOpen(false);
+                          setAdoptError(null);
+                          adoptSuggestedAnswer(suggested)
+                            .catch((err: unknown) => {
+                              setAdoptError(
+                                err instanceof Error ? err.message : 'Could not adopt this answer.',
+                              );
+                            })
+                            .finally(() => setExplainOpen(false));
                         }}
                         onClose={() => setExplainOpen(false)}
                       />
