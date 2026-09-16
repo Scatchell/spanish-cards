@@ -37,6 +37,16 @@ afterAll(async () => {
   await pool.end();
 });
 
+describe('insertCards', () => {
+  it('returns empty alternates arrays, not undefined, for a freshly-inserted card', async () => {
+    const [card] = await insertCards(pool, [{ spanishText: 'perro', englishText: 'dog' }]);
+    cardIds.push(card!.id);
+    expect(card!.spanishAlternates).toEqual([]);
+    expect(card!.englishAlternates).toEqual([]);
+    await cleanup();
+  });
+});
+
 describe('alternates repository', () => {
   it('assigns increasing positions per (card, field) and lists them in order', async () => {
     const cardId = await makeCard();

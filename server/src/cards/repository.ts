@@ -71,7 +71,8 @@ export async function insertCards(db: DbQueryable, inputs: CardInput[]): Promise
   const result = await db.query<CardRow>(
     `INSERT INTO cards (spanish_text, english_text) VALUES ${values.join(', ')}
      RETURNING id, spanish_text, english_text, language_pair, created_at, updated_at,
-               created_at AS due, false AS reviewed`,
+               created_at AS due, false AS reviewed,
+               '[]'::json AS spanish_alternates, '[]'::json AS english_alternates`,
     params,
   );
   return result.rows.map(toCard);
