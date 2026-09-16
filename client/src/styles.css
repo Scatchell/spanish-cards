@@ -688,6 +688,67 @@ button.rating.emphasized {
   box-sizing: border-box;
 }
 
+.answer-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.answer-group-label {
+  margin: 0.5rem 0 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.alternate-answer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.alternate-answer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.alternate-answer-input {
+  flex: 1 1 auto;
+  min-width: 0;
+  font: inherit;
+  box-sizing: border-box;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+
+.delete-alternate-button {
+  padding: 0.1rem 0.4rem;
+  font-size: 0.8em;
+  line-height: 1;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.delete-alternate-button:hover {
+  background: var(--surface-muted);
+  color: var(--danger);
+}
+
+.add-alternate-button,
+.done-editing-button {
+  align-self: flex-start;
+}
+
 .learn-show-answer-row {
   display: flex;
   gap: 0.6rem;
