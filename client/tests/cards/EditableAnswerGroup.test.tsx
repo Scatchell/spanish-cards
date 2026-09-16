@@ -67,6 +67,26 @@ describe('EditableAnswerGroup', () => {
     expect(props.onDeleteAlternate).toHaveBeenCalledWith(1);
   });
 
+  it('shows an inline error and keeps the row visible when deleting an alternate fails', async () => {
+    const onDeleteAlternate = vi.fn().mockRejectedValue(new Error('Network error'));
+    renderGroup({ alternates: [{ id: 1, text: 'automobile' }], onDeleteAlternate });
+    fireEvent.click(screen.getByLabelText('Edit English answer'));
+    fireEvent.click(screen.getByLabelText('Delete alternate answer'));
+    await waitFor(() => expect(screen.getByText('Network error')).toBeTruthy());
+    expect(screen.getByDisplayValue('automobile')).toBeInTheDocument();
+  });
+
+  it('shows an inline error when adding a duplicate alternate fails', async () => {
+    const onAddAlternate = vi.fn().mockRejectedValue(new Error('That answer already exists.'));
+    renderGroup({ alternates: [], onAddAlternate });
+    fireEvent.click(screen.getByLabelText('Edit English answer'));
+    fireEvent.click(screen.getByText('+ Add alternative'));
+    const input = screen.getByLabelText('Alternate answer');
+    fireEvent.change(input, { target: { value: 'car' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() => expect(screen.getByText('That answer already exists.')).toBeTruthy());
+  });
+
   it('adds a new alternate by typing into the "+ Add alternative" row', async () => {
     const props = renderGroup({ alternates: [] });
     fireEvent.click(screen.getByLabelText('Edit English answer'));

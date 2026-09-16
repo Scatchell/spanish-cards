@@ -124,13 +124,14 @@ interface AlternateRowProps {
   text: string;
   autoFocus?: boolean;
   onSave: (text: string) => Promise<void>;
-  onDelete?: () => void;
+  onDelete?: () => Promise<void>;
   onCancelEmpty?: () => void;
 }
 
 function AlternateRow({ text: initialText, autoFocus, onSave, onDelete, onCancelEmpty }: AlternateRowProps) {
   const [value, setValue] = useState(initialText);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function commit() {
@@ -153,6 +154,19 @@ function AlternateRow({ text: initialText, autoFocus, onSave, onDelete, onCancel
       setError(err instanceof Error ? err.message : 'Could not save — reverted.');
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function commitDelete() {
+    if (!onDelete || deleting) return;
+    setDeleting(true);
+    setError(null);
+    try {
+      await onDelete();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not delete — try again.');
+    } finally {
+      setDeleting(false);
     }
   }
 
@@ -181,7 +195,13 @@ function AlternateRow({ text: initialText, autoFocus, onSave, onDelete, onCancel
         onBlur={() => void commit()}
       />
       {onDelete && (
-        <button type="button" className="delete-alternate-button" aria-label="Delete alternate answer" onClick={onDelete}>
+        <button
+          type="button"
+          className="delete-alternate-button"
+          aria-label="Delete alternate answer"
+          disabled={deleting}
+          onClick={() => void commitDelete()}
+        >
           ✕
         </button>
       )}
