@@ -221,4 +221,10 @@ describe('patchCard', () => {
     const patched = patchCard(s, 99, { spanishText: 'x' });
     expect(patched.queue.map((qc) => qc.card.spanishText)).toEqual(['es-1', 'es-2']);
   });
+
+  it('patches alternates arrays', () => {
+    const s = startSession(makeCards(2));
+    const patched = patchCard(s, 1, { englishAlternates: [{ id: 1, text: 'automobile' }] });
+    expect(patched.queue[0]?.card.englishAlternates).toEqual([{ id: 1, text: 'automobile' }]);
+  });
 });

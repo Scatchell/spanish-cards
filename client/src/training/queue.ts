@@ -73,7 +73,7 @@ export function resolveRetry(
 export function patchCard(
   s: TrainingSession,
   cardId: number,
-  patch: Partial<Pick<TrainingCard, 'spanishText' | 'englishText'>>,
+  patch: Partial<Pick<TrainingCard, 'spanishText' | 'englishText' | 'spanishAlternates' | 'englishAlternates'>>,
 ): TrainingSession {
   return {
     ...s,
