@@ -1,6 +1,11 @@
 import type { DbQueryable } from '../db.js';
 import type { CardInput } from './validation.js';
 
+export interface CardAlternate {
+  id: number;
+  text: string;
+}
+
 export interface Card {
   id: number;
   spanishText: string;
@@ -12,6 +17,8 @@ export interface Card {
   // never been reviewed (same rule as the training queue).
   due: string;
   reviewed: boolean;
+  spanishAlternates: CardAlternate[];
+  englishAlternates: CardAlternate[];
 }
 
 interface CardRow {
@@ -23,13 +30,26 @@ interface CardRow {
   updated_at: Date;
   due: Date;
   reviewed: boolean;
+  spanish_alternates: CardAlternate[];
+  english_alternates: CardAlternate[];
 }
+
+// json_agg/json_build_object (not array_agg) since alternates are structured
+// objects; pg parses the returned json/json[] column into plain JS
+// objects/arrays automatically.
+const ALTERNATES_SELECT = `
+            COALESCE((SELECT json_agg(json_build_object('id', a.id, 'text', a.text) ORDER BY a.position)
+                      FROM card_alternate_answers a
+                      WHERE a.card_id = c.id AND a.field = 'spanish'), '[]'::json) AS spanish_alternates,
+            COALESCE((SELECT json_agg(json_build_object('id', a.id, 'text', a.text) ORDER BY a.position)
+                      FROM card_alternate_answers a
+                      WHERE a.card_id = c.id AND a.field = 'english'), '[]'::json) AS english_alternates`;
 
 export async function listCards(db: DbQueryable): Promise<Card[]> {
   const result = await db.query<CardRow>(
     `SELECT c.id, c.spanish_text, c.english_text, c.language_pair, c.created_at, c.updated_at,
             COALESCE(s.due, c.created_at) AS due,
-            (s.card_id IS NOT NULL) AS reviewed
+            (s.card_id IS NOT NULL) AS reviewed,${ALTERNATES_SELECT}
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
      ORDER BY c.id`,
@@ -61,7 +81,7 @@ export async function getCard(db: DbQueryable, id: number): Promise<Card | null>
   const result = await db.query<CardRow>(
     `SELECT c.id, c.spanish_text, c.english_text, c.language_pair, c.created_at, c.updated_at,
             COALESCE(s.due, c.created_at) AS due,
-            (s.card_id IS NOT NULL) AS reviewed
+            (s.card_id IS NOT NULL) AS reviewed,${ALTERNATES_SELECT}
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
      WHERE c.id = $1`,
@@ -103,5 +123,7 @@ function toCard(row: CardRow): Card {
     updatedAt: row.updated_at.toISOString(),
     due: row.due.toISOString(),
     reviewed: row.reviewed,
+    spanishAlternates: row.spanish_alternates,
+    englishAlternates: row.english_alternates,
   };
 }

@@ -33,6 +33,8 @@ function makeFakeDeck(): FakeDeck {
       updatedAt: timestamp,
       due: timestamp,
       reviewed: false,
+      spanishAlternates: [],
+      englishAlternates: [],
     };
     cards.push(card);
     return card;
