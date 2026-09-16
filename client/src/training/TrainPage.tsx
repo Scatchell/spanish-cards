@@ -129,6 +129,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           direction,
           verdict: reveal.result.verdict,
           submittedText: reveal.submitted,
+          matchedText: answerText(card, direction),
         });
         setSession((s) =>
           recordGraded(s, {

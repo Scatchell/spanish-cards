@@ -7,6 +7,7 @@ const validBody = {
   direction: 'spanish-to-english',
   verdict: 'correct',
   submittedText: 'hola',
+  matchedText: 'hello',
 };
 
 describe('parseReviewRequest', () => {
@@ -60,5 +61,28 @@ describe('parseReviewRequest', () => {
     });
     expect(parseReviewRequest({ ...validBody, submittedText: 42 })).toBeNull();
     expect(parseReviewRequest({ ...validBody, submittedText: undefined })).toBeNull();
+  });
+
+  it('rejects a body missing matchedText', () => {
+    const result = parseReviewRequest({
+      cardId: 1,
+      rating: 'good',
+      direction: 'spanish-to-english',
+      verdict: 'correct',
+      submittedText: 'gato',
+    });
+    expect(result).toBeNull();
+  });
+
+  it('accepts a body with matchedText', () => {
+    const result = parseReviewRequest({
+      cardId: 1,
+      rating: 'good',
+      direction: 'spanish-to-english',
+      verdict: 'correct',
+      submittedText: 'cat',
+      matchedText: 'cat',
+    });
+    expect(result?.matchedText).toBe('cat');
   });
 });

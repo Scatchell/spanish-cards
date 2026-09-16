@@ -60,6 +60,8 @@ export interface ReviewSubmission {
   verdict: Verdict;
   // The raw text the user typed (may be empty).
   submittedText: string;
+  // The text actually diffed against (primary or a matched alternate).
+  matchedText: string;
 }
 
 export interface DayActivity {

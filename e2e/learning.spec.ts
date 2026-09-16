@@ -43,6 +43,7 @@ async function reviewCard(page: Page, spanishText: string) {
       direction: 'spanish-to-english',
       verdict: 'correct',
       submittedText: spanishText,
+      matchedText: spanishText,
     },
   });
   expect(response.ok()).toBe(true);

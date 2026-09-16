@@ -1,4 +1,3 @@
-import { getCard } from '../cards/repository.js';
 import type { DbPool } from '../db.js';
 import { withTransaction } from '../db.js';
 import {
@@ -46,24 +45,20 @@ export async function recordReview(
   });
 
   // Best-effort, supplementary capture: must never fail or roll back the
-  // review above. Snapshots the expected answer phrase as it exists right now,
-  // and defensively caps the submitted text to the column width so an
-  // over-long string can never throw and lose the row.
+  // review above. correctText is the alternate-aware match the client
+  // actually diffed against (primary, or a matched alternate) — see
+  // checkAnswerWithAlternates. Submitted text is defensively capped to the
+  // column width so an over-long string can never throw and lose the row.
   try {
-    const card = await getCard(pool, request.cardId);
-    if (card) {
-      const correctText =
-        request.direction === 'spanish-to-english' ? card.englishText : card.spanishText;
-      await insertReviewHistory(pool, {
-        cardId: request.cardId,
-        direction: request.direction,
-        verdict: request.verdict,
-        rating: request.rating,
-        correctText,
-        submittedText: request.submittedText.slice(0, 255),
-        attemptedAt: now,
-      });
-    }
+    await insertReviewHistory(pool, {
+      cardId: request.cardId,
+      direction: request.direction,
+      verdict: request.verdict,
+      rating: request.rating,
+      correctText: request.matchedText,
+      submittedText: request.submittedText.slice(0, 255),
+      attemptedAt: now,
+    });
   } catch (err) {
     console.error('Review history capture failed:', err);
   }

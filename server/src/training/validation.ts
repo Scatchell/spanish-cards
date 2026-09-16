@@ -26,10 +26,13 @@ export interface ReviewRequest {
   direction: PromptDirection;
   verdict: Verdict;
   submittedText: string;
+  // The text checkAnswerWithAlternates actually diffed against on the
+  // client — the primary answer, or whichever alternate matched.
+  matchedText: string;
 }
 
 export function parseReviewRequest(body: unknown): ReviewRequest | null {
-  const { cardId, rating, direction, verdict, submittedText } = (body ?? {}) as Record<
+  const { cardId, rating, direction, verdict, submittedText, matchedText } = (body ?? {}) as Record<
     string,
     unknown
   >;
@@ -38,9 +41,11 @@ export function parseReviewRequest(body: unknown): ReviewRequest | null {
     !isReviewRating(rating) ||
     !isPromptDirection(direction) ||
     !isVerdict(verdict) ||
-    typeof submittedText !== 'string'
+    typeof submittedText !== 'string' ||
+    typeof matchedText !== 'string' ||
+    matchedText.trim() === ''
   ) {
     return null;
   }
-  return { cardId: cardId as number, rating, direction, verdict, submittedText };
+  return { cardId: cardId as number, rating, direction, verdict, submittedText, matchedText };
 }
