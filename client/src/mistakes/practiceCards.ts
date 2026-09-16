@@ -17,5 +17,7 @@ export function sentencesToCards(sentences: PracticeSentenceDto[]): Card[] {
     updatedAt: now,
     due: now,
     reviewed: false,
+    spanishAlternates: [],
+    englishAlternates: [],
   }));
 }

@@ -1,5 +1,10 @@
 import type { Verdict } from './training/answer-check.js';
 
+export interface CardAlternate {
+  id: number;
+  text: string;
+}
+
 export interface Card {
   id: number;
   spanishText: string;
@@ -10,6 +15,8 @@ export interface Card {
   // Effective due time: FSRS due date, or createdAt if never reviewed.
   due: string;
   reviewed: boolean;
+  spanishAlternates: CardAlternate[];
+  englishAlternates: CardAlternate[];
 }
 
 export interface CardDraftInput {
@@ -176,6 +183,43 @@ export async function updateCardText(id: number, input: CardDraftInput): Promise
 
 export function deleteCardById(id: number): Promise<void> {
   return request(`/api/cards/${id}`, { method: 'DELETE' });
+}
+
+export type AlternateField = 'spanish' | 'english';
+
+export interface AlternateAnswer {
+  id: number;
+  field: AlternateField;
+  text: string;
+  position: number;
+}
+
+export async function addAlternateAnswer(
+  cardId: number,
+  field: AlternateField,
+  text: string,
+): Promise<AlternateAnswer> {
+  const { alternate } = await request<{ alternate: AlternateAnswer }>(`/api/cards/${cardId}/alternates`, {
+    method: 'POST',
+    body: JSON.stringify({ field, text }),
+  });
+  return alternate;
+}
+
+export async function updateAlternateAnswer(
+  cardId: number,
+  altId: number,
+  text: string,
+): Promise<AlternateAnswer> {
+  const { alternate } = await request<{ alternate: AlternateAnswer }>(
+    `/api/cards/${cardId}/alternates/${altId}`,
+    { method: 'PATCH', body: JSON.stringify({ text }) },
+  );
+  return alternate;
+}
+
+export function deleteAlternateAnswer(cardId: number, altId: number): Promise<void> {
+  return request(`/api/cards/${cardId}/alternates/${altId}`, { method: 'DELETE' });
 }
 
 export async function fetchTrainingQueue(scope: TrainingScope): Promise<TrainingCard[]> {
