@@ -64,6 +64,7 @@ describe('updateCardInSession', () => {
     const session = startSession(makeCards(2));
     const updated = updateCardInSession(session, 2, { englishAlternates: [{ id: 1, text: 'automobile' }] });
     expect(updated.queue.find((c) => c.id === 2)?.englishAlternates).toEqual([{ id: 1, text: 'automobile' }]);
+    expect(updated.selected.find((c) => c.id === 2)?.englishAlternates).toEqual([{ id: 1, text: 'automobile' }]);
   });
 });
 
