@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { FlipCard } from '../cards/FlipCard.js';
+import type { AlternateAnswerData } from '../cards/EditableAnswerGroup.js';
 import type { Direction } from '../training/direction.js';
 import type { LearningSession } from './session.js';
 import { currentCard } from './session.js';
@@ -13,6 +14,9 @@ interface LearningSessionViewProps {
   onStillLearning: () => void;
   onSavePrompt?: (newText: string) => Promise<void>;
   onSaveAnswer?: (newText: string) => Promise<void>;
+  onAddAlternate?: (text: string) => Promise<AlternateAnswerData>;
+  onUpdateAlternate?: (id: number, text: string) => Promise<void>;
+  onDeleteAlternate?: (id: number) => Promise<void>;
   editable?: boolean;
   onKeepLearning: () => void;
   // Omit to hide the "Choose different cards" option on the pass-complete
@@ -30,6 +34,9 @@ export function LearningSessionView({
   onStillLearning,
   onSavePrompt,
   onSaveAnswer,
+  onAddAlternate,
+  onUpdateAlternate,
+  onDeleteAlternate,
   editable = true,
   onKeepLearning,
   onChooseDifferentCards,
@@ -57,6 +64,9 @@ export function LearningSessionView({
             onStillLearning={onStillLearning}
             onSavePrompt={onSavePrompt}
             onSaveAnswer={onSaveAnswer}
+            onAddAlternate={onAddAlternate}
+            onUpdateAlternate={onUpdateAlternate}
+            onDeleteAlternate={onDeleteAlternate}
             editable={editable}
           />
         </section>

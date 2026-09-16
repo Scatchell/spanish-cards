@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Card } from '../api.js';
-import { ApiError, listCards, logout, updateCardText } from '../api.js';
+import {
+  addAlternateAnswer,
+  ApiError,
+  deleteAlternateAnswer,
+  listCards,
+  logout,
+  updateAlternateAnswer,
+  updateCardText,
+} from '../api.js';
 import { CardDueStatus } from '../cards/CardDueStatus.js';
 import type { Direction } from '../training/direction.js';
 import {
@@ -111,6 +119,33 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     );
   }
 
+  // Persists alternate-answer edits/adds/deletes for the currently displayed
+  // card, then patches the in-memory session (same pattern as saveCardField).
+  async function addAlternate(target: Card, field: 'spanishText' | 'englishText', text: string) {
+    const serverField = field === 'spanishText' ? 'spanish' : 'english';
+    const created = await addAlternateAnswer(target.id, serverField, text);
+    const key = field === 'spanishText' ? 'spanishAlternates' : 'englishAlternates';
+    const alternate = { id: created.id, text: created.text };
+    setSession((current) =>
+      current ? updateCardInSession(current, target.id, { [key]: [...target[key], alternate] }) : current,
+    );
+    return alternate;
+  }
+
+  async function updateAlternate(target: Card, field: 'spanishText' | 'englishText', altId: number, text: string) {
+    await updateAlternateAnswer(target.id, altId, text);
+    const key = field === 'spanishText' ? 'spanishAlternates' : 'englishAlternates';
+    const updated = target[key].map((alt) => (alt.id === altId ? { ...alt, text } : alt));
+    setSession((current) => (current ? updateCardInSession(current, target.id, { [key]: updated }) : current));
+  }
+
+  async function deleteAlternate(target: Card, field: 'spanishText' | 'englishText', altId: number) {
+    await deleteAlternateAnswer(target.id, altId);
+    const key = field === 'spanishText' ? 'spanishAlternates' : 'englishAlternates';
+    const updated = target[key].filter((alt) => alt.id !== altId);
+    setSession((current) => (current ? updateCardInSession(current, target.id, { [key]: updated }) : current));
+  }
+
   return (
     <div className={session ? 'app-shell train-page' : 'app-shell'}>
       <header className="app-header">
@@ -160,6 +195,9 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
             onStillLearning={() => advance((s) => markStillLearning(s))}
             onSavePrompt={card ? (newText) => saveCardField(card, promptField, newText) : undefined}
             onSaveAnswer={card ? (newText) => saveCardField(card, answerField, newText) : undefined}
+            onAddAlternate={card ? (text) => addAlternate(card, answerField, text) : undefined}
+            onUpdateAlternate={card ? (id, text) => updateAlternate(card, answerField, id, text) : undefined}
+            onDeleteAlternate={card ? (id) => deleteAlternate(card, answerField, id) : undefined}
             onKeepLearning={() => advance((s) => restartPass(s))}
             onChooseDifferentCards={() => setSession(null)}
           />
