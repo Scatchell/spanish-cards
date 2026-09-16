@@ -2,17 +2,26 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { ReviewRating, TrainingScope } from '../api.js';
-import { ApiError, fetchTrainingQueue, logout, submitReview, updateCardText } from '../api.js';
+import {
+  ApiError,
+  addAlternateAnswer,
+  deleteAlternateAnswer,
+  fetchTrainingQueue,
+  logout,
+  submitReview,
+  updateAlternateAnswer,
+  updateCardText,
+} from '../api.js';
 import { FlipCard } from '../cards/FlipCard.js';
 import { EditableSentence } from '../cards/EditableSentence.js';
 import { canExplain } from '../explain/canExplain.js';
 import { ExplainButton } from '../explain/ExplainButton.js';
 import { ExplanationModal } from '../explain/ExplanationModal.js';
 import { formatPercent } from '../format.js';
-import type { AnswerCheckResult } from './answer-check.js';
-import { checkAnswer } from './answer-check.js';
+import type { AlternateAwareResult } from './answer-check.js';
+import { checkAnswerWithAlternates, isDuplicateAnswer } from './answer-check.js';
 import type { Direction } from './direction.js';
-import { answerText, loadDirection, oppositeDirection, promptText, saveDirection } from './direction.js';
+import { answerAlternates, answerText, loadDirection, oppositeDirection, promptText, saveDirection } from './direction.js';
 import { AnswerReveal } from './AnswerReveal.js';
 import { RatingBar } from './RatingBar.js';
 import {
@@ -30,7 +39,7 @@ type LoadState = 'loading' | 'ready' | 'error';
 
 interface Reveal {
   submitted: string;
-  result: AnswerCheckResult;
+  result: AlternateAwareResult;
 }
 
 export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
@@ -41,9 +50,6 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [typed, setTyped] = useState('');
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [answerOverride, setAnswerOverride] = useState<string | null>(null);
-  const [answerEditRequest, setAnswerEditRequest] = useState<
-    { value: string; token: number } | undefined
-  >();
   const [saving, setSaving] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const answerInput = useRef<HTMLInputElement>(null);
@@ -113,8 +119,10 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     event.preventDefault();
     if (!card || reveal) return;
     setAnswerOverride(null);
-    setAnswerEditRequest(undefined);
-    setReveal({ submitted: typed, result: checkAnswer(typed, answerText(card, direction)) });
+    setReveal({
+      submitted: typed,
+      result: checkAnswerWithAlternates(typed, answerText(card, direction), answerAlternates(card, direction)),
+    });
   }
 
   const handleRate = useCallback(
@@ -129,7 +137,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           direction,
           verdict: reveal.result.verdict,
           submittedText: reveal.submitted,
-          matchedText: answerText(card, direction),
+          matchedText: reveal.result.matchedText,
         });
         setSession((s) =>
           recordGraded(s, {
@@ -139,7 +147,6 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         );
         setReveal(null);
         setAnswerOverride(null);
-        setAnswerEditRequest(undefined);
         setTyped('');
         setExplainOpen(false);
       } catch (err) {
@@ -166,6 +173,55 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       englishText: field === 'englishText' ? newText : card.englishText,
     });
     setSession((s) => patchCard(s, card.id, { [field]: newText }));
+  }
+
+  // Persists an alternate-answer edit, then patches the local session so the
+  // change is visible for the rest of this session.
+  async function saveAlternateEdit(altId: number, newText: string) {
+    if (!card) return;
+    await updateAlternateAnswer(card.id, altId, newText);
+    const field = answerField === 'spanishText' ? 'spanishAlternates' : 'englishAlternates';
+    const updated = answerAlternates(card, direction).map((alt) =>
+      alt.id === altId ? { ...alt, text: newText } : alt,
+    );
+    setSession((s) => patchCard(s, card.id, { [field]: updated }));
+  }
+
+  // Adds a new alternate for whichever field is currently the answer side.
+  // Returns the created {id, text} so EditableAnswerGroup can render it
+  // immediately (it also arrives via the patched session on the next render).
+  async function addAlternate(text: string) {
+    if (!card) return { id: -1, text };
+    const serverField = answerField === 'spanishText' ? 'spanish' : 'english';
+    const created = await addAlternateAnswer(card.id, serverField, text);
+    const field = answerField === 'spanishText' ? 'spanishAlternates' : 'englishAlternates';
+    const alternate = { id: created.id, text: created.text };
+    setSession((s) =>
+      patchCard(s, card.id, { [field]: [...answerAlternates(card, direction), alternate] }),
+    );
+    return alternate;
+  }
+
+  async function removeAlternate(altId: number) {
+    if (!card) return;
+    await deleteAlternateAnswer(card.id, altId);
+    const field = answerField === 'spanishText' ? 'spanishAlternates' : 'englishAlternates';
+    setSession((s) =>
+      patchCard(s, card.id, { [field]: answerAlternates(card, direction).filter((a) => a.id !== altId) }),
+    );
+  }
+
+  // Adopt: the suggested wording becomes a new alternate answer, never a
+  // primary overwrite. A duplicate-after-normalization suggestion is a
+  // silent no-op — nothing to add, not a failure.
+  async function adoptSuggestedAnswer(suggested: string) {
+    if (!card) return;
+    const trimmed = suggested.trim();
+    const existing = [answerText(card, direction), ...answerAlternates(card, direction).map((a) => a.text)];
+    if (isDuplicateAnswer(trimmed, existing)) {
+      return;
+    }
+    await addAlternate(trimmed);
   }
 
   function toggleDirection() {
@@ -298,14 +354,16 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                     <AnswerReveal
                       submitted={reveal.submitted}
                       result={reveal.result}
+                      primaryText={answerText(card, direction)}
+                      alternates={answerAlternates(card, direction)}
                       answerOverride={answerOverride}
                       answerAriaLabel={answerLabel}
-                      answerEditRequest={answerEditRequest}
-                      onSaveAnswer={(newText) =>
-                        saveCardField(answerField, newText).then(() =>
-                          setAnswerOverride(newText),
-                        )
+                      onSavePrimary={(newText) =>
+                        saveCardField(answerField, newText).then(() => setAnswerOverride(newText))
                       }
+                      onAddAlternate={addAlternate}
+                      onUpdateAlternate={saveAlternateEdit}
+                      onDeleteAlternate={removeAlternate}
                     />
                     {canExplain(card) && (
                       <ExplainButton onClick={() => setExplainOpen(true)} />
@@ -325,7 +383,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                         direction={direction}
                         verdict={reveal.result.verdict}
                         onAdoptAnswer={(suggested) => {
-                          setAnswerEditRequest({ value: suggested, token: Date.now() });
+                          void adoptSuggestedAnswer(suggested);
                           setExplainOpen(false);
                         }}
                         onClose={() => setExplainOpen(false)}

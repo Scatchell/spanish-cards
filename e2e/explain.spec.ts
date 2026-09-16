@@ -246,7 +246,7 @@ test('Explain more: invalid critique shown, no Adopt, cached on reopen', async (
   expect(countAfterReopen).toBe(countBeforeReopen);
 });
 
-test('Explain more: valid verdict → Adopt pre-fills the answer edit and saves', async ({
+test('Explain more: valid verdict → Adopt adds the suggestion as an alternate, primary unchanged', async ({
   page,
 }) => {
   await createCard(page, 'me llamo', 'my name is');
@@ -262,20 +262,20 @@ test('Explain more: valid verdict → Adopt pre-fills the answer edit and saves'
   const adopt = modal.getByRole('button', { name: 'Adopt' });
   await expect(adopt).toBeVisible();
 
-  // Adopt closes the modal and pre-fills the answer edit input. Target the input
-  // specifically: the view-mode pencil button shares the "Edit Spanish answer"
-  // label, and it lingers until edit mode flips on a tick after the modal closes.
+  // Adopt closes the modal, leaves the primary answer as-is, and files the
+  // suggestion as a new alternate — visible once the answer editor expands.
   await adopt.click();
   await expect(modal).toHaveCount(0);
-  const editInput = page.locator('input[aria-label="Edit Spanish answer"]');
-  await expect(editInput).toHaveValue('la mejor versión');
+  await expect(page.locator('.correct-answer')).toHaveText('me llamo');
+  await page.getByRole('button', { name: 'Edit Spanish answer' }).click();
+  await expect(page.getByRole('textbox', { name: 'Alternate answer' })).toHaveValue('la mejor versión');
 
-  // Commit the edit → the corrected answer shows and is persisted
-  await editInput.press('Enter');
-  await expect(page.locator('.correct-answer')).toHaveText('la mejor versión');
   const res = await page.request.get('/api/cards');
-  const { cards } = (await res.json()) as { cards: { spanishText: string }[] };
-  expect(cards.some((c) => c.spanishText === 'la mejor versión')).toBe(true);
+  const { cards } = (await res.json()) as {
+    cards: { spanishText: string; spanishAlternates: { text: string }[] }[];
+  };
+  const card = cards.find((c) => c.spanishText === 'me llamo');
+  expect(card?.spanishAlternates.some((a) => a.text === 'la mejor versión')).toBe(true);
 });
 
 test('Explain more: pressing E while the modal is open triggers the check', async ({ page }) => {

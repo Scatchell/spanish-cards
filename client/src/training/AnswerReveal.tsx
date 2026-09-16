@@ -1,30 +1,39 @@
-import { EditableSentence } from '../cards/EditableSentence.js';
-import type { AnswerCheckResult } from './answer-check.js';
+import { EditableAnswerGroup } from '../cards/EditableAnswerGroup.js';
+import type { AlternateAnswerData } from '../cards/EditableAnswerGroup.js';
+import type { AlternateAwareResult } from './answer-check.js';
 
 interface AnswerRevealProps {
   submitted: string;
-  result: AnswerCheckResult;
+  result: AlternateAwareResult;
+  // The card's primary answer for this direction — used to detect whether
+  // the verdict matched the primary or fell back to an alternate.
+  primaryText: string;
+  alternates?: AlternateAnswerData[];
+  onSavePrimary?: (newText: string) => Promise<void>;
+  onAddAlternate?: (text: string) => Promise<AlternateAnswerData>;
+  onUpdateAlternate?: (id: number, text: string) => Promise<void>;
+  onDeleteAlternate?: (id: number) => Promise<void>;
   // When provided, the correct answer becomes inline-editable. Once an edit
   // has been saved, `answerOverride` holds the corrected text and the diff is
   // suppressed (we show the plain corrected sentence instead).
-  onSaveAnswer?: (newText: string) => Promise<void>;
   answerOverride?: string | null;
   answerAriaLabel?: string;
-  // Adopt: when set to a new token, the answer field enters edit mode pre-filled
-  // with the suggested wording.
-  answerEditRequest?: { value: string; token: number };
 }
 
 export function AnswerReveal({
   submitted,
   result,
-  onSaveAnswer,
+  primaryText,
+  alternates = [],
+  onSavePrimary,
+  onAddAlternate,
+  onUpdateAlternate,
+  onDeleteAlternate,
   answerOverride = null,
   answerAriaLabel,
-  answerEditRequest,
 }: AnswerRevealProps) {
   const submittedTrimmed = submitted.trim();
-  const { verdict, correctSegments } = result;
+  const { verdict, correctSegments, matchedText } = result;
   const correctText = correctSegments
     .filter((s) => s.kind !== 'extra')
     .map((s) => s.text)
@@ -32,6 +41,7 @@ export function AnswerReveal({
     .replace(/  +/g, ' ');
   // Editing the answer replaces the diffed view with the plain corrected text.
   const showDiff = verdict !== 'correct' && submittedTrimmed !== '' && answerOverride === null;
+  const matchedAlternate = matchedText !== primaryText;
 
   return (
     <div className="answer-reveal" data-verdict={verdict}>
@@ -45,17 +55,23 @@ export function AnswerReveal({
         </p>
       )}
 
-      {onSaveAnswer ? (
-        <EditableSentence
+      {onSavePrimary && onAddAlternate && onUpdateAlternate && onDeleteAlternate ? (
+        <EditableAnswerGroup
           className="correct-answer"
-          text={answerOverride ?? correctText}
-          onSave={onSaveAnswer}
+          primaryText={answerOverride ?? correctText}
+          onSavePrimary={onSavePrimary}
+          alternates={alternates}
+          onAddAlternate={onAddAlternate}
+          onUpdateAlternate={onUpdateAlternate}
+          onDeleteAlternate={onDeleteAlternate}
           ariaLabel={answerAriaLabel ?? 'correct answer'}
-          sentenceAriaLabel="Correct answer"
-          editRequest={answerEditRequest}
         />
       ) : (
-        <p className="correct-answer" aria-label="Correct answer">{correctText}</p>
+        <p className="correct-answer" aria-label="Correct answer">{answerOverride ?? correctText}</p>
+      )}
+
+      {matchedAlternate && verdict !== 'incorrect' && (
+        <p className="hint matched-alternate-hint">Matched an alternate answer</p>
       )}
 
       {showDiff && (
