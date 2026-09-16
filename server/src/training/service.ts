@@ -47,15 +47,16 @@ export async function recordReview(
   // Best-effort, supplementary capture: must never fail or roll back the
   // review above. correctText is the alternate-aware match the client
   // actually diffed against (primary, or a matched alternate) — see
-  // checkAnswerWithAlternates. Submitted text is defensively capped to the
-  // column width so an over-long string can never throw and lose the row.
+  // checkAnswerWithAlternates. Both text fields are defensively capped to
+  // their column widths so an over-long string can never throw and lose the
+  // row.
   try {
     await insertReviewHistory(pool, {
       cardId: request.cardId,
       direction: request.direction,
       verdict: request.verdict,
       rating: request.rating,
-      correctText: request.matchedText,
+      correctText: request.matchedText.slice(0, 70),
       submittedText: request.submittedText.slice(0, 255),
       attemptedAt: now,
     });
