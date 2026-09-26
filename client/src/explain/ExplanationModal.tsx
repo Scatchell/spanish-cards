@@ -17,6 +17,10 @@ interface Props {
   onAdoptAnswer?: (suggested: string) => void;
 }
 
+function scrollIntoBodyView(el: HTMLElement | null) {
+  el?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
+}
+
 type State = 'loading' | 'ready' | 'error';
 type FollowUpState = 'idle' | 'asking' | 'error';
 type AnswerCheckState = 'idle' | 'loading' | 'ready' | 'error';
@@ -40,6 +44,7 @@ export function ExplanationModal({
   const [followUpState, setFollowUpState] = useState<FollowUpState>('idle');
   const followUpAbortRef = useRef<AbortController | null>(null);
   const followUpInputRef = useRef<HTMLInputElement | null>(null);
+  const followUpRef = useRef<HTMLDivElement | null>(null);
 
   // "Explain more": an LLM check of the learner's actual submitted answer. Only
   // meaningful for an `incorrect` typed submission from the Train flow, so it is
@@ -52,6 +57,17 @@ export function ExplanationModal({
   const [answerCheckState, setAnswerCheckState] = useState<AnswerCheckState>('idle');
   const [answerCheck, setAnswerCheck] = useState<AnswerCheckResponse['answerCheck'] | null>(null);
   const answerCheckAbortRef = useRef<AbortController | null>(null);
+  const answerCheckRef = useRef<HTMLDivElement | null>(null);
+
+  // The action bar is pinned below the scrolling body, so newly arrived output
+  // would otherwise land out of sight beneath a long explanation.
+  useEffect(() => {
+    if (answerCheckState !== 'idle') scrollIntoBodyView(answerCheckRef.current);
+  }, [answerCheckState]);
+
+  useEffect(() => {
+    if (followUpState !== 'idle' || askedQuestion) scrollIntoBodyView(followUpRef.current);
+  }, [followUpState, answerMarkdown]);
 
   function runAnswerCheck() {
     if (!canExplainMore) return;
@@ -190,34 +206,15 @@ export function ExplanationModal({
               Sorry! Something went wrong with this explanation.
             </p>
           )}
-          {canExplainMore && (
-            <div className="answer-check">
-              {answerCheckState === 'idle' && (
-                <button
-                  type="button"
-                  className="explain-button answer-check-trigger"
-                  aria-label="Explain more"
-                  onClick={runAnswerCheck}
-                >
-                  Explain more <span className="shortcut-hint">(E)</span>
-                </button>
-              )}
+          {canExplainMore && answerCheckState !== 'idle' && (
+            <div className="answer-check" ref={answerCheckRef}>
               {answerCheckState === 'loading' && (
                 <p className="hint answer-check-loading">Checking your answer…</p>
               )}
               {answerCheckState === 'error' && (
-                <>
-                  <p className="form-error" role="alert">
-                    Sorry! Couldn't check that answer — try again.
-                  </p>
-                  <button
-                    type="button"
-                    className="secondary answer-check-retry"
-                    onClick={runAnswerCheck}
-                  >
-                    Retry
-                  </button>
-                </>
+                <p className="form-error" role="alert">
+                  Sorry! Couldn't check that answer — try again.
+                </p>
               )}
               {answerCheckState === 'ready' && answerCheck && (
                 <div className="answer-check-result">
@@ -241,22 +238,16 @@ export function ExplanationModal({
               )}
             </div>
           )}
-          {/* Always the last thing in the modal, regardless of whether "Explain
-              more" is present/expanded above it, so the ask box never gets
-              buried mid-content. */}
-          {state === 'ready' && (
-            <div className="explanation-followup">
+          {state === 'ready' && (askedQuestion || followUpState !== 'idle') && (
+            <div className="explanation-followup" ref={followUpRef}>
               {askedQuestion && (
                 <div className="followup-answer" aria-live="polite">
                   <p className="followup-question">{askedQuestion}</p>
                   <hr className="followup-divider" />
                   <ReactMarkdown>{answerMarkdown}</ReactMarkdown>
-                  {followUpState === 'asking' && (
-                    <p className="hint followup-loading">Thinking…</p>
-                  )}
                 </div>
               )}
-              {!askedQuestion && followUpState === 'asking' && (
+              {followUpState === 'asking' && (
                 <p className="hint followup-loading">Thinking…</p>
               )}
               {followUpState === 'error' && (
@@ -264,28 +255,55 @@ export function ExplanationModal({
                   Sorry! Couldn't answer that one — try again.
                 </p>
               )}
-              <form className="followup-form" onSubmit={handleAsk}>
-                <input
-                  ref={followUpInputRef}
-                  tabIndex={1}
-                  type="text"
-                  className="followup-input"
-                  placeholder="Ask a question about this sentence…"
-                  value={question}
-                  onChange={(e) => setQuestion(e.target.value)}
-                  onKeyDown={(e) => e.stopPropagation()}
-                  aria-label="Ask a question about this sentence"
-                />
-                <button type="submit" disabled={followUpState === 'asking' || !question.trim()}>
-                  Ask
-                </button>
-              </form>
-              <p className="hint followup-disclaimer">
-                Each question is independent — conversation history isn't stored.
-              </p>
             </div>
           )}
         </div>
+        {(canExplainMore || state === 'ready') && (
+          <div className="explanation-modal-footer">
+            {canExplainMore && answerCheckState === 'idle' && (
+              <button
+                type="button"
+                className="explain-button answer-check-trigger"
+                aria-label="Explain more"
+                onClick={runAnswerCheck}
+              >
+                Explain more <span className="shortcut-hint">(E)</span>
+              </button>
+            )}
+            {canExplainMore && answerCheckState === 'error' && (
+              <button
+                type="button"
+                className="secondary answer-check-retry"
+                onClick={runAnswerCheck}
+              >
+                Retry
+              </button>
+            )}
+            {state === 'ready' && (
+              <>
+                <form className="followup-form" onSubmit={handleAsk}>
+                  <input
+                    ref={followUpInputRef}
+                    tabIndex={1}
+                    type="text"
+                    className="followup-input"
+                    placeholder="Ask a question about this sentence…"
+                    value={question}
+                    onChange={(e) => setQuestion(e.target.value)}
+                    onKeyDown={(e) => e.stopPropagation()}
+                    aria-label="Ask a question about this sentence"
+                  />
+                  <button type="submit" disabled={followUpState === 'asking' || !question.trim()}>
+                    Ask
+                  </button>
+                </form>
+                <p className="hint followup-disclaimer">
+                  Each question is independent — conversation history isn't stored.
+                </p>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

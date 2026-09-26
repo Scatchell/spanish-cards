@@ -6,6 +6,7 @@ import { CardDueStatus } from './CardDueStatus.js';
 import { draftsReducer, initialDraftsState, submittableDrafts } from './drafts.js';
 import { sortCards } from './sort.js';
 import { DraftCardRow } from './DraftCardRow.js';
+import { HeaderMenu } from '../nav/HeaderMenu.js';
 
 export const NEW_CARD_SHORTCUT_LABEL = 'Shift+Enter';
 
@@ -115,7 +116,7 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     <div className="app-shell">
       <header className="app-header">
         <h1>Spanish Cards</h1>
-        <div className="header-actions">
+        <HeaderMenu>
           <Link to="/learn" className="learn-link">
             Learn
           </Link>
@@ -131,7 +132,7 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>
-        </div>
+        </HeaderMenu>
       </header>
 
       <main>

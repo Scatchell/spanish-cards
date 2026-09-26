@@ -127,6 +127,7 @@ label {
 }
 
 .app-header {
+  position: relative;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -237,10 +238,63 @@ label {
 
 /* ---- Header navigation ---- */
 
+.header-menu-toggle {
+  min-width: 44px;
+  padding: 0.4rem 0.75rem;
+  font-size: 1.2rem;
+  line-height: 1;
+  color: var(--text);
+}
+
 .header-actions {
+  display: none;
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  left: 0;
+  right: 0;
+  z-index: 50;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
+  padding: 0.75rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.12);
+}
+
+.header-menu.open .header-actions {
   display: flex;
+}
+
+.header-actions > a,
+.header-actions > button {
+  justify-content: center;
+}
+
+.header-actions > .back-link {
+  display: inline-flex;
   align-items: center;
-  gap: 0.75rem;
+  min-height: 44px;
+}
+
+@media (min-width: 48rem) {
+  .header-menu-toggle {
+    display: none;
+  }
+
+  .header-actions,
+  .header-menu.open .header-actions {
+    display: flex;
+    position: static;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0;
+    background: none;
+    border: none;
+    box-shadow: none;
+  }
 }
 
 .train-link {
@@ -790,19 +844,32 @@ button.rating.emphasized {
   align-items: center;
   justify-content: center;
   z-index: 100;
-  padding: 1rem;
+  padding: 0.5rem;
 }
 
+/* Phones: fill the screen so the pinned header and action bar leave as much
+   room as possible for the scrolling explanation between them. */
 .explanation-modal {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   width: 100%;
-  max-width: 34rem;
-  max-height: 80vh;
+  height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+
+@media (min-width: 48rem) {
+  .modal-backdrop {
+    padding: 1rem;
+  }
+
+  .explanation-modal {
+    max-width: 44rem;
+    height: auto;
+    max-height: min(85dvh, 56rem);
+  }
 }
 
 .explanation-modal-header {
@@ -842,11 +909,32 @@ button.rating.emphasized {
 }
 
 .explanation-modal-body {
+  flex: 1 1 auto;
+  min-height: 0;
   padding: 1rem 1.25rem;
   overflow-y: auto;
+  overscroll-behavior: contain;
+  overflow-wrap: anywhere;
 }
 
-.explanation-modal-body ul {
+.explanation-modal-footer {
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  padding-bottom: max(0.75rem, env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.explanation-modal-footer .answer-check-trigger,
+.explanation-modal-footer .answer-check-retry {
+  align-self: flex-start;
+}
+
+.explanation-modal-body ul,
+.explanation-modal-body ol {
   padding-left: 1.25rem;
   margin: 0;
 }
@@ -897,11 +985,11 @@ button.rating.emphasized {
 .followup-form {
   display: flex;
   gap: 0.5rem;
-  margin-top: 0.5rem;
 }
 
 .followup-input {
   flex: 1;
+  min-width: 0;
   padding: 0.4rem 0.6rem;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -916,7 +1004,7 @@ button.rating.emphasized {
 }
 
 .followup-disclaimer {
-  margin: 0.5rem 0 0;
+  margin: 0;
   font-size: 0.8rem;
   color: var(--text-muted);
 }
@@ -932,10 +1020,6 @@ button.rating.emphasized {
 .answer-check-loading {
   margin: 0;
   font-style: italic;
-}
-
-.answer-check-retry {
-  margin-top: 0.5rem;
 }
 
 .answer-check-result {

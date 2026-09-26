@@ -13,6 +13,7 @@ import {
 } from '../training/direction.js';
 import { PracticeSourceModal } from './PracticeSourceModal.js';
 import { sentencesToCards } from './practiceCards.js';
+import { HeaderMenu } from '../nav/HeaderMenu.js';
 
 type LoadState = 'loading' | 'ready' | 'unavailable' | 'error';
 
@@ -115,14 +116,14 @@ export function PracticeMistakePage({ onLoggedOut }: { onLoggedOut: () => void }
     <div className={learningSession ? 'app-shell train-page' : 'app-shell'}>
       <header className="app-header">
         <h1>Practice this mistake</h1>
-        <div className="header-actions">
+        <HeaderMenu>
           <Link to="/mistakes" className="back-link">
             Back to mistakes
           </Link>
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>
-        </div>
+        </HeaderMenu>
       </header>
 
       <main>

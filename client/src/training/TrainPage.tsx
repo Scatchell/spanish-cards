@@ -34,6 +34,7 @@ import {
   totalCount,
 } from './queue.js';
 import type { TrainingSession } from './queue.js';
+import { HeaderMenu } from '../nav/HeaderMenu.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -252,7 +253,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     <div className="app-shell train-page">
       <header className="app-header">
         <h1>Training</h1>
-        <div className="header-actions">
+        <HeaderMenu>
           <Link to="/" className="back-link">
             Back to cards
           </Link>
@@ -268,7 +269,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>
-        </div>
+        </HeaderMenu>
       </header>
 
       <main>

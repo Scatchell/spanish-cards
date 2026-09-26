@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { Category, CategoryCount, CategoryMistake } from '../api.js';
 import { ApiError, fetchCategorizationMistakes, fetchCategorizationSummary, logout } from '../api.js';
 import { CATEGORY_INFO } from './categoryInfo.js';
+import { HeaderMenu } from '../nav/HeaderMenu.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -100,7 +101,7 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     <div className="app-shell">
       <header className="app-header">
         <h1>Mistakes</h1>
-        <div className="header-actions">
+        <HeaderMenu>
           <Link to="/" className="back-link">
             Back to cards
           </Link>
@@ -116,7 +117,7 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>
-        </div>
+        </HeaderMenu>
       </header>
 
       <main>

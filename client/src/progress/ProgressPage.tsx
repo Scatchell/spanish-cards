@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { DayActivity, ProgressSummary } from '../api.js';
 import { ApiError, fetchProgress, logout } from '../api.js';
 import { formatPercent } from '../format.js';
+import { HeaderMenu } from '../nav/HeaderMenu.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -39,7 +40,7 @@ export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     <div className="app-shell progress-page">
       <header className="app-header">
         <h1>Progress</h1>
-        <div className="header-actions">
+        <HeaderMenu>
           <Link to="/" className="back-link">
             Back to cards
           </Link>
@@ -55,7 +56,7 @@ export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>
-        </div>
+        </HeaderMenu>
       </header>
 
       <main>

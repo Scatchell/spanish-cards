@@ -35,6 +35,7 @@ import {
   toggleCardId,
   withCardsIncluded,
 } from './selection.js';
+import { HeaderMenu } from '../nav/HeaderMenu.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -150,7 +151,7 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     <div className={session ? 'app-shell train-page' : 'app-shell'}>
       <header className="app-header">
         <h1>Learn</h1>
-        <div className="header-actions">
+        <HeaderMenu>
           <Link to="/" className="back-link">
             Back to cards
           </Link>
@@ -166,7 +167,7 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>
-        </div>
+        </HeaderMenu>
       </header>
 
       <main>
