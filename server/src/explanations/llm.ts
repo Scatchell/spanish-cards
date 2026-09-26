@@ -76,6 +76,10 @@ export type AnswerCheckGenerator = (input: {
 
 const ANSWER_CHECK_INSTRUCTIONS = loadPrompt('answer-check.md');
 
+// Part of the answer_checks cache key. Bump whenever answer-check.md changes in
+// a way that could flip verdicts, so stale cached verdicts stop being served.
+export const ANSWER_CHECK_PROMPT_VERSION = 2;
+
 // Structured Outputs: the Responses API constrains decoding so the model's JSON
 // literally cannot violate this schema (missing keys, wrong types, an out-of-enum
 // verdict). This is enforced by OpenAI, not by us — it does not touch the e2e
@@ -145,8 +149,11 @@ export function createAnswerCheckGenerator(config: AppConfig): AnswerCheckGenera
           schema: ANSWER_CHECK_SCHEMA,
         },
       },
-      max_output_tokens: 500,
-      reasoning: { effort: 'none' },
+      // Reasoning tokens count against this cap; leave room for the JSON.
+      max_output_tokens: 2000,
+      // Low effort lets the model tell a real agreement error apart from a
+      // choice the prompt leaves open (e.g. the gender of an implied "it").
+      reasoning: { effort: 'low' },
     });
     return parseAnswerCheck(response.output_text);
   };

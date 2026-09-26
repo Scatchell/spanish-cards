@@ -1,4 +1,4 @@
-import { EXPLANATION_MODEL } from './llm.js';
+import { ANSWER_CHECK_PROMPT_VERSION, EXPLANATION_MODEL } from './llm.js';
 import type { AnswerCheckGenerator } from './llm.js';
 import { normalizeSubmitted } from './normalize.js';
 import type {
@@ -30,7 +30,13 @@ export async function getOrCreateAnswerCheck(
   const { spanishText, englishText, direction, submittedAnswer } = input;
   const submittedNormalized = normalizeSubmitted(submittedAnswer);
 
-  const key: AnswerCheckKey = { spanishText, englishText, direction, submittedNormalized };
+  const key: AnswerCheckKey = {
+    spanishText,
+    englishText,
+    direction,
+    submittedNormalized,
+    promptVersion: ANSWER_CHECK_PROMPT_VERSION,
+  };
   const cached = await deps.findAnswerCheck(key);
   if (cached) {
     return { status: 'ok', answerCheck: cached, source: 'cached' };
@@ -55,6 +61,7 @@ export async function getOrCreateAnswerCheck(
     suggestedAnswer: output.suggestedAnswer,
     critiqueMarkdown: output.critiqueMarkdown,
     model: EXPLANATION_MODEL,
+    promptVersion: ANSWER_CHECK_PROMPT_VERSION,
   });
   return { status: 'ok', answerCheck, source: 'generated' };
 }

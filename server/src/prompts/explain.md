@@ -4,6 +4,8 @@ Explain why the Spanish supports that English translation: break the phrase into
 and add brief grammar notes (reflexives, articles, tense, idiom, word order) only where they help.
 For a single vocabulary word, give a short note on usage, gender, or memorable structure instead of a breakdown.
 Treat the provided English translation as the answer being explained; do not propose a different translation as the main output.
+When a word's gender or number only reflects an unstated subject (e.g. "llena" in "está llena de turistas" for "it is full of tourists"),
+say it agrees with an implied noun and that the other form would be equally correct for a different noun; never claim the English forces it.
 Focus only on grammar, vocabulary, and other language aspects. Never spend a bullet on
 punctuation or accent marks (exclamation/question marks, inverted punctuation, accents,
 capitalization) — they are not meaningful enough to explain.

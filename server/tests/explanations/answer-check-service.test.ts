@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AnswerCheck, NewAnswerCheck } from '../../src/explanations/answer-check-repository.js';
 import { getOrCreateAnswerCheck } from '../../src/explanations/answer-check-service.js';
+import { ANSWER_CHECK_PROMPT_VERSION } from '../../src/explanations/llm.js';
 
 const FAKE_CHECK: AnswerCheck = {
   id: 1,
@@ -61,6 +62,30 @@ describe('getOrCreateAnswerCheck', () => {
     }
     expect(inserted).toHaveLength(1);
     expect(inserted[0]?.submittedNormalized).toBe('me llamo');
+  });
+
+  it('scopes the cache lookup and insert to the current prompt version', async () => {
+    const findAnswerCheck = vi.fn().mockResolvedValue(null);
+    const inserted: NewAnswerCheck[] = [];
+    await getOrCreateAnswerCheck(
+      {
+        findAnswerCheck,
+        insertAnswerCheck: async (input) => {
+          inserted.push(input);
+          return { ...FAKE_CHECK, ...input };
+        },
+        generate: async () => ({
+          verdict: 'valid',
+          suggestedAnswer: 'me llamo',
+          critiqueMarkdown: '- valid alternative',
+        }),
+      },
+      INPUT,
+    );
+    expect(findAnswerCheck).toHaveBeenCalledWith(
+      expect.objectContaining({ promptVersion: ANSWER_CHECK_PROMPT_VERSION }),
+    );
+    expect(inserted[0]?.promptVersion).toBe(ANSWER_CHECK_PROMPT_VERSION);
   });
 
   it('returns unavailable when generate is null', async () => {

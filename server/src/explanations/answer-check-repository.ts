@@ -25,6 +25,7 @@ export interface NewAnswerCheck {
   suggestedAnswer: string | null;
   critiqueMarkdown: string;
   model: string;
+  promptVersion: number;
 }
 
 // The tuple that uniquely identifies a cached answer-check row.
@@ -33,6 +34,8 @@ export interface AnswerCheckKey {
   englishText: string;
   direction: AnswerCheckDirection;
   submittedNormalized: string;
+  // Rows from an older answer-check prompt are never served.
+  promptVersion: number;
 }
 
 interface AnswerCheckRow {
@@ -72,8 +75,9 @@ export async function findAnswerCheck(
             verdict, suggested_answer, critique_markdown, model, created_at
      FROM answer_checks
      WHERE spanish_text = $1 AND english_text = $2
-       AND direction = $3 AND submitted_normalized = $4`,
-    [key.spanishText, key.englishText, key.direction, key.submittedNormalized],
+       AND direction = $3 AND submitted_normalized = $4
+       AND prompt_version = $5`,
+    [key.spanishText, key.englishText, key.direction, key.submittedNormalized, key.promptVersion],
   );
   return result.rows[0] ? toAnswerCheck(result.rows[0]) : null;
 }
@@ -85,9 +89,10 @@ export async function insertAnswerCheck(
   const result = await db.query<AnswerCheckRow>(
     `INSERT INTO answer_checks
        (spanish_text, english_text, direction, submitted_normalized,
-        verdict, suggested_answer, critique_markdown, model)
-     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-     ON CONFLICT (spanish_text, english_text, direction, submitted_normalized) DO NOTHING
+        verdict, suggested_answer, critique_markdown, model, prompt_version)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+     ON CONFLICT (spanish_text, english_text, direction, submitted_normalized, prompt_version)
+       DO NOTHING
      RETURNING id, spanish_text, english_text, direction, submitted_normalized,
                verdict, suggested_answer, critique_markdown, model, created_at`,
     [
@@ -99,6 +104,7 @@ export async function insertAnswerCheck(
       input.suggestedAnswer,
       input.critiqueMarkdown,
       input.model,
+      input.promptVersion,
     ],
   );
   if (result.rows[0]) {
@@ -110,6 +116,7 @@ export async function insertAnswerCheck(
     englishText: input.englishText,
     direction: input.direction,
     submittedNormalized: input.submittedNormalized,
+    promptVersion: input.promptVersion,
   });
   if (!existing) {
     throw new Error('Answer check not found after conflict');
