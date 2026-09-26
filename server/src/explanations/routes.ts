@@ -127,6 +127,7 @@ export function explanationRoutes(
       return;
     }
 
+    console.info(`[explain] card ${id}: explanation ${result.source}`);
     res.json({
       explanation: {
         contentMarkdown: result.explanation.contentMarkdown,
@@ -263,6 +264,7 @@ export function explanationRoutes(
       return;
     }
 
+    console.info(`[explain] card ${id}: answer check ${result.source}`);
     res.json({
       answerCheck: {
         verdict: result.answerCheck.verdict,

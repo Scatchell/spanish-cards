@@ -17,6 +17,10 @@ interface Props {
   onAdoptAnswer?: (suggested: string) => void;
 }
 
+function isAbort(err: unknown): boolean {
+  return err instanceof Error && err.name === 'AbortError';
+}
+
 function scrollIntoBodyView(el: HTMLElement | null) {
   el?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
 }
@@ -84,7 +88,8 @@ export function ExplanationModal({
         setAnswerCheckState('ready');
       })
       .catch((err: unknown) => {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbort(err)) return;
+        console.error('Answer check request failed:', err);
         setAnswerCheckState('error');
       });
   }
@@ -97,7 +102,8 @@ export function ExplanationModal({
         setState('ready');
       })
       .catch((err: unknown) => {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbort(err)) return;
+        console.error('Explanation request failed:', err);
         setState('error');
       });
     return () => controller.abort();
@@ -174,7 +180,8 @@ export function ExplanationModal({
         setFollowUpState('idle');
       })
       .catch((err: unknown) => {
-        if (err instanceof Error && err.name === 'AbortError') return;
+        if (isAbort(err)) return;
+        console.error('Follow-up request failed:', err);
         setFollowUpState('error');
       });
   }
@@ -203,7 +210,7 @@ export function ExplanationModal({
           {state === 'ready' && <ReactMarkdown>{markdown}</ReactMarkdown>}
           {state === 'error' && (
             <p className="form-error" role="alert">
-              Sorry! Something went wrong with this explanation.
+              Sorry! Something went wrong with this explanation — please try again later.
             </p>
           )}
           {canExplainMore && answerCheckState !== 'idle' && (

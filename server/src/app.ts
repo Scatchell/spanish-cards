@@ -13,6 +13,7 @@ import {
   createFollowUpGenerator,
 } from './explanations/llm.js';
 import { explanationRoutes } from './explanations/routes.js';
+import { requestLogger } from './logging/request-log.js';
 import { mcpRoutes } from './mcp/routes.js';
 import { createPracticeSentenceGenerator } from './practice/generator.js';
 import { practiceRoutes } from './practice/routes.js';
@@ -29,6 +30,7 @@ export function createApp(config: AppConfig, pool: DbPool): express.Express {
   // from loopback so per-IP rate limiting keys on the real visitor, not the
   // proxy, while off-box clients can't spoof X-Forwarded-For.
   app.set('trust proxy', 'loopback');
+  app.use(requestLogger());
   // Security headers (HSTS, nosniff, frame-deny, no X-Powered-By). CSP is left
   // off for now — a strict policy needs tuning against the Vite bundle.
   app.use(helmet({ contentSecurityPolicy: false }));

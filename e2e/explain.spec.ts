@@ -151,7 +151,7 @@ test('Failure path: modal shows friendly error message', async ({ page }) => {
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Explain' }).click();
   await expect(page.getByRole('alert')).toHaveText(
-    'Sorry! Something went wrong with this explanation.',
+    'Sorry! Something went wrong with this explanation — please try again later.',
   );
 });
 

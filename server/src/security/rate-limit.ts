@@ -1,18 +1,15 @@
 import type { Request } from 'express';
 import rateLimit, { ipKeyGenerator } from 'express-rate-limit';
+import { clientIp } from './client-ip.js';
 
-// Rate limiters for the public surface. All key on the real visitor IP: behind
-// the Cloudflare tunnel the TCP peer is cloudflared on loopback, so the genuine
-// client address arrives in CF-Connecting-IP. We fall back to req.ip for the
-// on-LAN NPM path (where that header is absent). ipKeyGenerator normalizes IPv6
-// to a subnet so a single client can't sidestep the limit by rotating addresses.
+// Rate limiters for the public surface, keyed on the real visitor IP.
+// ipKeyGenerator normalizes IPv6 to a subnet so a single client can't sidestep
+// the limit by rotating addresses.
 
 const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
 
 function clientKey(req: Request): string {
-  const cf = req.headers['cf-connecting-ip'];
-  const ip = typeof cf === 'string' && cf.length > 0 ? cf : (req.ip ?? '');
-  return ipKeyGenerator(ip);
+  return ipKeyGenerator(clientIp(req));
 }
 
 const TOO_MANY = { error: 'Too many requests, please slow down and try again later.' };
