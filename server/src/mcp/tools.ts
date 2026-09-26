@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import type { Card } from '../cards/repository.js';
 import { saveCardBatch } from '../cards/service.js';
-import type { CardField, CardInput } from '../cards/validation.js';
+import type { CardAlternatesField, CardField, CardInput } from '../cards/validation.js';
 import { CARD_TEXT_MAX_LENGTH } from '../cards/validation.js';
 import { DEFAULT_SEARCH_LIMIT, MAX_SEARCH_LIMIT, searchCards } from '../cards/search.js';
 import type { MatchedField } from '../cards/search.js';
@@ -20,9 +20,26 @@ const cardDtoSchema = {
   id: z.number(),
   spanish_text: z.string(),
   english_text: z.string(),
+  spanish_alternates: z.array(z.string()),
+  english_alternates: z.array(z.string()),
   created_at: z.string(),
   updated_at: z.string(),
 };
+
+const MCP_MAX_ALTERNATES = 3;
+
+function alternatesSchema(side: 'Spanish' | 'English') {
+  return z
+    .array(z.string())
+    .max(MCP_MAX_ALTERNATES)
+    .optional()
+    .describe(
+      `Other ${side} answers that mean the same thing as ${side.toLowerCase()}_text and should also be ` +
+        `accepted when training (0-${MCP_MAX_ALTERNATES}). Omit when the sentence is specific enough ` +
+        'to have one natural answer. Do not list variants that differ only in case, accents, or ' +
+        'punctuation; answer checking already ignores those.',
+    );
+}
 
 const cardInputSchema = z.object({
   spanish_text: z
@@ -31,6 +48,8 @@ const cardInputSchema = z.object({
   english_text: z
     .string()
     .describe(`English side of the card. Single line, 1-${CARD_TEXT_MAX_LENGTH} characters.`),
+  spanish_alternates: alternatesSchema('Spanish'),
+  english_alternates: alternatesSchema('English'),
 });
 
 export function buildMcpServer(deps: McpDeps): McpServer {
@@ -44,7 +63,13 @@ export function buildMcpServer(deps: McpDeps): McpServer {
         'Create one or more Spanish/English flashcards in a batch. Valid cards are saved even when ' +
         'other cards in the same batch fail validation; failures are reported per index. Duplicates ' +
         'are allowed — call search_cards first to avoid creating near-duplicates. New cards are ' +
-        'immediately due for training.',
+        'immediately due for training.\n\n' +
+        'Alternates: when a side has two or three very similar translations that mean the same ' +
+        'thing (e.g. "I am tired" / "I\'m tired", or "¿Cómo estás?" / "¿Qué tal?"), put the most ' +
+        'natural one in the main text and the others in the matching *_alternates field so the ' +
+        `learner isn't marked wrong for a valid answer. Be sparing: add at most ${MCP_MAX_ALTERNATES} per ` +
+        'side, only genuinely equivalent answers, and none at all when the sentence has one clear ' +
+        'translation. When many phrasings are possible, pick the most common few, not all of them.',
       inputSchema: {
         cards: z.array(cardInputSchema).min(1).describe('Cards to create.'),
       },
@@ -63,6 +88,8 @@ export function buildMcpServer(deps: McpDeps): McpServer {
       const inputs: CardInput[] = cards.map((card) => ({
         spanishText: card.spanish_text,
         englishText: card.english_text,
+        spanishAlternates: card.spanish_alternates,
+        englishAlternates: card.english_alternates,
       }));
       const result = await saveCardBatch(inputs, deps.insertCards);
       const failedIndexes = new Set(result.failures.map((failure) => failure.index));
@@ -84,7 +111,7 @@ export function buildMcpServer(deps: McpDeps): McpServer {
     {
       title: 'List all flashcards',
       description:
-        'List every flashcard in the deck with both text sides and timestamps, newest first. ' +
+        'List every flashcard in the deck with both text sides, alternates, and timestamps, newest first. ' +
         'For duplicate checking against a specific phrase, prefer search_cards.',
       inputSchema: {},
       outputSchema: { cards: z.array(z.object(cardDtoSchema)) },
@@ -156,13 +183,22 @@ function toCardDto(card: Card) {
     id: card.id,
     spanish_text: card.spanishText,
     english_text: card.englishText,
+    spanish_alternates: card.spanishAlternates.map((alternate) => alternate.text),
+    english_alternates: card.englishAlternates.map((alternate) => alternate.text),
     created_at: card.createdAt,
     updated_at: card.updatedAt,
   };
 }
 
-function toDtoField(field: CardField | MatchedField): 'spanish_text' | 'english_text' {
-  return field === 'spanishText' ? 'spanish_text' : 'english_text';
+const DTO_FIELDS = {
+  spanishText: 'spanish_text',
+  englishText: 'english_text',
+  spanishAlternates: 'spanish_alternates',
+  englishAlternates: 'english_alternates',
+} as const;
+
+function toDtoField<F extends CardField | CardAlternatesField | MatchedField>(field: F): (typeof DTO_FIELDS)[F] {
+  return DTO_FIELDS[field];
 }
 
 function structured(payload: object) {

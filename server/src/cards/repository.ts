@@ -1,4 +1,5 @@
 import type { DbQueryable } from '../db.js';
+import type { AlternateField } from './alternates-repository.js';
 import type { CardInput } from './validation.js';
 
 export interface CardAlternate {
@@ -57,6 +58,7 @@ export async function listCards(db: DbQueryable): Promise<Card[]> {
   return result.rows.map(toCard);
 }
 
+// Run in a transaction when inputs carry alternates, so no card saves without them.
 export async function insertCards(db: DbQueryable, inputs: CardInput[]): Promise<Card[]> {
   if (inputs.length === 0) {
     return [];
@@ -75,7 +77,42 @@ export async function insertCards(db: DbQueryable, inputs: CardInput[]): Promise
                '[]'::json AS spanish_alternates, '[]'::json AS english_alternates`,
     params,
   );
-  return result.rows.map(toCard);
+  const cards = result.rows.map(toCard);
+  await insertInitialAlternates(db, cards, inputs);
+  return cards;
+}
+
+async function insertInitialAlternates(db: DbQueryable, cards: Card[], inputs: CardInput[]): Promise<void> {
+  const values: string[] = [];
+  const params: (number | string)[] = [];
+  cards.forEach((card, i) => {
+    const input = inputs[i]!;
+    const fields: [AlternateField, string[]][] = [
+      ['spanish', input.spanishAlternates ?? []],
+      ['english', input.englishAlternates ?? []],
+    ];
+    for (const [field, texts] of fields) {
+      texts.forEach((text, position) => {
+        const n = params.length;
+        values.push(`($${n + 1}, $${n + 2}, $${n + 3}, $${n + 4})`);
+        params.push(card.id, field, text, position);
+      });
+    }
+  });
+  if (values.length === 0) {
+    return;
+  }
+  const result = await db.query<{ id: number; card_id: number; field: AlternateField; text: string }>(
+    `INSERT INTO card_alternate_answers (card_id, field, text, position) VALUES ${values.join(', ')}
+     RETURNING id, card_id, field, text`,
+    params,
+  );
+  const byId = new Map(cards.map((card) => [card.id, card]));
+  for (const row of result.rows) {
+    const card = byId.get(row.card_id)!;
+    const target = row.field === 'spanish' ? card.spanishAlternates : card.englishAlternates;
+    target.push({ id: row.id, text: row.text });
+  }
 }
 
 export async function getCard(db: DbQueryable, id: number): Promise<Card | null> {

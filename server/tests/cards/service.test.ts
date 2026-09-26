@@ -71,7 +71,7 @@ describe('saveCardBatch', () => {
   it('normalizes whitespace before inserting', async () => {
     const inserted: CardInput[][] = [];
     await saveCardBatch([{ spanishText: '  hola  ', englishText: ' hello ' }], fakeInsert(inserted));
-    expect(inserted[0]).toEqual([{ spanishText: 'hola', englishText: 'hello' }]);
+    expect(inserted[0]).toMatchObject([{ spanishText: 'hola', englishText: 'hello' }]);
   });
 
   it('inserts nothing when every card is invalid', async () => {
@@ -95,7 +95,7 @@ describe('updateCardText', () => {
       },
     );
     expect(result).toEqual({ ok: true, card: fakeCard(7, { spanishText: 'hola', englishText: 'hello' }) });
-    expect(calls).toEqual([{ spanishText: 'hola', englishText: 'hello' }]);
+    expect(calls).toMatchObject([{ spanishText: 'hola', englishText: 'hello' }]);
   });
 
   it('short-circuits with validation errors before calling updateCard', async () => {

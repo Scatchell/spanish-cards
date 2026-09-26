@@ -21,6 +21,7 @@ import { progressRoutes } from './progress/routes.js';
 import { apiLimiter, loginLimiter, mcpLimiter } from './security/rate-limit.js';
 import { trainingRoutes } from './training/routes.js';
 import type { AppConfig } from './config.js';
+import { withTransaction } from './db.js';
 import type { DbPool } from './db.js';
 
 export function createApp(config: AppConfig, pool: DbPool): express.Express {
@@ -75,7 +76,7 @@ export function createApp(config: AppConfig, pool: DbPool): express.Express {
     mcpLimiter,
     mcpRoutes(config.mcpToken, {
       listCards: () => listCards(pool),
-      insertCards: (inputs) => insertCards(pool, inputs),
+      insertCards: (inputs) => withTransaction(pool, (tx) => insertCards(tx, inputs)),
     }),
   );
 

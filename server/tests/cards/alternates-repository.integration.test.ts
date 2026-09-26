@@ -45,6 +45,20 @@ describe('insertCards', () => {
     expect(card!.englishAlternates).toEqual([]);
     await cleanup();
   });
+
+  it('saves alternates submitted with new cards, in order', async () => {
+    const [card] = await insertCards(pool, [
+      { spanishText: 'coche', englishText: 'car', spanishAlternates: ['auto', 'carro'], englishAlternates: [] },
+    ]);
+    cardIds.push(card!.id);
+    expect(card!.spanishAlternates.map((alternate) => alternate.text)).toEqual(['auto', 'carro']);
+    const stored = await listAlternatesForField(pool, card!.id, 'spanish');
+    expect(stored.map((alternate) => [alternate.text, alternate.position])).toEqual([
+      ['auto', 0],
+      ['carro', 1],
+    ]);
+    await cleanup();
+  });
 });
 
 describe('alternates repository', () => {

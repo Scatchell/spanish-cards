@@ -14,7 +14,7 @@ const TOKEN = 'test-mcp-token';
 interface FakeDeck {
   deps: McpDeps;
   cards: Card[];
-  seed: (spanishText: string, englishText: string) => Card;
+  seed: (spanishText: string, englishText: string, alternates?: { spanish?: string[]; english?: string[] }) => Card;
 }
 
 // In-memory stand-in for the cards repository, mirroring its newest-first
@@ -22,7 +22,9 @@ interface FakeDeck {
 function makeFakeDeck(): FakeDeck {
   const cards: Card[] = [];
   let nextId = 1;
-  const seed = (spanishText: string, englishText: string): Card => {
+  let nextAlternateId = 1;
+  const toAlternates = (texts: string[] = []) => texts.map((text) => ({ id: nextAlternateId++, text }));
+  const seed: FakeDeck['seed'] = (spanishText, englishText, alternates) => {
     const timestamp = new Date(2026, 0, nextId).toISOString();
     const card: Card = {
       id: nextId++,
@@ -33,8 +35,8 @@ function makeFakeDeck(): FakeDeck {
       updatedAt: timestamp,
       due: timestamp,
       reviewed: false,
-      spanishAlternates: [],
-      englishAlternates: [],
+      spanishAlternates: toAlternates(alternates?.spanish),
+      englishAlternates: toAlternates(alternates?.english),
     };
     cards.push(card);
     return card;
@@ -44,7 +46,13 @@ function makeFakeDeck(): FakeDeck {
     seed,
     deps: {
       listCards: async () => [...cards].sort((a, b) => b.id - a.id),
-      insertCards: async (inputs) => inputs.map((input) => seed(input.spanishText, input.englishText)),
+      insertCards: async (inputs) =>
+        inputs.map((input) =>
+          seed(input.spanishText, input.englishText, {
+            spanish: input.spanishAlternates,
+            english: input.englishAlternates,
+          }),
+        ),
     },
   };
 }
@@ -242,6 +250,84 @@ describe('create_card', () => {
     expect(deck.cards).toHaveLength(2);
   });
 
+  it('saves alternates with the card and returns them', async () => {
+    const deck = makeFakeDeck();
+    const { url } = await startServer(TOKEN, deck.deps);
+    const client = await connectClient(url, TOKEN);
+
+    const result = await client.callTool({
+      name: 'create_card',
+      arguments: {
+        cards: [
+          {
+            spanish_text: '¿Cómo estás?',
+            english_text: 'How are you?',
+            spanish_alternates: ['¿Qué tal?', '¿Cómo te va?'],
+            english_alternates: ["How're you doing?"],
+          },
+          { spanish_text: 'Gato', english_text: 'Cat' },
+        ],
+      },
+    });
+
+    const payload = result.structuredContent as {
+      created: { card: { spanish_alternates: string[]; english_alternates: string[] } }[];
+    };
+    expect(payload.created[0]?.card.spanish_alternates).toEqual(['¿Qué tal?', '¿Cómo te va?']);
+    expect(payload.created[0]?.card.english_alternates).toEqual(["How're you doing?"]);
+    expect(payload.created[1]?.card.spanish_alternates).toEqual([]);
+    expect(deck.cards[0]?.spanishAlternates.map((alternate) => alternate.text)).toEqual(['¿Qué tal?', '¿Cómo te va?']);
+  });
+
+  it('fails a card whose alternate repeats the main answer', async () => {
+    const deck = makeFakeDeck();
+    const { url } = await startServer(TOKEN, deck.deps);
+    const client = await connectClient(url, TOKEN);
+
+    const result = await client.callTool({
+      name: 'create_card',
+      arguments: {
+        cards: [{ spanish_text: '¿Cómo estás?', english_text: 'How are you?', spanish_alternates: ['como estas'] }],
+      },
+    });
+
+    const payload = result.structuredContent as {
+      created: unknown[];
+      failed: { errors: { field: string; message: string }[] }[];
+    };
+    expect(payload.created).toEqual([]);
+    expect(payload.failed[0]?.errors[0]?.field).toBe('spanish_alternates');
+    expect(payload.failed[0]?.errors[0]?.message).toContain('duplicates');
+    expect(deck.cards).toHaveLength(0);
+  });
+
+  it('rejects more than three alternates per side at the schema level', async () => {
+    const deck = makeFakeDeck();
+    const { url } = await startServer(TOKEN, deck.deps);
+    const client = await connectClient(url, TOKEN);
+
+    const result = await client.callTool({
+      name: 'create_card',
+      arguments: {
+        cards: [
+          { spanish_text: 'coche', english_text: 'car', spanish_alternates: ['auto', 'carro', 'automóvil', 'vehículo'] },
+        ],
+      },
+    });
+    expect(result.isError).toBe(true);
+    expect(JSON.stringify(result.content)).toContain('spanish_alternates');
+    expect(deck.cards).toHaveLength(0);
+  });
+
+  it('explains when to add alternates in the tool description', async () => {
+    const deck = makeFakeDeck();
+    const { url } = await startServer(TOKEN, deck.deps);
+    const client = await connectClient(url, TOKEN);
+    const tools = await client.listTools();
+    const createCard = tools.tools.find((tool) => tool.name === 'create_card');
+    expect(createCard?.description).toContain('at most 3');
+  });
+
   it('rejects an empty cards array at the schema level', async () => {
     const deck = makeFakeDeck();
     const { url } = await startServer(TOKEN, deck.deps);
@@ -256,7 +342,7 @@ describe('create_card', () => {
 describe('list_cards', () => {
   it('returns every card with both text fields and timestamps, newest first', async () => {
     const deck = makeFakeDeck();
-    deck.seed('Hola', 'Hello');
+    deck.seed('Hola', 'Hello', { english: ['Hi'] });
     deck.seed('Adiós', 'Goodbye');
     const { url } = await startServer(TOKEN, deck.deps);
     const client = await connectClient(url, TOKEN);
@@ -267,6 +353,7 @@ describe('list_cards', () => {
     };
     expect(payload.cards).toHaveLength(2);
     expect(payload.cards.map((card) => card.spanish_text)).toEqual(['Adiós', 'Hola']);
+    expect(payload.cards[1]).toMatchObject({ spanish_alternates: [], english_alternates: ['Hi'] });
     for (const card of payload.cards) {
       expect(card.english_text).toBeTruthy();
       expect(Date.parse(card.created_at)).not.toBeNaN();
