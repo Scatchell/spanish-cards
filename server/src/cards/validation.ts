@@ -1,3 +1,5 @@
+import { tidySpacing } from '../text/spacing.js';
+
 export const CARD_TEXT_MAX_LENGTH = 70;
 
 export interface CardInput {
@@ -14,8 +16,8 @@ export interface CardValidationError {
 
 export function normalizeCardInput(input: CardInput): CardInput {
   return {
-    spanishText: input.spanishText.trim(),
-    englishText: input.englishText.trim(),
+    spanishText: tidySpacing(input.spanishText),
+    englishText: tidySpacing(input.englishText),
   };
 }
 
@@ -27,7 +29,7 @@ export function validateCardInput(input: CardInput): CardValidationError[] {
 }
 
 function validateField(field: CardField, label: string, raw: string): CardValidationError[] {
-  const value = raw.trim();
+  const value = tidySpacing(raw);
   if (value.length === 0) {
     return [{ field, message: `${label} text is required` }];
   }

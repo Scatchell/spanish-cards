@@ -103,6 +103,32 @@ describe('normalizeAnswer', () => {
   it('strips accents, case, punctuation, and extra spaces', () => {
     expect(normalizeAnswer('  ¡Buenos   DÍAS, señor!  ')).toBe('buenos dias senor');
   });
+
+  it('splits words joined by punctuation with no space', () => {
+    expect(normalizeAnswer('Hola,me llamo')).toBe('hola me llamo');
+  });
+});
+
+describe('checkAnswer spacing slips', () => {
+  it('treats a missing space after a comma as correct', () => {
+    const result = checkAnswer('Hola,me llamo David!', 'Hola, me llamo David!');
+    expect(result.verdict).toBe('correct');
+    expect(fullText(result.correctSegments)).toBe('Hola, me llamo David!');
+  });
+
+  it('treats a stray space before punctuation as correct', () => {
+    expect(checkAnswer('Hola , ¿ cómo estás ?', 'Hola, ¿cómo estás?').verdict).toBe('correct');
+  });
+
+  it('tidies a correct answer stored with a spacing slip', () => {
+    const result = checkAnswer('Hola, me llamo', 'Hola,me llamo');
+    expect(result.verdict).toBe('correct');
+    expect(fullText(result.correctSegments)).toBe('Hola, me llamo');
+  });
+
+  it('still flags genuinely wrong words', () => {
+    expect(checkAnswer('Hola,te llamo', 'Hola, me llamo').verdict).toBe('incorrect');
+  });
 });
 
 function alt(id: number, text: string) {

@@ -1,5 +1,6 @@
 import type { Card } from './repository.js';
 import type { AlternateAnswer, AlternateField } from './alternates-repository.js';
+import { tidySpacing } from '../text/spacing.js';
 import { MAX_ALTERNATES_PER_FIELD, isDuplicateAnswer, validateAlternateText } from './alternates-validation.js';
 
 export interface AlternatesDeps {
@@ -34,7 +35,7 @@ export async function createAlternate(
   if (!card) {
     return { ok: false, status: 404 };
   }
-  const text = rawText.trim();
+  const text = tidySpacing(rawText);
   const errors = validateAlternateText(text);
   if (errors.length > 0) {
     return { ok: false, status: 400, error: errors[0]! };
@@ -64,7 +65,7 @@ export async function updateAlternate(
   if (!card) {
     return { ok: false, status: 404 };
   }
-  const text = rawText.trim();
+  const text = tidySpacing(rawText);
   const errors = validateAlternateText(text);
   if (errors.length > 0) {
     return { ok: false, status: 400, error: errors[0]! };

@@ -54,6 +54,11 @@ describe('createAlternate', () => {
     expect(inserted).toEqual([[1, 'english', 'automobile']]);
   });
 
+  it('fixes spacing slips before saving', async () => {
+    const result = await createAlternate(1, 'spanish', 'Hola,me llamo', makeDeps());
+    expect(result).toMatchObject({ ok: true, alternate: { text: 'Hola, me llamo' } });
+  });
+
   it('404s when the card does not exist', async () => {
     const deps = makeDeps({ getCard: async () => null });
     const result = await createAlternate(999, 'english', 'car', deps);

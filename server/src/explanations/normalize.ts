@@ -1,4 +1,5 @@
 import { stripDiacritics } from '../text/diacritics.js';
+import { tidySpacing } from '../text/spacing.js';
 
 // Mirrors the client-side `normalizeAnswer`
 // (client/src/training/answer-check.ts): lowercased, diacritics stripped,
@@ -7,7 +8,7 @@ import { stripDiacritics } from '../text/diacritics.js';
 // cache dedup rate for the answer-check table, never correctness.
 export function normalizeSubmitted(text: string): string {
   const words: string[] = [];
-  for (const rawWord of text.split(/\s+/)) {
+  for (const rawWord of tidySpacing(text).split(' ')) {
     const word = [...rawWord]
       .map((ch) => {
         const base = stripDiacritics(ch).toLowerCase();

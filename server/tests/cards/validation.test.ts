@@ -45,4 +45,11 @@ describe('normalizeCardInput', () => {
       englishText: 'hello',
     });
   });
+
+  it('fixes spacing slips around punctuation without changing words', () => {
+    expect(normalizeCardInput({ spanishText: 'Hola,me llamo  David !', englishText: 'Hi,my name is David' })).toEqual({
+      spanishText: 'Hola, me llamo David!',
+      englishText: 'Hi, my name is David',
+    });
+  });
 });

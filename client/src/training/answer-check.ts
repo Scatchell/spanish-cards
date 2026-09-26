@@ -1,6 +1,7 @@
 // Deterministic lenient answer matching. The goal is to check whether the
 // user remembered the word/phrase, not whether they typed it perfectly:
-// accents, casing, punctuation (including ¿¡), and extra spaces are forgiven.
+// accents, casing, punctuation (including ¿¡), and spacing slips around
+// punctuation ("Hola,me" vs "Hola, me") are forgiven.
 // Word order and word identity must match exactly.
 // Verdict is derived from the diff: no highlights → correct, highlights + normalized
 // match → correctWithDifferences, otherwise incorrect.
@@ -31,8 +32,9 @@ interface AnnotatedChar {
   norm: string | null;
 }
 
-export function checkAnswer(submitted: string, correctAnswer: string): AnswerCheckResult {
-  const correct = correctAnswer.trim();
+export function checkAnswer(rawSubmitted: string, correctAnswer: string): AnswerCheckResult {
+  const submitted = tidySpacing(rawSubmitted);
+  const correct = tidySpacing(correctAnswer);
   const normalizedSubmitted = normalizeAnswer(submitted);
   const correctSegments = diffSegments(submitted, correct);
   const verdict: Verdict = correctSegments.every((s) => s.kind === 'unchanged')
@@ -46,7 +48,7 @@ export function checkAnswer(submitted: string, correctAnswer: string): AnswerChe
 // Lowercased, diacritics stripped, punctuation removed, whitespace collapsed.
 export function normalizeAnswer(text: string): string {
   const words: string[] = [];
-  for (const rawWord of text.split(/\s+/)) {
+  for (const rawWord of tidySpacing(text).split(' ')) {
     const word = annotateChars(rawWord)
       .map((c) => c.norm ?? '')
       .join('');
@@ -55,6 +57,24 @@ export function normalizeAnswer(text: string): string {
     }
   }
   return words.join(' ');
+}
+
+// Mirrors server/src/text/spacing.ts — keep in sync.
+const SPACE_BEFORE_CLOSING_PUNCTUATION = / +([,;:!?.)…])/g;
+const SPACE_AFTER_OPENING_PUNCTUATION = /([¿¡(]) +/g;
+const CLOSING_PUNCTUATION_BEFORE_LETTER = /([,;:!?)…])(?=[\p{L}¿¡(])/gu;
+const SENTENCE_PERIOD_BEFORE_LETTER = /(\p{Ll}{2}\.|\.{3})(?=\p{L})/gu;
+const INVERTED_MARK_AFTER_TEXT = /([\p{L}\p{N}.,;:!?)…])(?=[¿¡])/gu;
+
+export function tidySpacing(text: string): string {
+  return text
+    .replace(/\s+/g, ' ')
+    .replace(SPACE_BEFORE_CLOSING_PUNCTUATION, '$1')
+    .replace(SPACE_AFTER_OPENING_PUNCTUATION, '$1')
+    .replace(CLOSING_PUNCTUATION_BEFORE_LETTER, '$1 ')
+    .replace(SENTENCE_PERIOD_BEFORE_LETTER, '$1 ')
+    .replace(INVERTED_MARK_AFTER_TEXT, '$1 ')
+    .trim();
 }
 
 function annotateChars(text: string): AnnotatedChar[] {
