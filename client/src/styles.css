@@ -1130,6 +1130,38 @@ button.rating.emphasized {
   padding: 1rem;
 }
 
+/* Phones drill down: an open category replaces the grid, which would otherwise
+   stack nine cards and push the results a full screen below the fold. Wider
+   screens keep the grid with the results panel underneath. */
+.mistakes-page.category-open .category-grid {
+  display: none;
+}
+
+.mistakes-back-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  color: var(--text-muted);
+}
+
+.mistakes-accordion h2 {
+  margin-bottom: 0.25rem;
+}
+
+.mistakes-accordion-description {
+  margin-top: 0;
+}
+
+@media (min-width: 40rem) {
+  .mistakes-page.category-open .category-grid {
+    display: grid;
+  }
+
+  .mistakes-back-link {
+    display: none;
+  }
+}
+
 .mistakes-table {
   width: 100%;
   border-collapse: collapse;

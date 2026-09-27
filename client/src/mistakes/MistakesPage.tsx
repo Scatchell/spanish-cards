@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import type { Ref } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import type { Category, CategoryCount, CategoryMistake } from '../api.js';
 import { ApiError, fetchCategorizationMistakes, fetchCategorizationSummary, logout } from '../api.js';
@@ -21,6 +22,7 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const { category: categoryParam } = useParams<{ category?: string }>();
   const navigate = useNavigate();
   const openCategory: Category | null = isCategory(categoryParam) ? categoryParam : null;
+  const openInfo = CATEGORY_INFO.find((info) => info.category === openCategory);
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [counts, setCounts] = useState<Map<Category, number>>(new Map());
   const [categoryStates, setCategoryStates] = useState<Map<Category, CategoryState>>(new Map());
@@ -91,6 +93,17 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     }
   }, [openCategory, categoryStates, loadCategoryPage]);
 
+  // On phones the grid is hidden while a category is open (see styles.css), so the
+  // panel can jump above the viewport if the user tapped a card far down the list.
+  // On desktop the grid stays above the panel, so its top is never negative.
+  const accordionRef = useRef<HTMLElement>(null);
+  useLayoutEffect(() => {
+    const top = accordionRef.current?.getBoundingClientRect().top;
+    if (top !== undefined && top < 0) {
+      window.scrollTo(0, 0);
+    }
+  }, [openCategory]);
+
   function handleCardClick(category: Category) {
     const count = counts.get(category) ?? 0;
     if (count === 0) return;
@@ -107,7 +120,7 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   }
 
   return (
-    <div className="app-shell">
+    <div className={openCategory ? 'app-shell mistakes-page category-open' : 'app-shell mistakes-page'}>
       <header className="app-header">
         <h1>Mistakes</h1>
         <HeaderMenu>
@@ -154,7 +167,9 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
             </ul>
             {openCategory && (
               <CategoryAccordion
-                label={CATEGORY_INFO.find((c) => c.category === openCategory)?.label ?? openCategory}
+                label={openInfo?.label ?? openCategory}
+                description={openInfo?.description ?? ''}
+                sectionRef={accordionRef}
                 state={categoryStates.get(openCategory) ?? { items: [], nextCursor: null, loadState: 'loading' }}
                 onRetry={() => loadCategoryPage(openCategory, null)}
                 onLoadMore={(cursor) => loadCategoryPage(openCategory, cursor)}
@@ -200,18 +215,26 @@ function CategoryCard({
 
 function CategoryAccordion({
   label,
+  description,
+  sectionRef,
   state,
   onRetry,
   onLoadMore,
 }: {
   label: string;
+  description: string;
+  sectionRef: Ref<HTMLElement>;
   state: CategoryState;
   onRetry: () => void;
   onLoadMore: (cursor: string) => void;
 }) {
   return (
-    <section className="mistakes-accordion" aria-label={`${label} mistakes`}>
+    <section ref={sectionRef} className="mistakes-accordion" aria-label={`${label} mistakes`}>
+      <Link to="/mistakes" className="mistakes-back-link">
+        &larr; All categories
+      </Link>
       <h2>{label}</h2>
+      <p className="hint mistakes-accordion-description">{description}</p>
       {state.loadState === 'loading' && state.items.length === 0 && (
         <p className="hint">Loading mistakes…</p>
       )}
@@ -222,6 +245,9 @@ function CategoryAccordion({
             Retry
           </button>
         </p>
+      )}
+      {state.loadState === 'ready' && state.items.length === 0 && (
+        <p className="hint">No mistakes in this category yet.</p>
       )}
       {state.items.length > 0 && (
         <>

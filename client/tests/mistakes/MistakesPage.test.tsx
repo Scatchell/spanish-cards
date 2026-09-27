@@ -5,7 +5,10 @@ import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { MistakesPage } from '../../src/mistakes/MistakesPage.js';
 import * as api from '../../src/api.js';
 
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.restoreAllMocks();
+});
 
 vi.mock('../../src/api.js', async () => {
   const actual = await vi.importActual<typeof api>('../../src/api.js');
@@ -279,5 +282,54 @@ describe('MistakesPage', () => {
 
     await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/mistakes$/));
     expect(screen.queryByText('la casa blanca')).not.toBeInTheDocument();
+  });
+  it('marks the page as category-open only while a category is in the URL', async () => {
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 1 }));
+    mockedMistakes.mockResolvedValue({ items: [agreementMistake(1, 'la casa blanca')], nextCursor: null });
+    const { container } = renderPage();
+
+    await waitFor(() => expect(screen.getByText('Agreement')).toBeInTheDocument());
+    expect(container.querySelector('.mistakes-page')).not.toHaveClass('category-open');
+
+    fireEvent.click(screen.getByRole('button', { name: /agreement/i }));
+    await waitFor(() => expect(container.querySelector('.mistakes-page')).toHaveClass('category-open'));
+  });
+
+  it('shows an "All categories" link, the category description, and an empty state in the drill-down', async () => {
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 0 }));
+    mockedMistakes.mockResolvedValue({ items: [], nextCursor: null });
+    renderPage('/mistakes/agreement');
+
+    await waitFor(() => expect(screen.getByText(/no mistakes in this category yet/i)).toBeInTheDocument());
+    expect(screen.getByRole('link', { name: /all categories/i })).toHaveAttribute('href', '/mistakes');
+    const section = screen.getByRole('region', { name: /agreement mistakes/i });
+    expect(section).toHaveTextContent('Gender or number mismatch between words.');
+  });
+
+  it('scrolls to the top when the opened panel starts above the viewport (phone: grid hidden)', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: -600 } as DOMRect);
+    mockedSummary.mockResolvedValue(summaryWith({ recall_failure: 1 }));
+    mockedMistakes.mockResolvedValue({ items: [], nextCursor: null });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText("Didn't recall")).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /didn't recall/i }));
+
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledWith(0, 0));
+  });
+
+  it('does not scroll when the opened panel is already below the grid (desktop)', async () => {
+    const scrollTo = vi.spyOn(window, 'scrollTo').mockImplementation(() => {});
+    vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ top: 700 } as DOMRect);
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 1 }));
+    mockedMistakes.mockResolvedValue({ items: [agreementMistake(1, 'la casa blanca')], nextCursor: null });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Agreement')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /agreement/i }));
+    await waitFor(() => expect(screen.getByText('la casa blanca')).toBeInTheDocument());
+
+    expect(scrollTo).not.toHaveBeenCalled();
   });
 });
