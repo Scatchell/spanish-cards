@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi, beforeEach } from 'vitest';
 import { MistakesPage } from '../../src/mistakes/MistakesPage.js';
 import * as api from '../../src/api.js';
@@ -39,12 +39,46 @@ beforeEach(() => {
   mockedMistakes.mockReset();
 });
 
-function renderPage() {
+function LocationDisplay() {
+  const location = useLocation();
+  return <div data-testid="location">{location.pathname}</div>;
+}
+
+// Stands in for the browser Back button: MemoryRouter has no chrome, and data
+// routers (which expose navigate(-1) directly) break on jsdom's AbortSignal.
+function HistoryBackButton() {
+  const navigate = useNavigate();
+  return (
+    <button type="button" onClick={() => navigate(-1)}>
+      history back
+    </button>
+  );
+}
+
+function renderPage(initialPath = '/mistakes') {
   return render(
-    <MemoryRouter>
-      <MistakesPage onLoggedOut={() => {}} />
+    <MemoryRouter initialEntries={[initialPath]}>
+      <Routes>
+        <Route path="/mistakes/:category?" element={<MistakesPage onLoggedOut={() => {}} />} />
+      </Routes>
+      <LocationDisplay />
+      <HistoryBackButton />
     </MemoryRouter>,
   );
+}
+
+function agreementMistake(id: number, correctText: string) {
+  return {
+    id,
+    category: 'agreement',
+    rationale: `rationale ${id}`,
+    practiceTargets: [],
+    correctText,
+    submittedText: `wrong ${id}`,
+    direction: 'english-to-spanish',
+    verdict: 'incorrect',
+    createdAt: '2026-09-12T14:03:11.000Z',
+  };
 }
 
 describe('MistakesPage', () => {
@@ -166,5 +200,84 @@ describe('MistakesPage', () => {
     expect(screen.getByText('c2')).toBeInTheDocument();
     expect(mockedMistakes).toHaveBeenCalledTimes(2);
     expect(screen.queryByRole('button', { name: /load more/i })).not.toBeInTheDocument();
+  });
+  it('puts the selected category in the URL', async () => {
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 1 }));
+    mockedMistakes.mockResolvedValue({ items: [agreementMistake(1, 'la casa blanca')], nextCursor: null });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Agreement')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /agreement/i }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/mistakes/agreement'));
+    await waitFor(() => expect(screen.getByText('la casa blanca')).toBeInTheDocument());
+  });
+
+  it('loads the category from a deep link without any click', async () => {
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 1 }));
+    mockedMistakes.mockResolvedValue({ items: [agreementMistake(1, 'la casa blanca')], nextCursor: null });
+    renderPage('/mistakes/agreement');
+
+    await waitFor(() => expect(screen.getByText('la casa blanca')).toBeInTheDocument());
+    expect(mockedMistakes).toHaveBeenCalledWith('agreement', null);
+  });
+
+  it('clicking the open category again closes it and returns to /mistakes', async () => {
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 1 }));
+    mockedMistakes.mockResolvedValue({ items: [agreementMistake(1, 'la casa blanca')], nextCursor: null });
+    renderPage('/mistakes/agreement');
+
+    await waitFor(() => expect(screen.getByText('la casa blanca')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /^agreement$/i }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/mistakes$/));
+    expect(screen.queryByText('la casa blanca')).not.toBeInTheDocument();
+  });
+
+  it('redirects an unknown category slug to /mistakes without fetching mistakes', async () => {
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 1 }));
+    renderPage('/mistakes/nonsense');
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/mistakes$/));
+    await waitFor(() => expect(screen.getByText('Agreement')).toBeInTheDocument());
+    expect(mockedMistakes).not.toHaveBeenCalled();
+  });
+
+  it('keeps loaded pages when switching away and back (no refetch)', async () => {
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 2, vocabulary: 1 }));
+    mockedMistakes.mockImplementation(async (category: string, cursor: string | null) => {
+      if (category === 'vocabulary') return { items: [], nextCursor: null };
+      return cursor
+        ? { items: [agreementMistake(1, 'older')], nextCursor: null }
+        : { items: [agreementMistake(2, 'newer')], nextCursor: 'cursor-1' };
+    });
+    renderPage('/mistakes/agreement');
+
+    await waitFor(() => expect(screen.getByText('newer')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /load more/i }));
+    await waitFor(() => expect(screen.getByText('older')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: /vocabulary/i }));
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent('/mistakes/vocabulary'));
+    fireEvent.click(screen.getByRole('button', { name: /^agreement$/i }));
+
+    await waitFor(() => expect(screen.getByText('older')).toBeInTheDocument());
+    expect(screen.getByText('newer')).toBeInTheDocument();
+    expect(mockedMistakes.mock.calls.filter(([c]) => c === 'agreement')).toHaveLength(2);
+  });
+
+  it('browser back from a category returns to the grid view', async () => {
+    mockedSummary.mockResolvedValue(summaryWith({ agreement: 1 }));
+    mockedMistakes.mockResolvedValue({ items: [agreementMistake(1, 'la casa blanca')], nextCursor: null });
+    renderPage();
+
+    await waitFor(() => expect(screen.getByText('Agreement')).toBeInTheDocument());
+    fireEvent.click(screen.getByRole('button', { name: /agreement/i }));
+    await waitFor(() => expect(screen.getByText('la casa blanca')).toBeInTheDocument());
+
+    fireEvent.click(screen.getByRole('button', { name: 'history back' }));
+
+    await waitFor(() => expect(screen.getByTestId('location')).toHaveTextContent(/^\/mistakes$/));
+    expect(screen.queryByText('la casa blanca')).not.toBeInTheDocument();
   });
 });

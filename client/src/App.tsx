@@ -77,7 +77,7 @@ export function App() {
         }
       />
       <Route
-        path="/mistakes"
+        path="/mistakes/:category?"
         element={
           auth === 'authenticated' ? (
             <MistakesPage onLoggedOut={() => setAuth('anonymous')} />

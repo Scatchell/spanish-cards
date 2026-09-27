@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import type { Category, CategoryCount, CategoryMistake } from '../api.js';
 import { ApiError, fetchCategorizationMistakes, fetchCategorizationSummary, logout } from '../api.js';
 import { CATEGORY_INFO } from './categoryInfo.js';
@@ -13,10 +13,16 @@ interface CategoryState {
   loadState: LoadState;
 }
 
+function isCategory(value: string | undefined): value is Category {
+  return CATEGORY_INFO.some((info) => info.category === value);
+}
+
 export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
+  const { category: categoryParam } = useParams<{ category?: string }>();
+  const navigate = useNavigate();
+  const openCategory: Category | null = isCategory(categoryParam) ? categoryParam : null;
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [counts, setCounts] = useState<Map<Category, number>>(new Map());
-  const [openCategory, setOpenCategory] = useState<Category | null>(null);
   const [categoryStates, setCategoryStates] = useState<Map<Category, CategoryState>>(new Map());
 
   const handleUnauthenticated = useCallback(
@@ -79,22 +85,25 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     [handleUnauthenticated],
   );
 
+  useEffect(() => {
+    if (openCategory && !categoryStates.has(openCategory)) {
+      loadCategoryPage(openCategory, null);
+    }
+  }, [openCategory, categoryStates, loadCategoryPage]);
+
   function handleCardClick(category: Category) {
     const count = counts.get(category) ?? 0;
     if (count === 0) return;
-    if (openCategory === category) {
-      setOpenCategory(null);
-      return;
-    }
-    setOpenCategory(category);
-    if (!categoryStates.has(category)) {
-      loadCategoryPage(category, null);
-    }
+    navigate(openCategory === category ? '/mistakes' : `/mistakes/${category}`);
   }
 
   async function handleLogout() {
     await logout().catch(() => undefined);
     onLoggedOut();
+  }
+
+  if (categoryParam !== undefined && !isCategory(categoryParam)) {
+    return <Navigate to="/mistakes" replace />;
   }
 
   return (
