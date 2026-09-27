@@ -431,6 +431,11 @@ label {
   min-height: 52px;
 }
 
+/* Hidden until the first reveal, but keeps its space so nothing shifts. */
+.learn-actions.concealed {
+  visibility: hidden;
+}
+
 /* ---- Training ---- */
 
 .train-page main {

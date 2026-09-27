@@ -141,8 +141,18 @@ test('learning pass: flip, still-learning spacing, restart, and no scheduling si
   const first = (await prompt.innerText()).trim();
   const heightBefore = (await page.locator('.train-card').boundingBox())!.height;
   await expect(answer).toBeHidden();
+
+  // Rating buttons (and their 1/2 shortcuts) stay hidden until the answer
+  // is first shown.
+  const remembered = page.getByRole('button', { name: /Remembered/ });
+  await expect(remembered).toBeHidden();
+  await page.keyboard.press('1');
+  await expect(prompt).toHaveText(first);
+  await expect(page.locator('.queue-count')).toHaveText('Remembered 0 of 2');
+
   await page.getByRole('button', { name: /Show answer/ }).click();
   await expect(answer).toHaveText(answers[first]!);
+  await expect(remembered).toBeVisible();
   expect((await page.locator('.train-card').boundingBox())!.height).toBe(heightBefore);
   await page.getByRole('button', { name: /Hide answer/ }).click();
   await expect(answer).toBeHidden();
@@ -150,6 +160,8 @@ test('learning pass: flip, still-learning spacing, restart, and no scheduling si
   await expect(answer).toBeVisible();
   await page.keyboard.press('Space');
   await expect(answer).toBeHidden();
+  // Hiding the answer again keeps the rating buttons available.
+  await expect(remembered).toBeVisible();
 
   // Still learning (shortcut: 2) keeps the card in the pass but not as the
   // immediate next.
@@ -165,7 +177,9 @@ test('learning pass: flip, still-learning spacing, restart, and no scheduling si
   await expect(prompt).toHaveText(first);
   await expect(answer).toBeHidden();
   await expect(page.locator('.queue-count')).toHaveText('Remembered 1 of 2');
-  await page.getByRole('button', { name: /Remembered/ }).click();
+  await expect(remembered).toBeHidden();
+  await page.keyboard.press('Space');
+  await remembered.click();
 
   // Pass completion offers the follow-up actions.
   await expect(page.getByText('Pass complete!')).toBeVisible();
@@ -175,7 +189,9 @@ test('learning pass: flip, still-learning spacing, restart, and no scheduling si
   // (the last 20% tail, minimum 1) must not lead the new pass.
   await page.getByRole('button', { name: 'Keep learning these cards' }).click();
   await expect(prompt).toHaveText(second);
+  await page.getByRole('button', { name: /Show answer/ }).click();
   await page.getByRole('button', { name: 'Remembered' }).click();
+  await page.getByRole('button', { name: /Show answer/ }).click();
   await page.getByRole('button', { name: 'Remembered' }).click();
   await expect(page.getByText('Pass complete!')).toBeVisible();
 

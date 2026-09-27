@@ -46,6 +46,10 @@ function answerHidden(): boolean {
   return screen.getByLabelText('Answer').getAttribute('aria-hidden') === 'true';
 }
 
+function ratingsHidden(): boolean {
+  return screen.getByText('Remembered').closest('.learn-actions')!.getAttribute('aria-hidden') === 'true';
+}
+
 describe('FlipCard', () => {
   it('hides the answer initially', () => {
     renderFlipCard();
@@ -66,32 +70,60 @@ describe('FlipCard', () => {
 
   it('calls onRemembered when Remembered button is clicked', () => {
     const { onRemembered } = renderFlipCard();
+    fireEvent.click(screen.getByText('Show answer'));
     fireEvent.click(screen.getByText('Remembered'));
     expect(onRemembered).toHaveBeenCalledOnce();
   });
 
   it('calls onStillLearning when Still learning button is clicked', () => {
     const { onStillLearning } = renderFlipCard();
+    fireEvent.click(screen.getByText('Show answer'));
     fireEvent.click(screen.getByText('Still learning'));
     expect(onStillLearning).toHaveBeenCalledOnce();
   });
 
   it('calls onRemembered on key 1', () => {
     const { onRemembered } = renderFlipCard();
+    fireEvent.click(screen.getByText('Show answer'));
     fireEvent.keyDown(window, { key: '1' });
     expect(onRemembered).toHaveBeenCalledOnce();
   });
 
   it('calls onStillLearning on key 2', () => {
     const { onStillLearning } = renderFlipCard();
+    fireEvent.click(screen.getByText('Show answer'));
     fireEvent.keyDown(window, { key: '2' });
     expect(onStillLearning).toHaveBeenCalledOnce();
   });
 
   it('calls onRemembered on Numpad1', () => {
     const { onRemembered } = renderFlipCard();
+    fireEvent.click(screen.getByText('Show answer'));
     fireEvent.keyDown(window, { code: 'Numpad1' });
     expect(onRemembered).toHaveBeenCalledOnce();
+  });
+
+  it('hides the rating buttons until the answer is first shown', () => {
+    renderFlipCard();
+    expect(ratingsHidden()).toBe(true);
+    fireEvent.click(screen.getByText('Show answer'));
+    expect(ratingsHidden()).toBe(false);
+  });
+
+  it('keeps the rating buttons visible after hiding the answer again', () => {
+    renderFlipCard();
+    fireEvent.keyDown(window, { code: 'Space' });
+    fireEvent.keyDown(window, { code: 'Space' });
+    expect(answerHidden()).toBe(true);
+    expect(ratingsHidden()).toBe(false);
+  });
+
+  it('ignores rating shortcuts before the answer is first shown', () => {
+    const { onRemembered, onStillLearning } = renderFlipCard();
+    fireEvent.keyDown(window, { key: '1' });
+    fireEvent.keyDown(window, { key: '2' });
+    expect(onRemembered).not.toHaveBeenCalled();
+    expect(onStillLearning).not.toHaveBeenCalled();
   });
 
   it('renders custom labels', () => {
@@ -152,6 +184,7 @@ describe('FlipCard', () => {
       />,
     );
     expect(answerHidden()).toBe(true);
+    expect(ratingsHidden()).toBe(true);
   });
 
   it('shows all alternates read-only after Show answer', () => {

@@ -59,12 +59,21 @@ export function FlipCard({
   editable = true,
 }: FlipCardProps) {
   const [showBack, setShowBack] = useState(false);
+  // Rating buttons stay hidden until the answer has been shown once per card;
+  // hiding it again afterwards keeps them available.
+  const [revealed, setRevealed] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
 
   useEffect(() => {
     setShowBack(false);
+    setRevealed(false);
     setExplainOpen(false);
   }, [card.id, direction]);
+
+  function toggleBack() {
+    if (!showBack) setRevealed(true);
+    setShowBack(!showBack);
+  }
 
   const promptLabel = direction === 'spanish-to-english' ? 'Spanish prompt' : 'English prompt';
   const answerLabel = direction === 'spanish-to-english' ? 'English answer' : 'Spanish answer';
@@ -75,7 +84,7 @@ export function FlipCard({
       if (event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.code === 'Space') {
         event.preventDefault();
-        setShowBack((s) => !s);
+        toggleBack();
         return;
       }
       if (event.code === 'KeyE' && showBack && canExplain(card)) {
@@ -83,6 +92,7 @@ export function FlipCard({
         setExplainOpen(true);
         return;
       }
+      if (!revealed) return;
       const digit = /^[12]$/.test(event.key) ? event.key : DIGIT_BY_CODE[event.code];
       if (digit === '1') {
         event.preventDefault();
@@ -94,7 +104,7 @@ export function FlipCard({
     }
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [explainOpen, showBack, card, onRemembered, onStillLearning]);
+  }, [explainOpen, showBack, revealed, card, onRemembered, onStillLearning]);
 
   return (
     <>
@@ -146,7 +156,7 @@ export function FlipCard({
         )}
       </p>
       <div className="learn-show-answer-row">
-        <button type="button" className="secondary" onClick={() => setShowBack((s) => !s)}>
+        <button type="button" className="secondary" onClick={toggleBack}>
           {showBack ? 'Hide answer' : 'Show answer'}{' '}
           <span className="shortcut-hint">(Space)</span>
         </button>
@@ -164,7 +174,7 @@ export function FlipCard({
         />
       )}
 
-      <div className="learn-actions">
+      <div className={revealed ? 'learn-actions' : 'learn-actions concealed'} aria-hidden={!revealed}>
         <button type="button" onClick={onRemembered}>
           {rememberedLabel} <span className="shortcut-hint">(1)</span>
         </button>

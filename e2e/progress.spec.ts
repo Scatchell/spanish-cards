@@ -75,6 +75,7 @@ test('full journey: create cards, train, and watch the dashboard update', async 
   // With no cards left, the missed card immediately resurfaces as an
   // in-session retry; resolve it before the done screen appears.
   await expect(page.locator('.retry-badge')).toBeVisible();
+  await page.getByRole('button', { name: /Show answer/ }).click();
   await page.getByRole('button', { name: /Remembered/ }).click();
 
   // The done screen links straight to the dashboard.
