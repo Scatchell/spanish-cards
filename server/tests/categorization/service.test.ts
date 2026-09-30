@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { NewCategorization, UncategorizedReviewHistoryRow } from '../../src/categorization/repository.js';
 import type { CategorizationInput, CategorizationOutput } from '../../src/categorization/llm.js';
-import { BATCH_SIZE, chunk, runCategorizationTick } from '../../src/categorization/service.js';
+import { BATCH_SIZE, chunk, groupByUser, runCategorizationTick } from '../../src/categorization/service.js';
 
-function fakeRow(id: number): UncategorizedReviewHistoryRow {
+function fakeRow(id: number, userId = 1): UncategorizedReviewHistoryRow {
   return {
     id,
+    userId,
     direction: 'english-to-spanish',
     verdict: 'incorrect',
     correctText: 'la casa blanca',
@@ -156,5 +157,23 @@ describe('runCategorizationTick', () => {
       ],
     });
     expect(result).toEqual({ processedCount: 0, failedBatchCount: 1 });
+  });
+
+  it('never mixes two users in one LLM batch', async () => {
+    const batches: number[][] = [];
+    await runCategorizationTick({
+      findUncategorized: async () => [fakeRow(1, 1), fakeRow(2, 2), fakeRow(3, 1)],
+      insertCategorizationBatch: async () => undefined,
+      generate: async (inputs) => {
+        batches.push(inputs.map((i) => i.index));
+        return inputs.map((i) => ({ index: i.index, category: 'vocabulary', rationale: 'r', practiceTargets: [] }));
+      },
+    });
+    expect(batches).toEqual([[0, 1], [0]]); // user 1: rows 1 and 3; then user 2: row 2
+  });
+
+  it('groupByUser keeps first-seen user order and row order within a user', () => {
+    const groups = groupByUser([fakeRow(1, 5), fakeRow(2, 3), fakeRow(3, 5)]);
+    expect(groups.map((g) => g.map((r) => r.id))).toEqual([[1, 3], [2]]);
   });
 });

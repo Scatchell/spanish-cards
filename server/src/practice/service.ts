@@ -21,21 +21,24 @@ export interface PracticeServiceDeps {
 // Dedupes concurrent callers (e.g. StrictMode double-mount, rapid modal
 // reopen) onto one in-flight generation per mistake, avoiding duplicate paid
 // LLM calls. Entries are removed once the generation settles.
-const inFlight = new Map<number, Promise<GenerateResult>>();
+// Keyed by user too: a user must never receive another user's in-flight result.
+const inFlight = new Map<string, Promise<GenerateResult>>();
 
 export async function generatePracticeSession(
   deps: PracticeServiceDeps,
+  userId: number,
   reviewCategorizationId: number,
 ): Promise<GenerateResult> {
-  const existing = inFlight.get(reviewCategorizationId);
+  const key = `${userId}:${reviewCategorizationId}`;
+  const existing = inFlight.get(key);
   if (existing) {
     return existing;
   }
 
   const promise = runGeneration(deps, reviewCategorizationId).finally(() => {
-    inFlight.delete(reviewCategorizationId);
+    inFlight.delete(key);
   });
-  inFlight.set(reviewCategorizationId, promise);
+  inFlight.set(key, promise);
   return promise;
 }
 

@@ -41,9 +41,14 @@ interface CountRow {
 
 // One GROUP BY query merged with the fixed nine-category list, so a category
 // with zero rows still appears (the client never special-cases a missing key).
-export async function getCategorySummary(db: DbQueryable): Promise<CategoryCount[]> {
+export async function getCategorySummary(db: DbQueryable, userId: number): Promise<CategoryCount[]> {
   const result = await db.query<CountRow>(
-    'SELECT category, COUNT(*) AS count FROM review_categorizations GROUP BY category',
+    `SELECT rc.category, COUNT(*) AS count
+     FROM review_categorizations rc
+     JOIN review_history rh ON rh.id = rc.review_history_id
+     WHERE rh.user_id = $1
+     GROUP BY rc.category`,
+    [userId],
   );
   const counts = new Map(result.rows.map((row) => [row.category, Number(row.count)]));
   return CATEGORIES.map((category) => ({ category, count: counts.get(category) ?? 0 }));
@@ -81,14 +86,15 @@ function toCategoryMistake(row: MistakeRow): CategoryMistake {
 // pages, and without an OFFSET that new inserts could shift underneath us.
 export async function getCategoryMistakes(
   db: DbQueryable,
+  userId: number,
   category: Category,
   opts: { cursor: MistakesCursor | null; limit: number },
 ): Promise<MistakesPage> {
-  const params: unknown[] = [category];
+  const params: unknown[] = [category, userId];
   let cursorClause = '';
   if (opts.cursor) {
     params.push(opts.cursor.createdAt, opts.cursor.id);
-    cursorClause = `AND (rc.created_at, rc.id) < ($2, $3)`;
+    cursorClause = `AND (rc.created_at, rc.id) < ($3, $4)`;
   }
   params.push(opts.limit);
   const limitParamIndex = params.length;
@@ -104,7 +110,7 @@ export async function getCategoryMistakes(
        FROM practice_targets pt
        WHERE pt.review_categorization_id = rc.id
      ) pt ON true
-     WHERE rc.category = $1
+     WHERE rc.category = $1 AND rh.user_id = $2
      ${cursorClause}
      ORDER BY rc.created_at DESC, rc.id DESC
      LIMIT $${limitParamIndex}`,

@@ -48,6 +48,7 @@ interface ScheduleRow {
 // 'ahead' returns the not-yet-due cards soonest-first for studying ahead.
 export async function getTrainingQueue(
   db: DbQueryable,
+  userId: number,
   scope: QueueScope,
   now: Date,
 ): Promise<TrainingCard[]> {
@@ -62,9 +63,9 @@ export async function getTrainingQueue(
                       WHERE a.card_id = c.id AND a.field = 'english'), '[]'::json) AS english_alternates
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
-     WHERE COALESCE(s.due, c.created_at) ${comparison} $1
+     WHERE c.user_id = $2 AND COALESCE(s.due, c.created_at) ${comparison} $1
      ORDER BY COALESCE(s.due, c.created_at) ASC, c.id ASC`,
-    [now],
+    [now, userId],
   );
   return result.rows.map((row) => ({
     id: row.id,
@@ -79,26 +80,30 @@ export async function getTrainingQueue(
 
 // Number of cards due at `now`, using the same effective-due rule as the
 // training queue.
-export async function countDueCards(db: DbQueryable, now: Date): Promise<number> {
+export async function countDueCards(db: DbQueryable, userId: number, now: Date): Promise<number> {
   const result = await db.query<{ count: number }>(
     `SELECT COUNT(*)::int AS count
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
-     WHERE COALESCE(s.due, c.created_at) <= $1`,
-    [now],
+     WHERE c.user_id = $2 AND COALESCE(s.due, c.created_at) <= $1`,
+    [now, userId],
   );
   return result.rows[0]?.count ?? 0;
 }
 
 // The card's effective due time (see TrainingCard), or null when the card
-// does not exist.
-export async function getEffectiveDue(db: DbQueryable, cardId: number): Promise<Date | null> {
+// does not exist or belongs to another user.
+export async function getEffectiveDue(
+  db: DbQueryable,
+  userId: number,
+  cardId: number,
+): Promise<Date | null> {
   const result = await db.query<{ due: Date }>(
     `SELECT COALESCE(s.due, c.created_at) AS due
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
-     WHERE c.id = $1`,
-    [cardId],
+     WHERE c.id = $1 AND c.user_id = $2`,
+    [cardId, userId],
   );
   return result.rows[0]?.due ?? null;
 }
@@ -195,6 +200,7 @@ export async function insertReview(db: DbQueryable, review: NewReview): Promise<
 // migration for field semantics). Every analysis field is snapshotted here, so
 // the row has no referential dependency on cards/reviews.
 export interface NewReviewHistory {
+  userId: number;
   cardId: number;
   direction: PromptDirection;
   verdict: Verdict;
@@ -210,9 +216,10 @@ export async function insertReviewHistory(
 ): Promise<void> {
   await db.query(
     `INSERT INTO review_history
-       (card_id, direction, verdict, rating, correct_text, submitted_text, attempted_at)
-     VALUES ($1, $2, $3, $4, $5, $6, $7)`,
+       (user_id, card_id, direction, verdict, rating, correct_text, submitted_text, attempted_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
     [
+      history.userId,
       history.cardId,
       history.direction,
       history.verdict,

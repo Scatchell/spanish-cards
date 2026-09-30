@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getUserId } from '../auth/middleware.js';
 import type { DbPool } from '../db.js';
 import { getTrainingQueue } from './repository.js';
 import { recordReview } from './service.js';
@@ -9,7 +10,7 @@ export function trainingRoutes(pool: DbPool): Router {
 
   router.get('/queue', async (req, res) => {
     const scope = req.query.scope === 'ahead' ? 'ahead' : 'due';
-    res.json({ cards: await getTrainingQueue(pool, scope, new Date()) });
+    res.json({ cards: await getTrainingQueue(pool, getUserId(req), scope, new Date()) });
   });
 
   router.post('/reviews', async (req, res) => {
@@ -21,7 +22,7 @@ export function trainingRoutes(pool: DbPool): Router {
       });
       return;
     }
-    const outcome = await recordReview(pool, request, new Date());
+    const outcome = await recordReview(pool, getUserId(req), request, new Date());
     if (!outcome) {
       res.status(404).json({ error: 'Card not found' });
       return;

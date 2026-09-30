@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { getMe } from './api.js';
+import { AccountPage } from './auth/AccountPage.js';
 import { LoginPage } from './auth/LoginPage.js';
+import { SetPasswordPage } from './auth/SetPasswordPage.js';
 import { CardsPage } from './cards/CardsPage.js';
 import { LearnPage } from './learning/LearnPage.js';
 import { MistakesPage } from './mistakes/MistakesPage.js';
@@ -91,6 +93,17 @@ export function App() {
         element={
           auth === 'authenticated' ? (
             <PracticeMistakePage onLoggedOut={() => setAuth('anonymous')} />
+          ) : (
+            <Navigate to="/login" replace />
+          )
+        }
+      />
+      <Route path="/set-password" element={<SetPasswordPage onLogin={() => setAuth('authenticated')} />} />
+      <Route
+        path="/account"
+        element={
+          auth === 'authenticated' ? (
+            <AccountPage onLoggedOut={() => setAuth('anonymous')} />
           ) : (
             <Navigate to="/login" replace />
           )

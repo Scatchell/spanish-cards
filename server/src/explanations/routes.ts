@@ -1,6 +1,8 @@
 import { Router } from 'express';
+import { getUserId } from '../auth/middleware.js';
 import type { DbPool } from '../db.js';
 import { getCard } from '../cards/repository.js';
+import type { Card } from '../cards/repository.js';
 import { findExplanation, insertExplanation } from './repository.js';
 import type { Explanation, NewExplanation } from './repository.js';
 import { findAnswerCheck, insertAnswerCheck } from './answer-check-repository.js';
@@ -21,7 +23,7 @@ const MAX_SUBMITTED_CHARS = 500;
 const DIRECTIONS: readonly AnswerCheckDirection[] = ['spanish-to-english', 'english-to-spanish'];
 
 export interface ExplanationRouteDeps {
-  getCard: (id: number) => Promise<import('../cards/repository.js').Card | null>;
+  getCard: (userId: number, id: number) => Promise<Card | null>;
   findExplanation: (spanish: string, english: string) => Promise<Explanation | null>;
   insertExplanation: (input: NewExplanation) => Promise<Explanation>;
   findAnswerCheck: (key: AnswerCheckKey) => Promise<AnswerCheck | null>;
@@ -41,11 +43,12 @@ type ResolvedTexts =
 // text, not card id, so those only need the text supplied directly.
 async function resolveCardTexts(
   deps: ExplanationRouteDeps,
+  userId: number,
   id: number,
   body: unknown,
 ): Promise<ResolvedTexts> {
   if (id > 0) {
-    const card = await deps.getCard(id);
+    const card = await deps.getCard(userId, id);
     if (!card) return 'not-found';
     if (card.languagePair !== 'en<->es') return 'unsupported-language';
     return { spanishText: card.spanishText, englishText: card.englishText };
@@ -73,7 +76,7 @@ export function explanationRoutes(
   const router = Router();
 
   const deps: ExplanationRouteDeps = {
-    getCard: overrides?.getCard ?? ((cardId) => getCard(pool, cardId)),
+    getCard: overrides?.getCard ?? ((userId, cardId) => getCard(pool, userId, cardId)),
     findExplanation:
       overrides?.findExplanation ?? ((spanish, english) => findExplanation(pool, spanish, english)),
     insertExplanation:
@@ -91,7 +94,7 @@ export function explanationRoutes(
       return;
     }
 
-    const texts = await resolveCardTexts(deps, id, req.body);
+    const texts = await resolveCardTexts(deps, getUserId(req), id, req.body);
     if (texts === 'not-found') {
       res.status(404).json({ error: 'Card not found' });
       return;
@@ -163,7 +166,7 @@ export function explanationRoutes(
       return;
     }
 
-    const texts = await resolveCardTexts(deps, id, req.body);
+    const texts = await resolveCardTexts(deps, getUserId(req), id, req.body);
     if (texts === 'not-found') {
       res.status(404).json({ error: 'Card not found' });
       return;
@@ -219,7 +222,7 @@ export function explanationRoutes(
       return;
     }
 
-    const texts = await resolveCardTexts(deps, id, req.body);
+    const texts = await resolveCardTexts(deps, getUserId(req), id, req.body);
     if (texts === 'not-found') {
       res.status(404).json({ error: 'Card not found' });
       return;

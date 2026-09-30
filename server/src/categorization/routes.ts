@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getUserId } from '../auth/middleware.js';
 import type { DbPool } from '../db.js';
 import { CATEGORIES } from './repository.js';
 import type { Category } from './repository.js';
@@ -30,8 +31,8 @@ export function categorizationRoutes(
 ): Router {
   const router = Router();
 
-  router.get('/summary', async (_req, res) => {
-    const categories = await deps.getCategorySummary(pool);
+  router.get('/summary', async (req, res) => {
+    const categories = await deps.getCategorySummary(pool, getUserId(req));
     res.json({ categories });
   });
 
@@ -49,7 +50,7 @@ export function categorizationRoutes(
         return;
       }
     }
-    const page = await deps.getCategoryMistakes(pool, category, {
+    const page = await deps.getCategoryMistakes(pool, getUserId(req), category, {
       cursor,
       limit: parseLimit(rawLimit),
     });

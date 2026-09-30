@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getUserId } from '../auth/middleware.js';
 import type { DbPool } from '../db.js';
 import type { PracticeSentenceGenerator } from './generator.js';
 import { getMistakeContext, getPracticeSession as repoGetPracticeSession, upsertPracticeSession } from './repository.js';
@@ -16,18 +17,19 @@ export function practiceRoutes(
   pool: DbPool,
   generate: PracticeSentenceGenerator | null,
   deps: {
-    getPracticeSession: (id: number) => Promise<PracticeSession | null>;
-    handleGenerate: (id: number) => Promise<GenerateResult>;
+    getPracticeSession: (userId: number, id: number) => Promise<PracticeSession | null>;
+    handleGenerate: (userId: number, id: number) => Promise<GenerateResult>;
   } = {
-    getPracticeSession: (id) => repoGetPracticeSession(pool, id),
-    handleGenerate: (id) =>
+    getPracticeSession: (userId, id) => repoGetPracticeSession(pool, userId, id),
+    handleGenerate: (userId, id) =>
       generatePracticeSession(
         {
-          getMistakeContext: (mistakeId) => getMistakeContext(pool, mistakeId),
-          selectPracticeExamples: (mistakeId) => selectPracticeExamples(pool, mistakeId),
+          getMistakeContext: (mistakeId) => getMistakeContext(pool, userId, mistakeId),
+          selectPracticeExamples: (mistakeId) => selectPracticeExamples(pool, userId, mistakeId),
           generate,
           upsertPracticeSession: (input) => upsertPracticeSession(pool, input),
         },
+        userId,
         id,
       ),
   },
@@ -40,7 +42,7 @@ export function practiceRoutes(
       res.status(400).json({ error: 'Invalid categorization id' });
       return;
     }
-    const session = await deps.getPracticeSession(id);
+    const session = await deps.getPracticeSession(getUserId(req), id);
     if (!session) {
       res.status(404).json({ error: 'No practice session yet' });
       return;
@@ -56,7 +58,7 @@ export function practiceRoutes(
     }
     let result: GenerateResult;
     try {
-      result = await deps.handleGenerate(id);
+      result = await deps.handleGenerate(getUserId(req), id);
     } catch (err) {
       console.error('Practice sentence generation failed:', err);
       res.status(502).json({ error: 'Practice sentence generation failed' });

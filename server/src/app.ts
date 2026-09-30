@@ -2,8 +2,9 @@ import cookieParser from 'cookie-parser';
 import express from 'express';
 import type { NextFunction, Request, Response } from 'express';
 import helmet from 'helmet';
+import { accountRoutes } from './auth/account-routes.js';
 import { requireAuth } from './auth/middleware.js';
-import { authRoutes } from './auth/routes.js';
+import { publicAuthRoutes, userRepositoryDeps } from './auth/routes.js';
 import { insertCards, listCards } from './cards/repository.js';
 import { cardRoutes } from './cards/routes.js';
 import { categorizationRoutes } from './categorization/routes.js';
@@ -14,7 +15,9 @@ import {
 } from './explanations/llm.js';
 import { explanationRoutes } from './explanations/routes.js';
 import { requestLogger } from './logging/request-log.js';
+import { requireMcpToken } from './mcp/auth.js';
 import { mcpRoutes } from './mcp/routes.js';
+import { createMcpUserResolver, requireMcpUser } from './mcp/user.js';
 import { createPracticeSentenceGenerator } from './practice/generator.js';
 import { practiceRoutes } from './practice/routes.js';
 import { progressRoutes } from './progress/routes.js';
@@ -51,12 +54,18 @@ export function createApp(config: AppConfig, pool: DbPool): express.Express {
   });
 
   app.use('/api', apiLimiter);
-  app.use('/api/login', loginLimiter);
-  app.use('/api', authRoutes(config));
-  app.use('/api/cards', requireAuth(config), cardRoutes(pool));
+  app.use(['/api/login', '/api/set-password', '/api/password'], loginLimiter);
+
+  const users = userRepositoryDeps(pool);
+  // Public: the only /api routes reachable without a session.
+  app.use('/api', publicAuthRoutes(config, users));
+  // Everything mounted below this line requires a logged-in user.
+  app.use('/api', requireAuth(config, (id) => users.findUserById(id)));
+
+  app.use('/api', accountRoutes(config, users));
+  app.use('/api/cards', cardRoutes(pool));
   app.use(
     '/api/cards',
-    requireAuth(config),
     explanationRoutes(
       pool,
       createExplanationGenerator(config),
@@ -64,19 +73,32 @@ export function createApp(config: AppConfig, pool: DbPool): express.Express {
       createAnswerCheckGenerator(config),
     ),
   );
-  app.use('/api/training', requireAuth(config), trainingRoutes(pool));
-  app.use('/api/progress', requireAuth(config), progressRoutes(pool));
-  app.use('/api/categorization', requireAuth(config), categorizationRoutes(pool));
-  app.use('/api/practice', requireAuth(config), practiceRoutes(pool, createPracticeSentenceGenerator(config)));
+  app.use('/api/training', trainingRoutes(pool));
+  app.use('/api/progress', progressRoutes(pool));
+  app.use('/api/categorization', categorizationRoutes(pool));
+  app.use('/api/practice', practiceRoutes(pool, createPracticeSentenceGenerator(config)));
 
   // MCP (AI agent) access: bearer-token authenticated, separate from the
-  // browser session. Tool handlers reuse the card domain functions directly.
+  // browser session, and locked to the one account named by MCP_USER_EMAIL.
+  const mcpUserId = createMcpUserResolver(
+    async (email) => (await users.findUserByEmail(email))?.id ?? null,
+    config.mcpUserEmail,
+  );
+  // requireMcpUser has already guaranteed a resolved (cached) id when these run.
+  const mcpUser = async () => (await mcpUserId())!;
   app.use(
     '/mcp',
     mcpLimiter,
+    // Token check ahead of requireMcpUser so an unauthenticated caller can't
+    // probe MCP_USER_EMAIL config state; mcpRoutes() re-checks the token too.
+    ...(config.mcpToken ? [requireMcpToken(config.mcpToken)] : []),
+    requireMcpUser(mcpUserId),
     mcpRoutes(config.mcpToken, {
-      listCards: () => listCards(pool),
-      insertCards: (inputs) => withTransaction(pool, (tx) => insertCards(tx, inputs)),
+      listCards: async () => listCards(pool, await mcpUser()),
+      insertCards: async (inputs) => {
+        const userId = await mcpUser();
+        return withTransaction(pool, (tx) => insertCards(tx, userId, inputs));
+      },
     }),
   );
 

@@ -1,17 +1,6 @@
 import { expect, test } from '@playwright/test';
 import type { Locator, Page } from '@playwright/test';
-
-// Credentials must match the .env used by the test server (see .env.example).
-const USERNAME = process.env.APP_USERNAME ?? 'admin';
-const PASSWORD = process.env.APP_PASSWORD ?? 'change-me';
-
-async function logIn(page: Page) {
-  await page.goto('/login');
-  await page.getByLabel('Username').fill(USERNAME);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Log in' }).click();
-  await expect(page).toHaveURL('/');
-}
+import { logIn } from './auth.js';
 
 // Deleting all cards also clears review history (cascade), so each test
 // starts from an empty dashboard.

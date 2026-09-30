@@ -7,12 +7,17 @@ interface ReviewRow {
   reviewed_at: Date;
 }
 
-// All review history, oldest first. The whole table is loaded because the
-// metrics need per-day buckets over all time; for a single user reviewing a
-// personal deck this stays small.
-export async function getAllReviews(db: DbQueryable): Promise<ReviewEvent[]> {
+// All of one user's reviews, oldest first. The whole table is loaded because
+// the metrics need per-day buckets over all time; for a single user reviewing
+// a personal deck this stays small.
+export async function getAllReviews(db: DbQueryable, userId: number): Promise<ReviewEvent[]> {
   const result = await db.query<ReviewRow>(
-    'SELECT card_id, detected_correct, reviewed_at FROM reviews ORDER BY reviewed_at ASC, id ASC',
+    `SELECT r.card_id, r.detected_correct, r.reviewed_at
+     FROM reviews r
+     JOIN cards c ON c.id = r.card_id
+     WHERE c.user_id = $1
+     ORDER BY r.reviewed_at ASC, r.id ASC`,
+    [userId],
   );
   return result.rows.map((row) => ({
     cardId: row.card_id,
@@ -21,8 +26,11 @@ export async function getAllReviews(db: DbQueryable): Promise<ReviewEvent[]> {
   }));
 }
 
-export async function countCards(db: DbQueryable): Promise<number> {
-  const result = await db.query<{ count: number }>('SELECT COUNT(*)::int AS count FROM cards');
+export async function countCards(db: DbQueryable, userId: number): Promise<number> {
+  const result = await db.query<{ count: number }>(
+    'SELECT COUNT(*)::int AS count FROM cards WHERE user_id = $1',
+    [userId],
+  );
   return result.rows[0]?.count ?? 0;
 }
 
@@ -30,12 +38,15 @@ export async function countCards(db: DbQueryable): Promise<number> {
 // never been reviewed (no schedule row).
 export async function countCardsByState(
   db: DbQueryable,
+  userId: number,
 ): Promise<{ state: number | null; count: number }[]> {
   const result = await db.query<{ state: number | null; count: number }>(
     `SELECT s.state AS state, COUNT(*)::int AS count
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
+     WHERE c.user_id = $1
      GROUP BY s.state`,
+    [userId],
   );
   return result.rows;
 }

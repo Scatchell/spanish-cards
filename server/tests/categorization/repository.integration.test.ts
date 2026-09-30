@@ -6,6 +6,7 @@ import {
   findUncategorizedReviewHistory,
   insertCategorizationBatch,
 } from '../../src/categorization/repository.js';
+import { ensureTestUser } from '../helpers/test-users.js';
 
 // This suite connects to the real dev Postgres via loadConfig().databaseUrl.
 // Do not run it while `pnpm dev` is also running: the dev server's
@@ -20,6 +21,7 @@ const MARKER = '__categorization_integration_test__';
 const FAKE_CARD_ID = -999999;
 
 let pool: DbPool;
+let testUserId: number;
 
 async function cleanup() {
   await pool.query('DELETE FROM review_history WHERE submitted_text LIKE $1', [`${MARKER}%`]);
@@ -30,10 +32,10 @@ async function insertHistoryRow(input: {
   submittedText: string;
 }): Promise<number> {
   const result = await pool.query<{ id: number }>(
-    `INSERT INTO review_history (card_id, direction, verdict, rating, correct_text, submitted_text)
-     VALUES ($1, 'english-to-spanish', $2, 'again', 'la respuesta correcta', $3)
+    `INSERT INTO review_history (user_id, card_id, direction, verdict, rating, correct_text, submitted_text)
+     VALUES ($1, $2, 'english-to-spanish', $3, 'again', 'la respuesta correcta', $4)
      RETURNING id`,
-    [FAKE_CARD_ID, input.verdict, input.submittedText],
+    [testUserId, FAKE_CARD_ID, input.verdict, input.submittedText],
   );
   const row = result.rows[0];
   if (!row) {
@@ -42,8 +44,9 @@ async function insertHistoryRow(input: {
   return row.id;
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   pool = createPool(loadConfig().databaseUrl);
+  testUserId = await ensureTestUser(pool, 'integration-test@example.com');
 });
 
 beforeEach(async () => {
@@ -93,6 +96,9 @@ describe('findUncategorizedReviewHistory', () => {
 
     const pendingSubmittedTexts = pending.map((row) => row.submittedText);
     expect(pendingSubmittedTexts).not.toContain(`${MARKER} plain correct`);
+
+    const ourRows = pending.filter((row) => row.id === incorrectId || row.id === correctWithDiffsId);
+    expect(ourRows.every((row) => row.userId === testUserId)).toBe(true);
   });
 });
 

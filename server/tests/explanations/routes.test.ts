@@ -6,6 +6,7 @@ import type { Card } from '../../src/cards/repository.js';
 import type { Explanation } from '../../src/explanations/repository.js';
 import type { AnswerCheck } from '../../src/explanations/answer-check-repository.js';
 import { explanationRoutes } from '../../src/explanations/routes.js';
+import { asUser } from '../helpers/as-user.js';
 
 const FAKE_CARD: Card = {
   id: 1,
@@ -56,6 +57,7 @@ async function startServer(
 ): Promise<string> {
   const app = express();
   app.use(express.json());
+  app.use(asUser(1));
   // pool is never called because all deps are overridden
   app.use('/api/cards', explanationRoutes({} as never, generator, followUp, answerCheck, overrides));
   const server = await new Promise<http.Server>((resolve) => {
@@ -186,6 +188,19 @@ describe('POST /:id/explanation', () => {
     expect(res.status).toBe(400);
     const body = (await res.json()) as { error: string };
     expect(body.error).toBe('spanishText and englishText are required for a transient card');
+  });
+
+  it('404s for a card that belongs to another user (getCard receives the session user)', async () => {
+    const seen: [number, number][] = [];
+    const base = await startServer({
+      getCard: async (userId: number, id: number) => {
+        seen.push([userId, id]);
+        return null;
+      },
+    });
+    const res = await post(base, '/42/explanation', {});
+    expect(res.status).toBe(404);
+    expect(seen).toEqual([[1, 42]]);
   });
 });
 

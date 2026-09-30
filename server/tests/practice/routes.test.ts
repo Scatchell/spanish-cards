@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { practiceRoutes } from '../../src/practice/routes.js';
 import type { GenerateResult } from '../../src/practice/service.js';
 import type { PracticeSession } from '../../src/practice/repository.js';
+import { asUser } from '../helpers/as-user.js';
 
 const servers: http.Server[] = [];
 
@@ -35,10 +36,11 @@ const SESSION: PracticeSession = {
 };
 
 async function startServer(overrides: {
-  getPracticeSession?: (id: number) => Promise<PracticeSession | null>;
-  handleGenerate?: (id: number) => Promise<GenerateResult>;
+  getPracticeSession?: (userId: number, id: number) => Promise<PracticeSession | null>;
+  handleGenerate?: (userId: number, id: number) => Promise<GenerateResult>;
 }): Promise<string> {
   const app = express();
+  app.use(asUser(1));
   app.use(
     '/api/practice',
     practiceRoutes({} as never, null, {
@@ -100,7 +102,7 @@ describe('POST /api/practice/:categorizationId', () => {
     const res = await fetch(`${base}/5`, { method: 'POST' });
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ session: SESSION });
-    expect(handleGenerate).toHaveBeenCalledWith(5);
+    expect(handleGenerate).toHaveBeenCalledWith(1, 5);
   });
 
   it('502s when handleGenerate rejects', async () => {

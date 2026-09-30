@@ -133,4 +133,15 @@ describe('deleteAlternateById', () => {
     const result = await deleteAlternateById(1, 1, deps);
     expect(result).toEqual({ ok: false, status: 404 });
   });
+
+  it('404s when the card is not visible to the caller, without deleting', async () => {
+    const deleted: number[] = [];
+    const deps = makeDeps({
+      getCard: async () => null,
+      getAlternate: async () => fakeAlt({ id: 5, cardId: 1, field: 'english', text: 'x', position: 0 }),
+      deleteAlternate: async (id: number) => { deleted.push(id); return true; },
+    });
+    expect(await deleteAlternateById(1, 5, deps)).toEqual({ ok: false, status: 404 });
+    expect(deleted).toEqual([]);
+  });
 });

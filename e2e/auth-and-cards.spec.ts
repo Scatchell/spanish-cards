@@ -1,17 +1,5 @@
 import { expect, test } from '@playwright/test';
-import type { Page } from '@playwright/test';
-
-// Credentials must match the .env used by the dev server (see .env.example).
-const USERNAME = process.env.APP_USERNAME ?? 'admin';
-const PASSWORD = process.env.APP_PASSWORD ?? 'change-me';
-
-async function logIn(page: Page) {
-  await page.goto('/login');
-  await page.getByLabel('Username').fill(USERNAME);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Log in' }).click();
-  await expect(page).toHaveURL('/');
-}
+import { E2E_EMAIL, logIn } from './auth.js';
 
 test('unauthenticated visitor is redirected to login', async ({ page }) => {
   await page.goto('/');
@@ -21,10 +9,10 @@ test('unauthenticated visitor is redirected to login', async ({ page }) => {
 
 test('wrong credentials show an error and stay on login', async ({ page }) => {
   await page.goto('/login');
-  await page.getByLabel('Username').fill(USERNAME);
+  await page.getByLabel('Email').fill(E2E_EMAIL);
   await page.getByLabel('Password').fill('definitely-wrong');
   await page.getByRole('button', { name: 'Log in' }).click();
-  await expect(page.getByRole('alert')).toContainText('Invalid username or password');
+  await expect(page.getByRole('alert')).toContainText('Invalid email or password');
   await expect(page).toHaveURL('/login');
 });
 

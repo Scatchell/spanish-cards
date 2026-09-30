@@ -1,18 +1,9 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { logIn } from './auth.js';
 import { E2E_OPENAI_STUB_PORT } from './env.js';
 
-const USERNAME = process.env.APP_USERNAME ?? 'admin';
-const PASSWORD = process.env.APP_PASSWORD ?? 'change-me';
 const STUB_BASE = `http://localhost:${E2E_OPENAI_STUB_PORT}`;
-
-async function logIn(page: Page) {
-  await page.goto('/login');
-  await page.getByLabel('Username').fill(USERNAME);
-  await page.getByLabel('Password').fill(PASSWORD);
-  await page.getByRole('button', { name: 'Log in' }).click();
-  await expect(page).toHaveURL('/');
-}
 
 async function wipeAllCards(page: Page) {
   const response = await page.request.get('/api/cards');

@@ -30,6 +30,7 @@ describe('generatePracticeSession', () => {
     const getMistakeContext = vi.fn();
     const result = await generatePracticeSession(
       { getMistakeContext, selectPracticeExamples: vi.fn(), generate: null, upsertPracticeSession: vi.fn() },
+      1,
       5,
     );
     expect(result).toEqual({ status: 'unavailable' });
@@ -44,6 +45,7 @@ describe('generatePracticeSession', () => {
         generate: async () => [],
         upsertPracticeSession: vi.fn(),
       },
+      1,
       5,
     );
     expect(result).toEqual({ status: 'not_found' });
@@ -71,6 +73,7 @@ describe('generatePracticeSession', () => {
           return SESSION;
         },
       },
+      1,
       5,
     );
 
@@ -97,8 +100,8 @@ describe('generatePracticeSession', () => {
     };
 
     const [first, second] = await Promise.all([
-      generatePracticeSession(deps, 5),
-      generatePracticeSession(deps, 5),
+      generatePracticeSession(deps, 1, 5),
+      generatePracticeSession(deps, 1, 5),
     ]);
 
     expect(generate).toHaveBeenCalledTimes(1);
@@ -106,8 +109,29 @@ describe('generatePracticeSession', () => {
     expect(second).toEqual({ status: 'ok', session: SESSION });
 
     // A later call, after the first has settled, must not be blocked by a stale entry.
-    const third = await generatePracticeSession(deps, 5);
+    const third = await generatePracticeSession(deps, 1, 5);
     expect(generate).toHaveBeenCalledTimes(2);
     expect(third).toEqual({ status: 'ok', session: SESSION });
+  });
+
+  it('does not share an in-flight generation across users for the same mistake id', async () => {
+    let release!: () => void;
+    const gate = new Promise<void>((r) => {
+      release = r;
+    });
+    const deps = (owner: number) => ({
+      getMistakeContext: async () => (owner === 1 ? TARGET : null),
+      selectPracticeExamples: async () => EXAMPLES,
+      generate: async () => {
+        await gate;
+        return SESSION.sentences;
+      },
+      upsertPracticeSession: async () => SESSION,
+    });
+    const aliceRun = generatePracticeSession(deps(1), 1, 5);
+    const bobRun = generatePracticeSession(deps(2), 2, 5);
+    release();
+    expect((await aliceRun).status).toBe('ok');
+    expect((await bobRun).status).toBe('not_found');
   });
 });

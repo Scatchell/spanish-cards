@@ -46,9 +46,10 @@ export function composeExamples(
 
 export async function selectPracticeExamples(
   db: DbQueryable,
+  userId: number,
   reviewCategorizationId: number,
 ): Promise<PracticeExample[]> {
-  const context = await getMistakeContext(db, reviewCategorizationId);
+  const context = await getMistakeContext(db, userId, reviewCategorizationId);
   if (!context) {
     throw new Error(`No mistake found for review_categorization_id ${reviewCategorizationId}`);
   }
@@ -56,13 +57,13 @@ export async function selectPracticeExamples(
   const hasTargets = context.practiceTargets.length > 0;
   const [tier1, tier2, tier3, tier4] = await Promise.all([
     hasTargets
-      ? findTier1Candidates(db, context.practiceTargets, reviewCategorizationId)
+      ? findTier1Candidates(db, userId, context.practiceTargets, reviewCategorizationId)
       : Promise.resolve([]),
     hasTargets
-      ? findTier2Candidates(db, context.practiceTargets, reviewCategorizationId)
+      ? findTier2Candidates(db, userId, context.practiceTargets, reviewCategorizationId)
       : Promise.resolve([]),
-    findTier3Candidates(db, context.cardId, reviewCategorizationId),
-    findTier4Candidates(db, context.category, reviewCategorizationId, TIER4_SAMPLE_SIZE),
+    findTier3Candidates(db, userId, context.cardId, reviewCategorizationId),
+    findTier4Candidates(db, userId, context.category, reviewCategorizationId, TIER4_SAMPLE_SIZE),
   ]);
 
   return composeExamples([

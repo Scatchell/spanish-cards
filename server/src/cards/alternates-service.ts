@@ -86,6 +86,10 @@ export async function deleteAlternateById(
   altId: number,
   deps: AlternatesDeps,
 ): Promise<DeleteAlternateResult> {
+  // getCard is owner-scoped by the caller, so this is the ownership check.
+  if (!(await deps.getCard(cardId))) {
+    return { ok: false, status: 404 };
+  }
   const existingAlt = await deps.getAlternate(altId);
   if (!existingAlt || existingAlt.cardId !== cardId) {
     return { ok: false, status: 404 };

@@ -23,7 +23,11 @@
     "db:backup": "node scripts/require-env-file.mjs dev .dev-env .dev-env.example && node scripts/db-backup.mjs dev",
     "db:backup:prod": "node scripts/db-backup.mjs prod",
     "db:verify-users": "node scripts/require-env-file.mjs dev .dev-env .dev-env.example && node scripts/db-verify-users.mjs dev",
-    "db:verify-users:prod": "node scripts/db-verify-users.mjs prod"
+    "db:verify-users:prod": "node scripts/db-verify-users.mjs prod",
+    "user:invite": "pnpm --filter server exec tsx src/cli/users.ts invite",
+    "user:reset-link": "pnpm --filter server exec tsx src/cli/users.ts reset-link",
+    "user:invite:prod": "node scripts/prod-user.mjs invite",
+    "user:reset-link:prod": "node scripts/prod-user.mjs reset-link"
   },
   "devDependencies": {
     "@playwright/test": "^1.49.0",

@@ -21,9 +21,10 @@ const TOO_MANY = { error: 'Too many requests, please slow down and try again lat
 const rateLimitsDisabled = process.env.DISABLE_RATE_LIMITS === 'true';
 const skip = () => rateLimitsDisabled;
 
-// Strict guard on /login. skipSuccessfulRequests means only FAILED logins count,
-// so ordinary password typos never lock the single user out — only sustained
-// guessing (10 failures in 15 min from one IP) trips it.
+// Strict guard on /login, /set-password and /password. skipSuccessfulRequests
+// means only FAILED attempts count, so ordinary password typos never lock the
+// single user out — only sustained guessing (10 failures in 15 min from one
+// IP) trips it.
 export const loginLimiter = rateLimit({
   windowMs: FIFTEEN_MINUTES_MS,
   limit: 10,

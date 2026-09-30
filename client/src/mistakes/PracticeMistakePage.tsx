@@ -120,6 +120,9 @@ export function PracticeMistakePage({ onLoggedOut }: { onLoggedOut: () => void }
           <Link to="/mistakes" className="back-link">
             Back to mistakes
           </Link>
+          <Link to="/account" className="account-link">
+            Account
+          </Link>
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>

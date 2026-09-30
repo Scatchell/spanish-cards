@@ -67,7 +67,7 @@ describe('recordReview', () => {
 
     const pool = {} as never;
     const request = makeRequest({ matchedText: 'kitty', submittedText: 'kitty' });
-    await recordReview(pool, request, new Date('2026-01-02T00:00:00.000Z'));
+    await recordReview(pool, 1, request, new Date('2026-01-02T00:00:00.000Z'));
 
     expect(insertReviewHistory).toHaveBeenCalledOnce();
     const [, history] = insertReviewHistory.mock.calls[0]!;
@@ -85,7 +85,7 @@ describe('recordReview', () => {
     const pool = {} as never;
     const overLong = 'x'.repeat(200);
     const request = makeRequest({ matchedText: overLong });
-    await recordReview(pool, request, new Date('2026-01-02T00:00:00.000Z'));
+    await recordReview(pool, 1, request, new Date('2026-01-02T00:00:00.000Z'));
 
     const [, history] = insertReviewHistory.mock.calls[0]!;
     expect(history.correctText).toHaveLength(70);
@@ -95,7 +95,7 @@ describe('recordReview', () => {
     getEffectiveDue.mockResolvedValue(null);
 
     const pool = {} as never;
-    const outcome = await recordReview(pool, makeRequest(), new Date('2026-01-02T00:00:00.000Z'));
+    const outcome = await recordReview(pool, 1, makeRequest(), new Date('2026-01-02T00:00:00.000Z'));
 
     expect(outcome).toBeNull();
     expect(insertReviewHistory).not.toHaveBeenCalled();

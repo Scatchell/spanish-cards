@@ -312,6 +312,10 @@ label {
   color: var(--text-muted);
 }
 
+.account-link {
+  color: var(--text-muted);
+}
+
 /* Learn sits next to Train but reads as the lighter, optional flow. */
 .learn-link {
   color: var(--accent);

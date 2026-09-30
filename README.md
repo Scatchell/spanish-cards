@@ -1,6 +1,6 @@
 # Spanish Cards
 
-A single-user Spanish/English flashcard web app. Epic 01 covers
+An invite-only multi-user Spanish/English flashcard web app. Epic 01 covers
 authentication, batch card creation, and card management. Epic 02 adds typed
 training with FSRS spaced-repetition scheduling. Epic 03 adds review history,
 a progress dashboard, and deployment polish.
@@ -14,9 +14,10 @@ a progress dashboard, and deployment polish.
   `node-pg-migrate` with explicit up/down in every migration.
 - **Tests**: Vitest unit tests (server domain logic + client drafts reducer),
   Playwright E2E.
-- **Auth**: single username/password from env vars; stateless HMAC-signed
-  session token in an HTTP-only cookie (30-day expiry, survives server and
-  browser restarts, cleared on logout).
+- **Auth**: invite-only email/password accounts (scrypt-hashed); stateless
+  HMAC-signed session cookie bound to user + session version (30-day sliding
+  expiry). Invites and resets are one-time links printed by `pnpm user:invite`
+  / `pnpm user:reset-link`.
 - **Scheduling**: FSRS via [`ts-fsrs`](https://github.com/open-spaced-repetition/ts-fsrs)
   with default parameters.
 
@@ -26,14 +27,16 @@ Prerequisites: Node 22+, npm 10+, Docker (for PostgreSQL).
 
 ```bash
 npm install
-cp .env.example .env      # adjust APP_USERNAME / APP_PASSWORD / SESSION_SECRET
+cp .env.example .env      # adjust APP_BASE_URL / SESSION_SECRET / MCP_USER_EMAIL
 cp .dev-env.example .dev-env
 cp .test-env.example .test-env
 npm run migrate:up        # first run only (needs the db: npm run db:up)
 npm run dev               # starts dev postgres in Docker, then API + client
 ```
 
-Open <http://localhost:4101> and log in with the credentials from your `.env`.
+Open <http://localhost:4101>, then run `pnpm user:reset-link scatchell@gmail.com`
+(or `pnpm user:invite you@example.com` on a fresh DB) and open the printed link
+to set a password.
 
 ### Port allocation (this host runs dev, e2e, and prod side by side)
 
@@ -58,10 +61,10 @@ Documented in `.env.example`:
 | ---------------- | -------------------------------------------------- |
 | `DATABASE_URL`   | PostgreSQL connection string                       |
 | `PORT`           | API server port (default 4100)                     |
-| `APP_USERNAME`   | Login username (single user)                       |
-| `APP_PASSWORD`   | Login password (plain-text comparison, MVP)        |
+| `APP_BASE_URL`   | Browser-facing origin printed in invite/reset links (default `http://localhost:4101`) |
 | `SESSION_SECRET` | HMAC secret for session cookies — long random text |
 | `MCP_TOKEN`      | Bearer token for the MCP endpoint — long random text. If unset, `/mcp` is disabled with a configuration error |
+| `MCP_USER_EMAIL` | The one account MCP tools act as. If unset or not an existing user, `/mcp` returns a configuration error |
 | `OPENAI_SECRET_KEY` | OpenAI API key for explanation generation. If unset, the explain feature returns an error (server still starts) |
 
 The server loads `.env` from the repository root. Docker Compose interpolation
@@ -87,6 +90,12 @@ exist before their corresponding commands are run.
 | `npm run typecheck`    | TypeScript checks for both workspaces            |
 | `npm run build`        | Production build (server `dist/`, client `dist/`)|
 | `npm run start`        | Run the production server (serves built client)  |
+| `npm run user:invite <email>` | Print a one-time set-password link for a new account (dev DB) |
+| `npm run user:reset-link <email>` | Print a one-time set-password link for an existing account (dev DB) |
+| `npm run user:invite:prod <email>` | Same as `user:invite`, run inside the prod app container |
+| `npm run user:reset-link:prod <email>` | Same as `user:reset-link`, run inside the prod app container |
+| `npm run db:backup` / `db:backup:prod` | Gzip `pg_dump` to `db-backups/<env>-<timestamp>.sql.gz` (gitignored) |
+| `npm run db:verify-users` / `db:verify-users:prod` | Print row counts and card ownership for verification |
 
 ## Migrations
 
@@ -112,7 +121,8 @@ docker compose --profile app run --rm app \
 ## Tests
 
 - **Unit** (`npm test`): card validation, batch-save partitioning, session
-  token signing/expiry/tampering, credential checks, FSRS scheduling
+  token signing/expiry/tampering, password hashing/verification, auth-route
+  and route-protection behavior, cross-user isolation, FSRS scheduling
   (intervals, lapses, persistence round trip), answer normalization/matching
   (accents, casing, punctuation, spacing, word order), review submission
   validation, progress metrics (daily buckets with timezone offsets, correct
@@ -331,6 +341,39 @@ after any deployment:
 ```bash
 curl -fsS http://localhost:4100/api/health
 ```
+
+## Deploying user accounts
+
+The `add-users` migration assigns every existing row to one owner account and
+makes `user_id` mandatory going forward, so a normal `pnpm ship` is not
+enough by itself — old code doesn't send `user_id`, so mixing versions across
+the deploy breaks writes (see Rollback below). Checklist, run from this
+checkout unless noted:
+
+1. `pnpm db:backup:prod` — dump prod before touching anything.
+2. `pnpm db:verify-users:prod > db-backups/prod-pre-users-counts.txt` — record
+   pre-migration row counts to diff against after.
+3. On the prod checkout, in `.prod.app.env`: add `APP_BASE_URL=<public URL>`
+   and `MCP_USER_EMAIL=scatchell@gmail.com`, and remove `APP_USERNAME` /
+   `APP_PASSWORD` (replaced by per-user login). Without `MCP_USER_EMAIL` set,
+   `/mcp` returns a `503` configuration error.
+4. `pnpm ship` — builds and deploys from this checkout, so ship only from the
+   merged branch (a checkout behind `main` would deploy old code over the new
+   schema).
+5. `pnpm db:verify-users:prod` — counts must match step 2's file, and
+   `not_owned` must be `0`.
+6. `pnpm user:reset-link:prod scatchell@gmail.com` and open the printed link
+   to set a password.
+7. Smoke-check Cards, Train, Progress, Mistakes, and MCP against prod.
+
+### Rollback
+
+Do **not** just redeploy the old image after the migration has run: old code
+never sends `user_id`, so card creation fails outright and review-history
+inserts fail silently (mistake history is lost, with no visible error). To
+roll back, either restore the `db:backup:prod` dump from step 1, or migrate
+down with the *new* image while only one user still exists (the migration's
+`down` refuses once a second user exists) — then redeploy the old code.
 
 ## Project layout
 

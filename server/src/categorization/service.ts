@@ -12,6 +12,18 @@ export function chunk<T>(items: T[], size: number): T[][] {
   return batches;
 }
 
+// One LLM request never carries two users' mistakes. Categorizations inherit
+// ownership through review_history, so no user id is written here.
+export function groupByUser(rows: UncategorizedReviewHistoryRow[]): UncategorizedReviewHistoryRow[][] {
+  const groups = new Map<number, UncategorizedReviewHistoryRow[]>();
+  for (const row of rows) {
+    const group = groups.get(row.userId);
+    if (group) group.push(row);
+    else groups.set(row.userId, [row]);
+  }
+  return [...groups.values()];
+}
+
 export interface CategorizationTickDeps {
   findUncategorized: () => Promise<UncategorizedReviewHistoryRow[]>;
   insertCategorizationBatch: (inputs: NewCategorization[]) => Promise<void>;
@@ -67,7 +79,8 @@ export async function runCategorizationTick(
   let processedCount = 0;
   let failedBatchCount = 0;
 
-  for (const batch of chunk(pending, BATCH_SIZE)) {
+  const batches = groupByUser(pending).flatMap((rows) => chunk(rows, BATCH_SIZE));
+  for (const batch of batches) {
     try {
       const results = await generate(
         batch.map((row, i) => ({

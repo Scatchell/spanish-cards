@@ -21,10 +21,11 @@ export interface ReviewOutcome {
 // reviews are recorded honestly. Returns null when the card does not exist.
 export async function recordReview(
   pool: DbPool,
+  userId: number,
   request: ReviewRequest,
   now: Date,
 ): Promise<ReviewOutcome | null> {
-  const effectiveDue = await getEffectiveDue(pool, request.cardId);
+  const effectiveDue = await getEffectiveDue(pool, userId, request.cardId);
   if (effectiveDue === null) {
     return null;
   }
@@ -52,6 +53,7 @@ export async function recordReview(
   // row.
   try {
     await insertReviewHistory(pool, {
+      userId,
       cardId: request.cardId,
       direction: request.direction,
       verdict: request.verdict,

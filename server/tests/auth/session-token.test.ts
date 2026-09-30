@@ -1,37 +1,37 @@
 import { describe, expect, it } from 'vitest';
-import { createSessionToken, verifySessionToken } from '../../src/auth/session-token.js';
+import { createSessionToken, parseSessionToken } from '../../src/auth/session-token.js';
 
 const SECRET = 'test-secret';
 const NOW = 1_700_000_000_000;
+const CLAIMS = { userId: 7, sessionVersion: 3, expiresAtMs: NOW + 1000 };
 
 describe('session tokens', () => {
-  it('accepts a token before its expiry', () => {
-    const token = createSessionToken(SECRET, NOW + 1000);
-    expect(verifySessionToken(token, SECRET, NOW)).toBe(true);
+  it('round-trips user id, session version, and expiry', () => {
+    expect(parseSessionToken(createSessionToken(CLAIMS, SECRET), SECRET, NOW)).toEqual(CLAIMS);
   });
 
   it('rejects a token at or after its expiry', () => {
-    const token = createSessionToken(SECRET, NOW);
-    expect(verifySessionToken(token, SECRET, NOW)).toBe(false);
-    expect(verifySessionToken(token, SECRET, NOW + 1)).toBe(false);
+    const token = createSessionToken({ ...CLAIMS, expiresAtMs: NOW }, SECRET);
+    expect(parseSessionToken(token, SECRET, NOW)).toBeNull();
   });
 
   it('rejects a token signed with a different secret', () => {
-    const token = createSessionToken('other-secret', NOW + 1000);
-    expect(verifySessionToken(token, SECRET, NOW)).toBe(false);
+    expect(parseSessionToken(createSessionToken(CLAIMS, 'other'), SECRET, NOW)).toBeNull();
   });
 
-  it('rejects a token whose expiry was tampered with', () => {
-    const token = createSessionToken(SECRET, NOW + 1000);
-    const signature = token.slice(token.lastIndexOf('.'));
-    const tampered = `${NOW + 999_999_999}${signature}`;
-    expect(verifySessionToken(tampered, SECRET, NOW)).toBe(false);
+  it('rejects tampering with the user id, version, or expiry', () => {
+    const token = createSessionToken(CLAIMS, SECRET);
+    const [, , , sig] = token.split('.');
+    expect(parseSessionToken(`8.3.${NOW + 1000}.${sig}`, SECRET, NOW)).toBeNull();
+    expect(parseSessionToken(`7.4.${NOW + 1000}.${sig}`, SECRET, NOW)).toBeNull();
+    expect(parseSessionToken(`7.3.${NOW + 999_999}.${sig}`, SECRET, NOW)).toBeNull();
   });
 
-  it('rejects missing and malformed tokens', () => {
-    expect(verifySessionToken(undefined, SECRET, NOW)).toBe(false);
-    expect(verifySessionToken('', SECRET, NOW)).toBe(false);
-    expect(verifySessionToken('no-separator', SECRET, NOW)).toBe(false);
-    expect(verifySessionToken('.only-signature', SECRET, NOW)).toBe(false);
+  it('rejects the legacy "<expiresAtMs>.<hmac>" format and malformed input', () => {
+    expect(parseSessionToken(`${NOW + 1000}.abc`, SECRET, NOW)).toBeNull();
+    expect(parseSessionToken(undefined, SECRET, NOW)).toBeNull();
+    expect(parseSessionToken('', SECRET, NOW)).toBeNull();
+    expect(parseSessionToken('a.b.c.d', SECRET, NOW)).toBeNull();
+    expect(parseSessionToken('1.2.3.4.5', SECRET, NOW)).toBeNull();
   });
 });

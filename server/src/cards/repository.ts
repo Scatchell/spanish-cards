@@ -46,32 +46,34 @@ const ALTERNATES_SELECT = `
                       FROM card_alternate_answers a
                       WHERE a.card_id = c.id AND a.field = 'english'), '[]'::json) AS english_alternates`;
 
-export async function listCards(db: DbQueryable): Promise<Card[]> {
+export async function listCards(db: DbQueryable, userId: number): Promise<Card[]> {
   const result = await db.query<CardRow>(
     `SELECT c.id, c.spanish_text, c.english_text, c.language_pair, c.created_at, c.updated_at,
             COALESCE(s.due, c.created_at) AS due,
             (s.card_id IS NOT NULL) AS reviewed,${ALTERNATES_SELECT}
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
+     WHERE c.user_id = $1
      ORDER BY c.id`,
+    [userId],
   );
   return result.rows.map(toCard);
 }
 
 // Run in a transaction when inputs carry alternates, so no card saves without them.
-export async function insertCards(db: DbQueryable, inputs: CardInput[]): Promise<Card[]> {
+export async function insertCards(db: DbQueryable, userId: number, inputs: CardInput[]): Promise<Card[]> {
   if (inputs.length === 0) {
     return [];
   }
   const values: string[] = [];
-  const params: string[] = [];
+  const params: (number | string)[] = [userId];
   inputs.forEach((input, i) => {
-    values.push(`($${i * 2 + 1}, $${i * 2 + 2})`);
+    values.push(`($1, $${i * 2 + 2}, $${i * 2 + 3})`);
     params.push(input.spanishText, input.englishText);
   });
   // New cards have no schedule yet: due now (created_at), never reviewed.
   const result = await db.query<CardRow>(
-    `INSERT INTO cards (spanish_text, english_text) VALUES ${values.join(', ')}
+    `INSERT INTO cards (user_id, spanish_text, english_text) VALUES ${values.join(', ')}
      RETURNING id, spanish_text, english_text, language_pair, created_at, updated_at,
                created_at AS due, false AS reviewed,
                '[]'::json AS spanish_alternates, '[]'::json AS english_alternates`,
@@ -115,39 +117,40 @@ async function insertInitialAlternates(db: DbQueryable, cards: Card[], inputs: C
   }
 }
 
-export async function getCard(db: DbQueryable, id: number): Promise<Card | null> {
+export async function getCard(db: DbQueryable, userId: number, id: number): Promise<Card | null> {
   const result = await db.query<CardRow>(
     `SELECT c.id, c.spanish_text, c.english_text, c.language_pair, c.created_at, c.updated_at,
             COALESCE(s.due, c.created_at) AS due,
             (s.card_id IS NOT NULL) AS reviewed,${ALTERNATES_SELECT}
      FROM cards c
      LEFT JOIN card_schedules s ON s.card_id = c.id
-     WHERE c.id = $1`,
-    [id],
+     WHERE c.id = $1 AND c.user_id = $2`,
+    [id, userId],
   );
   return result.rows[0] ? toCard(result.rows[0]) : null;
 }
 
 export async function updateCard(
   db: DbQueryable,
+  userId: number,
   id: number,
   input: CardInput,
 ): Promise<Card | null> {
   // cards.updated_at has no update trigger, so set it explicitly here.
   const result = await db.query(
     `UPDATE cards SET spanish_text = $1, english_text = $2, updated_at = now()
-     WHERE id = $3`,
-    [input.spanishText, input.englishText, id],
+     WHERE id = $3 AND user_id = $4`,
+    [input.spanishText, input.englishText, id, userId],
   );
   if ((result.rowCount ?? 0) === 0) {
     return null;
   }
   // Re-read so due/reviewed reflect the (untouched) schedule join.
-  return getCard(db, id);
+  return getCard(db, userId, id);
 }
 
-export async function deleteCard(db: DbQueryable, id: number): Promise<boolean> {
-  const result = await db.query('DELETE FROM cards WHERE id = $1', [id]);
+export async function deleteCard(db: DbQueryable, userId: number, id: number): Promise<boolean> {
+  const result = await db.query('DELETE FROM cards WHERE id = $1 AND user_id = $2', [id, userId]);
   return (result.rowCount ?? 0) > 0;
 }
 

@@ -3,11 +3,13 @@ import { loadConfig } from '../../src/config.js';
 import { createPool } from '../../src/db.js';
 import type { DbPool } from '../../src/db.js';
 import { selectPracticeExamples } from '../../src/practice/selector.js';
+import { ensureTestUser } from '../helpers/test-users.js';
 
 const MARKER = '__practice_selector_integration_test__';
 const CARD_A = -999995;
 
 let pool: DbPool;
+let testUserId: number;
 
 async function cleanup() {
   await pool.query('DELETE FROM review_history WHERE submitted_text LIKE $1', [`${MARKER}%`]);
@@ -21,10 +23,10 @@ async function insertMistake(input: {
   targets?: { expected: string; submitted: string | null }[];
 }): Promise<number> {
   const historyResult = await pool.query<{ id: number }>(
-    `INSERT INTO review_history (card_id, direction, verdict, rating, correct_text, submitted_text)
-     VALUES ($1, 'english-to-spanish', 'incorrect', 'again', $2, $3)
+    `INSERT INTO review_history (user_id, card_id, direction, verdict, rating, correct_text, submitted_text)
+     VALUES ($1, $2, 'english-to-spanish', 'incorrect', 'again', $3, $4)
      RETURNING id`,
-    [input.cardId, input.correctText, `${MARKER} ${input.submittedTextSuffix}`],
+    [testUserId, input.cardId, input.correctText, `${MARKER} ${input.submittedTextSuffix}`],
   );
   const historyRow = historyResult.rows[0];
   if (!historyRow) throw new Error('Insert did not return an id');
@@ -45,8 +47,9 @@ async function insertMistake(input: {
   return categorizationRow.id;
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   pool = createPool(loadConfig().databaseUrl);
+  testUserId = await ensureTestUser(pool, 'integration-test@example.com');
 });
 
 beforeEach(async () => {
@@ -88,7 +91,7 @@ describe('selectPracticeExamples', () => {
       submittedTextSuffix: 'tier3',
     });
 
-    const examples = await selectPracticeExamples(pool, selfId);
+    const examples = await selectPracticeExamples(pool, testUserId, selfId);
     const ours = examples.filter((e) => e.submittedText.startsWith(MARKER));
 
     expect(ours.some((e) => e.tier === 1)).toBe(true);
@@ -98,6 +101,6 @@ describe('selectPracticeExamples', () => {
   });
 
   it('throws for an id with no matching review_categorization', async () => {
-    await expect(selectPracticeExamples(pool, -1)).rejects.toThrow();
+    await expect(selectPracticeExamples(pool, testUserId, -1)).rejects.toThrow();
   });
 });

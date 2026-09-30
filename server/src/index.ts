@@ -35,6 +35,9 @@ if (fs.existsSync(clientDist)) {
 if (!config.mcpToken) {
   console.warn('MCP_TOKEN is not set: /mcp is disabled and will return a configuration error (see .env.example)');
 }
+if (!config.mcpUserEmail) {
+  console.warn('MCP_USER_EMAIL is not set: /mcp is disabled and will return a configuration error (see .env.example)');
+}
 if (!config.openaiSecretKey) {
   console.warn(
     'OPENAI_SECRET_KEY is not set: explanation generation and mistake categorization are disabled (see .env.example)',

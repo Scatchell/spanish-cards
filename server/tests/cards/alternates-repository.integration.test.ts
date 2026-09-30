@@ -10,26 +10,29 @@ import {
   listAlternatesForField,
   updateAlternateText,
 } from '../../src/cards/alternates-repository.js';
+import { ensureTestUser } from '../helpers/test-users.js';
 
 // Connects to the real dev Postgres via loadConfig(). Do not run while
 // `pnpm dev` is also running (see server/tests/categorization/repository.integration.test.ts
 // for why). Every card this suite creates is deleted in cleanup, which also
 // exercises ON DELETE CASCADE for its alternates.
 let pool: DbPool;
+let testUserId: number;
 const cardIds: number[] = [];
 
 async function makeCard(): Promise<number> {
-  const [card] = await insertCards(pool, [{ spanishText: 'gato', englishText: 'cat' }]);
+  const [card] = await insertCards(pool, testUserId, [{ spanishText: 'gato', englishText: 'cat' }]);
   cardIds.push(card!.id);
   return card!.id;
 }
 
 async function cleanup() {
-  await Promise.all(cardIds.splice(0).map((id) => deleteCard(pool, id)));
+  await Promise.all(cardIds.splice(0).map((id) => deleteCard(pool, testUserId, id)));
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   pool = createPool(loadConfig().databaseUrl);
+  testUserId = await ensureTestUser(pool, 'alternates-repository@example.com');
 });
 
 afterAll(async () => {
@@ -39,7 +42,7 @@ afterAll(async () => {
 
 describe('insertCards', () => {
   it('returns empty alternates arrays, not undefined, for a freshly-inserted card', async () => {
-    const [card] = await insertCards(pool, [{ spanishText: 'perro', englishText: 'dog' }]);
+    const [card] = await insertCards(pool, testUserId, [{ spanishText: 'perro', englishText: 'dog' }]);
     cardIds.push(card!.id);
     expect(card!.spanishAlternates).toEqual([]);
     expect(card!.englishAlternates).toEqual([]);
@@ -47,7 +50,7 @@ describe('insertCards', () => {
   });
 
   it('saves alternates submitted with new cards, in order', async () => {
-    const [card] = await insertCards(pool, [
+    const [card] = await insertCards(pool, testUserId, [
       { spanishText: 'coche', englishText: 'car', spanishAlternates: ['auto', 'carro'], englishAlternates: [] },
     ]);
     cardIds.push(card!.id);
@@ -111,7 +114,7 @@ describe('alternates repository', () => {
   it('cascades on card deletion', async () => {
     const cardId = await makeCard();
     const created = await insertAlternate(pool, cardId, 'english', 'kitty');
-    await deleteCard(pool, cardId);
+    await deleteCard(pool, testUserId, cardId);
     cardIds.splice(cardIds.indexOf(cardId), 1);
     expect(await getAlternate(pool, created.id)).toBeNull();
   });

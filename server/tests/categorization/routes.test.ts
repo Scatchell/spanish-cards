@@ -4,6 +4,7 @@ import express from 'express';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { categorizationRoutes } from '../../src/categorization/routes.js';
 import type { CategoryCount, MistakesPage } from '../../src/categorization/dashboard-repository.js';
+import { asUser } from '../helpers/as-user.js';
 
 const servers: http.Server[] = [];
 
@@ -29,6 +30,7 @@ async function startServer(overrides: {
   getCategoryMistakes?: (...args: unknown[]) => Promise<MistakesPage>;
 }): Promise<string> {
   const app = express();
+  app.use(asUser(1));
   app.use(
     '/api/categorization',
     categorizationRoutes({} as never, {
@@ -88,7 +90,7 @@ describe('GET /api/categorization/mistakes', () => {
     const getCategoryMistakes = vi.fn(async () => ({ items: [], nextCursor: null }));
     const base = await startServer({ getCategoryMistakes });
     await fetch(`${base}/mistakes?category=vocabulary&limit=500`);
-    expect(getCategoryMistakes).toHaveBeenCalledWith(expect.anything(), 'vocabulary', {
+    expect(getCategoryMistakes).toHaveBeenCalledWith(expect.anything(), 1, 'vocabulary', {
       cursor: null,
       limit: 100,
     });

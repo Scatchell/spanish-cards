@@ -17,6 +17,7 @@ export type Category = (typeof CATEGORIES)[number];
 
 export interface UncategorizedReviewHistoryRow {
   id: number;
+  userId: number;
   direction: string;
   verdict: string;
   correctText: string;
@@ -38,6 +39,7 @@ export interface NewCategorization {
 
 interface UncategorizedRow {
   id: number;
+  user_id: number;
   direction: string;
   verdict: string;
   correct_text: string;
@@ -47,6 +49,7 @@ interface UncategorizedRow {
 function toUncategorizedRow(row: UncategorizedRow): UncategorizedReviewHistoryRow {
   return {
     id: row.id,
+    userId: row.user_id,
     direction: row.direction,
     verdict: row.verdict,
     correctText: row.correct_text,
@@ -57,18 +60,18 @@ function toUncategorizedRow(row: UncategorizedRow): UncategorizedReviewHistoryRo
 // "Unprocessed" is always "no matching review_categorizations row" — there is
 // no separate watermark/cursor. This is what makes the first-ever run
 // naturally backfill all history, and what makes a crashed batch safe to
-// simply retry on the next scheduler tick. Unbounded (no LIMIT): this is a
-// single-user app, realistic row counts are in the hundreds/low thousands.
+// simply retry on the next scheduler tick. Unbounded (no LIMIT): realistic
+// row counts per tick are in the hundreds/low thousands.
 export async function findUncategorizedReviewHistory(
   db: DbQueryable,
 ): Promise<UncategorizedReviewHistoryRow[]> {
   const result = await db.query<UncategorizedRow>(
-    `SELECT rh.id, rh.direction, rh.verdict, rh.correct_text, rh.submitted_text
+    `SELECT rh.id, rh.user_id, rh.direction, rh.verdict, rh.correct_text, rh.submitted_text
      FROM review_history rh
      LEFT JOIN review_categorizations rc ON rc.review_history_id = rh.id
      WHERE rh.verdict IN ('incorrect', 'correctWithDifferences')
        AND rc.id IS NULL
-     ORDER BY rh.id`,
+     ORDER BY rh.user_id, rh.id`,
   );
   return result.rows.map(toUncategorizedRow);
 }

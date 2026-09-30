@@ -7,6 +7,8 @@ import { createPool } from '../../src/db.js';
 import type { DbPool } from '../../src/db.js';
 import { practiceRoutes } from '../../src/practice/routes.js';
 import type { PracticeSentenceGenerator } from '../../src/practice/generator.js';
+import { ensureTestUser } from '../helpers/test-users.js';
+import { asUser } from '../helpers/as-user.js';
 
 // Exercises practiceRoutes' default `deps` wiring (repository -> selector ->
 // service -> generator) against real dev Postgres, unlike routes.test.ts
@@ -16,6 +18,7 @@ const MARKER = '__practice_routes_integration_test__';
 const FAKE_CARD_ID = -999995;
 
 let pool: DbPool;
+let testUserId: number;
 const servers: http.Server[] = [];
 
 async function cleanup() {
@@ -24,10 +27,10 @@ async function cleanup() {
 
 async function insertMistake(): Promise<number> {
   const historyResult = await pool.query<{ id: number }>(
-    `INSERT INTO review_history (card_id, direction, verdict, rating, correct_text, submitted_text)
-     VALUES ($1, 'english-to-spanish', 'incorrect', 'again', $2, $3)
+    `INSERT INTO review_history (user_id, card_id, direction, verdict, rating, correct_text, submitted_text)
+     VALUES ($1, $2, 'english-to-spanish', 'incorrect', 'again', $3, $4)
      RETURNING id`,
-    [FAKE_CARD_ID, 'la casa blanca', `${MARKER} routes`],
+    [testUserId, FAKE_CARD_ID, 'la casa blanca', `${MARKER} routes`],
   );
   const historyRow = historyResult.rows[0];
   if (!historyRow) throw new Error('Insert did not return an id');
@@ -47,6 +50,7 @@ const fakeGenerator: PracticeSentenceGenerator = async () =>
 
 async function startServer(): Promise<string> {
   const app = express();
+  app.use(asUser(testUserId));
   app.use('/api/practice', practiceRoutes(pool, fakeGenerator));
   const server = await new Promise<http.Server>((resolve) => {
     const listening = app.listen(0, '127.0.0.1', () => resolve(listening));
@@ -56,8 +60,9 @@ async function startServer(): Promise<string> {
   return `http://127.0.0.1:${port}/api/practice`;
 }
 
-beforeAll(() => {
+beforeAll(async () => {
   pool = createPool(loadConfig().databaseUrl);
+  testUserId = await ensureTestUser(pool, 'integration-test@example.com');
 });
 
 beforeEach(async () => {

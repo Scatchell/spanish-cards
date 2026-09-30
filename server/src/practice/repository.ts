@@ -79,7 +79,7 @@ const MISTAKE_DETAIL_SELECT = `
          COALESCE(pt.targets, '[]') AS practice_targets
   FROM review_categorizations rc
   JOIN review_history rh ON rh.id = rc.review_history_id
-  LEFT JOIN cards c ON c.id = rh.card_id
+  LEFT JOIN cards c ON c.id = rh.card_id AND c.user_id = rh.user_id
   LEFT JOIN LATERAL (
     SELECT json_agg(json_build_object('expected', pt.expected, 'submitted', pt.submitted) ORDER BY pt.id) AS targets
     FROM practice_targets pt
@@ -89,11 +89,12 @@ const MISTAKE_DETAIL_SELECT = `
 
 export async function getMistakeContext(
   db: DbQueryable,
+  userId: number,
   reviewCategorizationId: number,
 ): Promise<MistakeDetail | null> {
   const result = await db.query<MistakeDetailRow>(
-    `${MISTAKE_DETAIL_SELECT} WHERE rc.id = $1`,
-    [reviewCategorizationId],
+    `${MISTAKE_DETAIL_SELECT} WHERE rc.id = $1 AND rh.user_id = $2`,
+    [reviewCategorizationId, userId],
   );
   const row = result.rows[0];
   return row ? toMistakeDetail(row) : null;
@@ -101,6 +102,7 @@ export async function getMistakeContext(
 
 export async function findTier1Candidates(
   db: DbQueryable,
+  userId: number,
   targets: PracticeTargetRef[],
   excludeCategorizationId: number,
 ): Promise<MistakeDetail[]> {
@@ -112,8 +114,9 @@ export async function findTier1Candidates(
          SELECT review_categorization_id FROM practice_targets
          WHERE expected = $1 AND submitted IS NOT DISTINCT FROM $2
        )
-       AND rc.id != $3`,
-      [target.expected, target.submitted, excludeCategorizationId],
+       AND rc.id != $3
+       AND rh.user_id = $4`,
+      [target.expected, target.submitted, excludeCategorizationId, userId],
     );
     results.push(...result.rows.map(toMistakeDetail));
   }
@@ -122,6 +125,7 @@ export async function findTier1Candidates(
 
 export async function findTier2Candidates(
   db: DbQueryable,
+  userId: number,
   targets: PracticeTargetRef[],
   excludeCategorizationId: number,
 ): Promise<MistakeDetail[]> {
@@ -132,8 +136,9 @@ export async function findTier2Candidates(
        WHERE rc.id IN (
          SELECT review_categorization_id FROM practice_targets WHERE expected = $1
        )
-       AND rc.id != $2`,
-      [target.expected, excludeCategorizationId],
+       AND rc.id != $2
+       AND rh.user_id = $3`,
+      [target.expected, excludeCategorizationId, userId],
     );
     results.push(...result.rows.map(toMistakeDetail));
   }
@@ -142,28 +147,30 @@ export async function findTier2Candidates(
 
 export async function findTier3Candidates(
   db: DbQueryable,
+  userId: number,
   cardId: number,
   excludeCategorizationId: number,
 ): Promise<MistakeDetail[]> {
   const result = await db.query<MistakeDetailRow>(
-    `${MISTAKE_DETAIL_SELECT} WHERE rh.card_id = $1 AND rc.id != $2`,
-    [cardId, excludeCategorizationId],
+    `${MISTAKE_DETAIL_SELECT} WHERE rh.card_id = $1 AND rc.id != $2 AND rh.user_id = $3`,
+    [cardId, excludeCategorizationId, userId],
   );
   return result.rows.map(toMistakeDetail);
 }
 
 export async function findTier4Candidates(
   db: DbQueryable,
+  userId: number,
   category: Category,
   excludeCategorizationId: number,
   sampleSize: number,
 ): Promise<MistakeDetail[]> {
   const result = await db.query<MistakeDetailRow>(
     `${MISTAKE_DETAIL_SELECT}
-     WHERE rc.category = $1 AND rc.id != $2
+     WHERE rc.category = $1 AND rc.id != $2 AND rh.user_id = $3
      ORDER BY random()
-     LIMIT $3`,
-    [category, excludeCategorizationId, sampleSize],
+     LIMIT $4`,
+    [category, excludeCategorizationId, userId, sampleSize],
   );
   return result.rows.map(toMistakeDetail);
 }
@@ -190,17 +197,22 @@ function toPracticeSession(row: PracticeSessionRow): PracticeSession {
 
 export async function getPracticeSession(
   db: DbQueryable,
+  userId: number,
   reviewCategorizationId: number,
 ): Promise<PracticeSession | null> {
   const result = await db.query<PracticeSessionRow>(
-    `SELECT id, review_categorization_id, model, generated_at, examples_snapshot, sentences
-     FROM practice_sessions WHERE review_categorization_id = $1`,
-    [reviewCategorizationId],
+    `SELECT ps.id, ps.review_categorization_id, ps.model, ps.generated_at, ps.examples_snapshot, ps.sentences
+     FROM practice_sessions ps
+     JOIN review_categorizations rc ON rc.id = ps.review_categorization_id
+     JOIN review_history rh ON rh.id = rc.review_history_id
+     WHERE ps.review_categorization_id = $1 AND rh.user_id = $2`,
+    [reviewCategorizationId, userId],
   );
   const row = result.rows[0];
   return row ? toPracticeSession(row) : null;
 }
 
+// Not owner-scoped: only called after the owner-scoped getMistakeContext succeeds (see practice/service.ts).
 export async function upsertPracticeSession(
   db: DbPool,
   input: NewPracticeSession,

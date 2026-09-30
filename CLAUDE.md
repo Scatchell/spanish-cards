@@ -1,6 +1,6 @@
 # spanish-cards — working notes for Claude
 
-Single-user Spanish/English flashcard app. React 19 + Vite client (`client/`),
+Invite-only multi-user Spanish/English flashcard app. React 19 + Vite client (`client/`),
 Express 5 API (`server/`), PostgreSQL 16 via Docker Compose. Full docs in
 `README.md`; this file is the operational cheat sheet.
 
@@ -15,6 +15,9 @@ Express 5 API (`server/`), PostgreSQL 16 via Docker Compose. Full docs in
 | `pnpm migrate:up` / `migrate:down` | Migrations against the dev DB (reads `.env`)             |
 | `pnpm test` / `typecheck` | Unit tests / TS checks for both workspaces                        |
 | `pnpm run test:integration` | Integration tests against real dev Postgres — starts dev DB + migrates first; do not run while `pnpm dev` is also running (see gotcha below) |
+| `pnpm user:invite <email>` / `pnpm user:reset-link <email>` | Print a one-time set-password link (dev DB). The `:prod` variants run inside the prod app container |
+| `pnpm db:backup` / `db:backup:prod` | Gzip `pg_dump` to `db-backups/<env>-<timestamp>.sql.gz` (gitignored) |
+| `pnpm db:verify-users` / `db:verify-users:prod` | Row counts and card ownership |
 
 The pnpm scripts wrap all `--env-file` / `--profile` complexity; if you find
 yourself typing a raw `docker compose` command, check for a script first.
@@ -49,7 +52,7 @@ servers leave their ports unbound, so also check the table below.
 
 | File            | Read by                                  | Contains                                  |
 | --------------- | ---------------------------------------- | ----------------------------------------- |
-| `.env`          | API server (dotenv), Vite config (`loadEnv`), migrations | `PORT`, `DATABASE_URL`, app credentials, `SESSION_SECRET`, `MCP_TOKEN`, `OPENAI_SECRET_KEY` |
+| `.env`          | API server (dotenv), Vite config (`loadEnv`), migrations | `PORT`, `DATABASE_URL`, `APP_BASE_URL`, `SESSION_SECRET`, `MCP_TOKEN`, `MCP_USER_EMAIL`, `OPENAI_SECRET_KEY` |
 | `.dev-env`      | docker compose (`--env-file`) for dev    | Compose project name, postgres container settings, `APP_HOST_PORT` safety valve |
 | `.test-env`     | `e2e/env.ts` + compose for the e2e stack | e2e compose project, ports, test DB        |
 | `.prod-env`     | compose on the prod checkout (not here)  | Prod compose settings + `APP_ENV_FILE=.prod.app.env` |
@@ -61,9 +64,10 @@ Key facts:
   port in one place only.
 - `docker-compose.yml` interpolation defaults (`${VAR:-default}`) target prod
   values (app 4100); the per-env `--env-file` overrides them.
-- `.env` here contains only dev credentials (`admin`/`change-me`) — fine to
-  read. Real secrets live only in the prod checkout's `.prod-env` /
-  `.prod.app.env`; never read those.
+- `.env` here contains only dev settings. Log in by running
+  `pnpm user:reset-link scatchell@gmail.com` and opening the link. Real
+  secrets live only in the prod checkout's `.prod-env` / `.prod.app.env`;
+  never read those.
 - Each `.example` file must stay in sync with its real counterpart's keys.
 
 ## Gotchas
@@ -78,3 +82,7 @@ Key facts:
   tick and could pick up the integration test's synthetic rows mid-test,
   sending them to the real OpenAI API (real cost) and potentially flaking an
   assertion if a tick lands between an insert and a query.
+- Integration tests create extra users in the dev DB (e.g.
+  `integration-test@example.com`), so `pnpm db:verify-users` shows
+  `user_count > 1` in dev and `pnpm migrate:down` of the users migration is
+  refused on dev — expected.

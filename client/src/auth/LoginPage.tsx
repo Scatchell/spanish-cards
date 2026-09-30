@@ -3,7 +3,7 @@ import type { SubmitEvent } from 'react';
 import { ApiError, login } from '../api.js';
 
 export function LoginPage({ onLogin }: { onLogin: () => void }) {
-  const [username, setUsername] = useState('');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -13,7 +13,7 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
     setSubmitting(true);
     setError(null);
     try {
-      await login(username, password);
+      await login(email, password);
       onLogin();
     } catch (err) {
       setError(err instanceof ApiError ? err.message : 'Could not reach the server');
@@ -27,11 +27,11 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
       <form className="login-form" onSubmit={handleSubmit}>
         <h1>Spanish Cards</h1>
         <label>
-          Username
+          Email
           <input
-            type="text"
-            value={username}
-            onChange={(event) => setUsername(event.target.value)}
+            type="email"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
             autoComplete="username"
             autoFocus
           />

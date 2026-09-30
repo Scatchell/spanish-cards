@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { getUserId } from '../auth/middleware.js';
 import type { DbPool } from '../db.js';
 import { getCard, deleteCard, insertCards, listCards, updateCard } from './repository.js';
 import { saveCardBatch, updateCardText } from './service.js';
@@ -10,14 +11,28 @@ import {
   updateAlternateText,
 } from './alternates-repository.js';
 import { createAlternate, deleteAlternateById, updateAlternate } from './alternates-service.js';
+import type { AlternatesDeps } from './alternates-service.js';
 import { isAlternateField } from './alternates-validation.js';
 import type { CardInput } from './validation.js';
+
+// Card-owner-scoped: getCard only finds the caller's cards, so every
+// alternate operation 404s on another user's card id.
+function alternatesDeps(pool: DbPool, userId: number): AlternatesDeps {
+  return {
+    getCard: (cardId) => getCard(pool, userId, cardId),
+    listAlternates: (cardId, f) => listAlternatesForField(pool, cardId, f),
+    insertAlternate: (cardId, f, t) => insertAlternate(pool, cardId, f, t),
+    getAlternate: (altId) => getAlternate(pool, altId),
+    updateAlternateText: (altId, t) => updateAlternateText(pool, altId, t),
+    deleteAlternate: (altId) => deleteAlternate(pool, altId),
+  };
+}
 
 export function cardRoutes(pool: DbPool): Router {
   const router = Router();
 
-  router.get('/', async (_req, res) => {
-    res.json({ cards: await listCards(pool) });
+  router.get('/', async (req, res) => {
+    res.json({ cards: await listCards(pool, getUserId(req)) });
   });
 
   router.post('/batch', async (req, res) => {
@@ -26,7 +41,7 @@ export function cardRoutes(pool: DbPool): Router {
       res.status(400).json({ error: 'Body must be { cards: [{ spanishText, englishText }] }' });
       return;
     }
-    const result = await saveCardBatch(inputs, (valid) => insertCards(pool, valid));
+    const result = await saveCardBatch(inputs, (valid) => insertCards(pool, getUserId(req), valid));
     res.status(201).json(result);
   });
 
@@ -42,7 +57,7 @@ export function cardRoutes(pool: DbPool): Router {
       return;
     }
     const result = await updateCardText(id, input, (cardId, valid) =>
-      updateCard(pool, cardId, valid),
+      updateCard(pool, getUserId(req), cardId, valid),
     );
     if (!result.ok && 'notFound' in result) {
       res.status(404).json({ error: 'Card not found' });
@@ -61,7 +76,7 @@ export function cardRoutes(pool: DbPool): Router {
       res.status(400).json({ error: 'Card id must be an integer' });
       return;
     }
-    const deleted = await deleteCard(pool, id);
+    const deleted = await deleteCard(pool, getUserId(req), id);
     if (!deleted) {
       res.status(404).json({ error: 'Card not found' });
       return;
@@ -80,14 +95,7 @@ export function cardRoutes(pool: DbPool): Router {
       res.status(400).json({ error: 'Body must be { field: "spanish" | "english", text: string }' });
       return;
     }
-    const result = await createAlternate(id, field, text, {
-      getCard: (cardId) => getCard(pool, cardId),
-      listAlternates: (cardId, f) => listAlternatesForField(pool, cardId, f),
-      insertAlternate: (cardId, f, t) => insertAlternate(pool, cardId, f, t),
-      getAlternate: (altId) => getAlternate(pool, altId),
-      updateAlternateText: (altId, t) => updateAlternateText(pool, altId, t),
-      deleteAlternate: (altId) => deleteAlternate(pool, altId),
-    });
+    const result = await createAlternate(id, field, text, alternatesDeps(pool, getUserId(req)));
     if (!result.ok) {
       res.status(result.status).json(result.status === 404 ? { error: 'Card not found' } : { error: result.error });
       return;
@@ -107,14 +115,7 @@ export function cardRoutes(pool: DbPool): Router {
       res.status(400).json({ error: 'Body must be { text: string }' });
       return;
     }
-    const result = await updateAlternate(id, altId, text, {
-      getCard: (cardId) => getCard(pool, cardId),
-      listAlternates: (cardId, f) => listAlternatesForField(pool, cardId, f),
-      insertAlternate: (cardId, f, t) => insertAlternate(pool, cardId, f, t),
-      getAlternate: (aId) => getAlternate(pool, aId),
-      updateAlternateText: (aId, t) => updateAlternateText(pool, aId, t),
-      deleteAlternate: (aId) => deleteAlternate(pool, aId),
-    });
+    const result = await updateAlternate(id, altId, text, alternatesDeps(pool, getUserId(req)));
     if (!result.ok) {
       res.status(result.status).json(result.status === 404 ? { error: 'Alternate not found' } : { error: result.error });
       return;
@@ -129,14 +130,7 @@ export function cardRoutes(pool: DbPool): Router {
       res.status(400).json({ error: 'Card id and alternate id must be integers' });
       return;
     }
-    const result = await deleteAlternateById(id, altId, {
-      getCard: (cardId) => getCard(pool, cardId),
-      listAlternates: (cardId, f) => listAlternatesForField(pool, cardId, f),
-      insertAlternate: (cardId, f, t) => insertAlternate(pool, cardId, f, t),
-      getAlternate: (aId) => getAlternate(pool, aId),
-      updateAlternateText: (aId, t) => updateAlternateText(pool, aId, t),
-      deleteAlternate: (aId) => deleteAlternate(pool, aId),
-    });
+    const result = await deleteAlternateById(id, altId, alternatesDeps(pool, getUserId(req)));
     if (!result.ok) {
       res.status(result.status).json({ error: 'Alternate not found' });
       return;

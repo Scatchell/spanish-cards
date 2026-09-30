@@ -136,6 +136,9 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           <Link to="/progress" className="progress-link">
             Progress
           </Link>
+          <Link to="/account" className="account-link">
+            Account
+          </Link>
           <button type="button" className="secondary" onClick={handleLogout}>
             Log out
           </button>

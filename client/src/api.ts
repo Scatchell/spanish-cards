@@ -152,16 +152,28 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export function getMe(): Promise<{ authenticated: boolean }> {
+export function getMe(): Promise<{ email: string }> {
   return request('/api/me');
 }
 
-export function login(username: string, password: string): Promise<{ ok: boolean }> {
-  return request('/api/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+export function login(email: string, password: string): Promise<{ ok: boolean }> {
+  return request('/api/login', { method: 'POST', body: JSON.stringify({ email, password }) });
 }
 
 export function logout(): Promise<{ ok: boolean }> {
   return request('/api/logout', { method: 'POST' });
+}
+
+export function checkSetPasswordToken(token: string): Promise<{ email: string }> {
+  return request('/api/set-password/check', { method: 'POST', body: JSON.stringify({ token }) });
+}
+
+export function setPassword(token: string, password: string): Promise<{ ok: boolean }> {
+  return request('/api/set-password', { method: 'POST', body: JSON.stringify({ token, password }) });
+}
+
+export function changePassword(currentPassword: string, newPassword: string): Promise<{ ok: boolean }> {
+  return request('/api/password', { method: 'POST', body: JSON.stringify({ currentPassword, newPassword }) });
 }
 
 export async function listCards(): Promise<Card[]> {

@@ -1,6 +1,8 @@
 import { execSync } from 'node:child_process';
 import pg from 'pg';
+import { E2E_EMAIL, E2E_PASSWORD } from './auth.js';
 import { E2E_COMPOSE_ARGS, E2E_DATABASE_URL } from './env.js';
+import { createUserWithPassword } from './users.js';
 
 const docker = ['docker', ...E2E_COMPOSE_ARGS].join(' ');
 
@@ -15,6 +17,8 @@ export default async function globalSetup(): Promise<void> {
     env: { ...process.env, DATABASE_URL: E2E_DATABASE_URL },
     stdio: 'inherit',
   });
+
+  await createUserWithPassword(E2E_EMAIL, E2E_PASSWORD);
 }
 
 async function waitForPostgres(): Promise<void> {
