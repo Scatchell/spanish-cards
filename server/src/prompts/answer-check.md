@@ -22,27 +22,28 @@ the answer the learner actually submitted.
    vosotros / ustedes for "you", and including or dropping a subject pronoun. Only treat
    such a choice as an error when the prompt itself pins it down (e.g. "the city",
    "she", "my sisters").
-3. Write a brief GitHub-flavored-markdown critique addressed directly to the learner as
-   "you"/"your", in plain language a language learner would use — never internal terms
-   like "prompt", "the card", or "expected answer". Refer to the two texts naturally,
-   e.g. "your translation" or "the Spanish/English phrase". When invalid, name the
-   specific error(s) concretely (say what is actually wrong, e.g. "this is a different
-   verb tense" or "your answer doesn't translate to that phrase", not vague labels like
-   "unrelated to the prompt"); when valid, briefly say why it is an acceptable or better
-   alternative — if it differs only in a choice the phrase leaves open, say so plainly
-   (e.g. "'it' doesn't specify a gender, so *lleno* works for a masculine noun like
-   *el tren*"). Only call out grammar, vocabulary, and other language errors — never
-   punctuation or accent marks (missing/extra accents, inverted punctuation, exclamation
-   or question marks, capitalization, extra spacing) or likely typos/misspellings as
-   their own bullet point or as part of why an answer is invalid; those never affect the
-   verdict. A few short bullets, no headings, no preamble.
-4. When invalid, end with one final bullet giving your best-effort translation of exactly
-   what the learner typed, corrected only for spelling/accents/punctuation/spacing (never
-   for grammar or word choice), so they can see what their own words actually mean.
-   Format it as: `<cleaned-up version of what they typed> :: <its best English
-   translation>` compared against `<the correct phrase> :: <its translation>`, e.g.
-   "What you typed reads: No me da cuenta :: I don't realize. The correct phrase is:
-   No me di cuenta :: I didn't realize." If the learner's answer is unintelligible or
-   empty, say so briefly instead of forcing a translation.
+3. Fill feedbackPoints with one to three short bullet strings (no leading "-" or "*",
+   no headings, no preamble), addressed directly to the learner as "you"/"your", in
+   plain language a language learner would use — never internal terms like "prompt",
+   "the card", or "expected answer". Refer to the two texts naturally, e.g. "your
+   translation" or "the Spanish/English phrase". Each string may use inline markdown
+   such as *italics* for the words under discussion. Use one bullet per distinct error;
+   do not pad. When invalid, name the specific error(s) concretely (say what is actually
+   wrong, e.g. "this is a different verb tense" or "your answer doesn't translate to
+   that phrase", not vague labels like "unrelated to the prompt"); when valid, briefly
+   say why it is an acceptable or better alternative — if it differs only in a choice
+   the phrase leaves open, say so plainly (e.g. "'it' doesn't specify a gender, so
+   *lleno* works for a masculine noun like *el tren*"). Only call out grammar,
+   vocabulary, and other language errors — never punctuation or accent marks
+   (missing/extra accents, inverted punctuation, exclamation or question marks,
+   capitalization, extra spacing) or likely typos/misspellings as their own bullet or as
+   part of why an answer is invalid; those never affect the verdict.
+4. Set submittedReading to your best-effort rendering of exactly what the learner typed:
+   `text` is what they typed, corrected only for spelling/accents/punctuation/spacing
+   (never for grammar or word choice); `translation` is what those words actually mean
+   in the other language, as a native speaker would understand them. Example: text "No
+   me da cuenta", translation "I don't realize". Do not include the correct phrase or any
+   comparison — the app shows that itself. If the learner's answer is unintelligible or
+   empty, set submittedReading to null.
 5. Set suggestedAnswer to the exact wording to store on the card ONLY when verdict is
    "valid" (otherwise null). Keep suggestedAnswer a single line, at most 70 characters.

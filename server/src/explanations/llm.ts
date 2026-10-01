@@ -62,11 +62,19 @@ export function createFollowUpGenerator(config: AppConfig): FollowUpGenerator | 
   };
 }
 
+export interface SubmittedReading {
+  text: string; // what the learner typed, cleaned up for spelling/accents/punctuation
+  translation: string; // best-effort translation of that text into the other language
+}
+
 export interface AnswerCheckOutput {
   verdict: 'valid' | 'invalid';
   suggestedAnswer: string | null;
-  critiqueMarkdown: string;
+  feedbackPoints: string[];
+  submittedReading: SubmittedReading | null;
 }
+
+const MAX_FEEDBACK_POINTS = 3;
 
 export type AnswerCheckGenerator = (input: {
   promptText: string; // the side shown to the learner
@@ -78,7 +86,7 @@ const ANSWER_CHECK_INSTRUCTIONS = loadPrompt('answer-check.md');
 
 // Part of the answer_checks cache key. Bump whenever answer-check.md changes in
 // a way that could flip verdicts, so stale cached verdicts stop being served.
-export const ANSWER_CHECK_PROMPT_VERSION = 2;
+export const ANSWER_CHECK_PROMPT_VERSION = 3;
 
 // Structured Outputs: the Responses API constrains decoding so the model's JSON
 // literally cannot violate this schema (missing keys, wrong types, an out-of-enum
@@ -89,28 +97,44 @@ const ANSWER_CHECK_SCHEMA = {
   properties: {
     verdict: { type: 'string', enum: ['valid', 'invalid'] },
     suggestedAnswer: { type: ['string', 'null'] },
-    critiqueMarkdown: { type: 'string' },
+    feedbackPoints: { type: 'array', items: { type: 'string' } },
+    submittedReading: {
+      anyOf: [
+        {
+          type: 'object',
+          properties: { text: { type: 'string' }, translation: { type: 'string' } },
+          required: ['text', 'translation'],
+          additionalProperties: false,
+        },
+        { type: 'null' },
+      ],
+    },
   },
-  required: ['verdict', 'suggestedAnswer', 'critiqueMarkdown'],
+  required: ['verdict', 'suggestedAnswer', 'feedbackPoints', 'submittedReading'],
   additionalProperties: false,
 } as const;
 
 // The schema guarantees shape and types but can't express the cross-field rule
-// (suggestedAnswer must be null unless verdict is valid) or the length cap, so
-// those still need a boundary check. Throws on violation so the route maps it
+// (suggestedAnswer must be null unless verdict is valid), the length cap, or the
+// 1-3 feedbackPoints bound (strict mode has no minItems/maxItems), so those
+// still need a boundary check. Throws on violation so the route maps it
 // to a retryable 502.
-function parseAnswerCheck(raw: string | undefined): AnswerCheckOutput {
+export function parseAnswerCheck(raw: string | undefined): AnswerCheckOutput {
   if (!raw || raw.trim() === '') {
     throw new Error('Empty answer-check response from model');
   }
   const obj = JSON.parse(raw) as {
     verdict: 'valid' | 'invalid';
     suggestedAnswer: string | null;
-    critiqueMarkdown: string;
+    feedbackPoints: string[];
+    submittedReading: SubmittedReading | null;
   };
-  const critiqueMarkdown = obj.critiqueMarkdown.trim();
-  if (critiqueMarkdown === '') {
-    throw new Error('Answer-check critique was missing');
+  const feedbackPoints = obj.feedbackPoints
+    .map((point) => point.trim())
+    .filter((point) => point !== '')
+    .slice(0, MAX_FEEDBACK_POINTS);
+  if (feedbackPoints.length === 0) {
+    throw new Error('Answer-check feedback was missing');
   }
   let suggestedAnswer: string | null = null;
   if (obj.verdict === 'valid' && typeof obj.suggestedAnswer === 'string') {
@@ -119,7 +143,16 @@ function parseAnswerCheck(raw: string | undefined): AnswerCheckOutput {
       suggestedAnswer = trimmed.slice(0, 70);
     }
   }
-  return { verdict: obj.verdict, suggestedAnswer, critiqueMarkdown };
+  // A reading with either half blank is as good as none.
+  let submittedReading: SubmittedReading | null = null;
+  if (obj.submittedReading) {
+    const text = obj.submittedReading.text.trim();
+    const translation = obj.submittedReading.translation.trim();
+    if (text !== '' && translation !== '') {
+      submittedReading = { text, translation };
+    }
+  }
+  return { verdict: obj.verdict, suggestedAnswer, feedbackPoints, submittedReading };
 }
 
 export function createAnswerCheckGenerator(config: AppConfig): AnswerCheckGenerator | null {

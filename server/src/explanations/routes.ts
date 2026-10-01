@@ -272,7 +272,8 @@ export function explanationRoutes(
       answerCheck: {
         verdict: result.answerCheck.verdict,
         suggestedAnswer: result.answerCheck.suggestedAnswer,
-        critiqueMarkdown: result.answerCheck.critiqueMarkdown,
+        feedbackPoints: result.answerCheck.feedbackPoints,
+        submittedReading: result.answerCheck.submittedReading,
         createdAt: result.answerCheck.createdAt,
       },
       source: result.source,

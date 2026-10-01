@@ -9,6 +9,7 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 const MIGRATIONS_DIR = path.resolve(here, '../../migrations');
 const SCRATCH_DB = 'spanish_cards_migration_test';
 const PREVIOUS = '1779000000000_add-prompt-version-to-answer-checks';
+const ADD_USERS = '1780000000000_add-users';
 const DATA_TABLES = [
   'answer_checks', 'card_alternate_answers', 'card_schedules', 'cards', 'explanations',
   'practice_sessions', 'practice_targets', 'review_categorizations', 'review_history', 'reviews',
@@ -151,7 +152,8 @@ describe('add-users migration', () => {
     const before = await counts();
     const digestsBefore = await dataDigests();
 
-    await migrate('up');
+    // Stop at add-users: later migrations add columns that would change the digests.
+    await migrate('up', { timestamp: true, count: Number(ADD_USERS.split('_')[0]) });
 
     expect(await counts()).toEqual(before);
     expect(await dataDigests()).toEqual(digestsBefore);

@@ -1138,6 +1138,67 @@ button.rating.emphasized {
   margin-top: 0.25rem;
 }
 
+.answer-check-points {
+  margin: 0 0 0.75rem;
+  padding-left: 1.25rem;
+}
+
+.answer-check-points p {
+  margin: 0 0 0.35rem;
+}
+
+/* Stacked on phones; side by side once the modal has room. Long phrases wrap
+   instead of widening the modal, so there is no horizontal scroll. */
+.answer-compare {
+  display: grid;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.answer-compare-row {
+  min-width: 0;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  background: var(--surface-muted);
+  overflow-wrap: anywhere;
+}
+
+.answer-compare-yours {
+  border-left-color: #b4572c;
+}
+
+.answer-compare-correct {
+  border-left-color: #2c7a3f;
+}
+
+.answer-compare-label {
+  margin: 0 0 0.2rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.answer-compare-text {
+  margin: 0;
+  font-size: 1.05rem;
+}
+
+.answer-compare-translation {
+  margin: 0.15rem 0 0;
+  font-style: italic;
+  color: var(--text-muted);
+}
+
+@media (min-width: 40rem) {
+  .answer-compare {
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
+  }
+}
+
 /* The "valid alternative" block is visually distinct from the plain critique so
    an accepted answer reads as a positive, actionable suggestion. */
 .answer-check-adopt {

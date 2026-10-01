@@ -59,7 +59,8 @@ export async function getOrCreateAnswerCheck(
     submittedNormalized,
     verdict: output.verdict,
     suggestedAnswer: output.suggestedAnswer,
-    critiqueMarkdown: output.critiqueMarkdown,
+    feedbackPoints: output.feedbackPoints,
+    submittedReading: output.submittedReading,
     model: EXPLANATION_MODEL,
     promptVersion: ANSWER_CHECK_PROMPT_VERSION,
   });

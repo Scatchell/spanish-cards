@@ -354,7 +354,8 @@ describe('POST /:id/explanation/answer-check', () => {
     submittedNormalized: 'me yamo',
     verdict: 'invalid',
     suggestedAnswer: null,
-    critiqueMarkdown: '- **wrong**: stubbed critique',
+    feedbackPoints: ['**wrong**: stubbed critique'],
+    submittedReading: null,
     model: 'gpt-5.4-mini',
     createdAt: '2026-01-01T00:00:00.000Z',
   };
@@ -398,7 +399,7 @@ describe('POST /:id/explanation/answer-check', () => {
       },
       null,
       null,
-      async () => ({ verdict: 'invalid', suggestedAnswer: null, critiqueMarkdown: '- empty' }),
+      async () => ({ verdict: 'invalid', suggestedAnswer: null, feedbackPoints: ['empty'], submittedReading: null }),
     );
     const res = await post(base, '/1/explanation/answer-check', {
       submittedAnswer: '',
@@ -477,7 +478,7 @@ describe('POST /:id/explanation/answer-check', () => {
       },
       null,
       null,
-      async () => ({ verdict: 'invalid', suggestedAnswer: null, critiqueMarkdown: '- wrong' }),
+      async () => ({ verdict: 'invalid', suggestedAnswer: null, feedbackPoints: ['wrong'], submittedReading: null }),
     );
     const res = await post(base, '/1/explanation/answer-check', validBody);
     expect(res.status).toBe(200);
@@ -485,7 +486,8 @@ describe('POST /:id/explanation/answer-check', () => {
       answerCheck: {
         verdict: string;
         suggestedAnswer: string | null;
-        critiqueMarkdown: string;
+        feedbackPoints: string[];
+        submittedReading: { text: string; translation: string } | null;
         createdAt: string;
       };
       source: string;
@@ -493,6 +495,8 @@ describe('POST /:id/explanation/answer-check', () => {
     expect(body.source).toBe('generated');
     expect(body.answerCheck.verdict).toBe('invalid');
     expect(body.answerCheck.suggestedAnswer).toBeNull();
+    expect(body.answerCheck.feedbackPoints).toEqual(['**wrong**: stubbed critique']);
+    expect(body.answerCheck.submittedReading).toBeNull();
   });
 
   it('returns 200 with valid verdict + suggestedAnswer (generated)', async () => {
@@ -507,7 +511,7 @@ describe('POST /:id/explanation/answer-check', () => {
       async () => ({
         verdict: 'valid',
         suggestedAnswer: 'me llamo',
-        critiqueMarkdown: '- valid alternative',
+        feedbackPoints: ['valid alternative'], submittedReading: null,
       }),
     );
     const res = await post(base, '/1/explanation/answer-check', validBody);
@@ -548,7 +552,7 @@ describe('POST /:id/explanation/answer-check', () => {
       },
       null,
       null,
-      async () => ({ verdict: 'invalid', suggestedAnswer: null, critiqueMarkdown: '- stubbed' }),
+      async () => ({ verdict: 'invalid', suggestedAnswer: null, feedbackPoints: ['stubbed'], submittedReading: null }),
     );
     const res = await post(base, '/-1/explanation/answer-check', {
       ...validBody,

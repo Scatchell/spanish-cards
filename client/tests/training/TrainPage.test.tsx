@@ -45,7 +45,8 @@ beforeEach(() => {
       verdict: 'valid',
       // Duplicates the primary answer 'gato' after normalization.
       suggestedAnswer: 'Gato',
-      critiqueMarkdown: 'Close enough',
+      feedbackPoints: ['Close enough'],
+      submittedReading: null,
       createdAt: '2026-01-01T00:00:00.000Z',
     },
     source: 'cached',
@@ -70,7 +71,7 @@ describe('TrainPage Adopt', () => {
     await screen.findByText('Explanation');
 
     fireEvent.click(screen.getByRole('button', { name: 'Compare my answer' }));
-    fireEvent.click(await screen.findByText('Adopt'));
+    fireEvent.click(await screen.findByText('Add as alternative'));
 
     await waitFor(() => expect(fetchExplanation).toHaveBeenCalled());
     expect(addAlternateAnswer).not.toHaveBeenCalled();
@@ -81,7 +82,8 @@ describe('TrainPage Adopt', () => {
       answerCheck: {
         verdict: 'valid',
         suggestedAnswer: 'gatito',
-        critiqueMarkdown: 'Close enough',
+        feedbackPoints: ['Close enough'],
+      submittedReading: null,
         createdAt: '2026-01-01T00:00:00.000Z',
       },
       source: 'cached',
@@ -101,7 +103,7 @@ describe('TrainPage Adopt', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Explain/ }));
     await screen.findByText('Explanation');
     fireEvent.click(screen.getByRole('button', { name: 'Compare my answer' }));
-    fireEvent.click(await screen.findByText('Adopt'));
+    fireEvent.click(await screen.findByText('Add as alternative'));
 
     await waitFor(() => expect(addAlternateAnswer).toHaveBeenCalled());
     expect(await screen.findByText('Too many alternates')).toBeInTheDocument();

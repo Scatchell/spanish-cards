@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { askFollowUp, checkSubmittedAnswer, fetchExplanation } from '../api.js';
 import type { AnswerCheckResponse } from '../api.js';
+import { AnswerCheckResult } from './AnswerCheckResult.js';
 import type { Verdict } from '../training/answer-check.js';
 
 interface Props {
@@ -149,7 +150,10 @@ export function ExplanationModal({
       sections.push(
         [
           "Additional check of the learner's own submitted answer:",
-          answerCheck.critiqueMarkdown,
+          ...answerCheck.feedbackPoints.map((point) => `- ${point}`),
+          answerCheck.submittedReading
+            ? `The learner's answer reads: ${answerCheck.submittedReading.text} :: ${answerCheck.submittedReading.translation}`
+            : null,
           answerCheck.verdict === 'valid' && answerCheck.suggestedAnswer
             ? `Suggested better wording shown to the learner: ${answerCheck.suggestedAnswer}`
             : null,
@@ -224,24 +228,13 @@ export function ExplanationModal({
                 </p>
               )}
               {answerCheckState === 'ready' && answerCheck && (
-                <div className="answer-check-result">
-                  <ReactMarkdown>{answerCheck.critiqueMarkdown}</ReactMarkdown>
-                  {answerCheck.verdict === 'valid' && answerCheck.suggestedAnswer && (
-                    <div className="answer-check-adopt">
-                      <p className="answer-check-adopt-lead">
-                        Your answer works — here's a cleaner version to store:
-                      </p>
-                      <p className="answer-check-suggested">{answerCheck.suggestedAnswer}</p>
-                      <button
-                        type="button"
-                        className="answer-check-adopt-button"
-                        onClick={() => onAdoptAnswer!(answerCheck.suggestedAnswer!)}
-                      >
-                        Adopt
-                      </button>
-                    </div>
-                  )}
-                </div>
+                <AnswerCheckResult
+                  answerCheck={answerCheck}
+                  spanishText={spanishText}
+                  englishText={englishText}
+                  direction={direction!}
+                  onAdopt={onAdoptAnswer!}
+                />
               )}
             </div>
           )}

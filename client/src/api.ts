@@ -293,7 +293,8 @@ export interface AnswerCheckResponse {
   answerCheck: {
     verdict: 'valid' | 'invalid';
     suggestedAnswer: string | null;
-    critiqueMarkdown: string;
+    feedbackPoints: string[];
+    submittedReading: { text: string; translation: string } | null;
     createdAt: string;
   };
   source: 'cached' | 'generated';

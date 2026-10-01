@@ -11,7 +11,7 @@ const FAKE_CHECK: AnswerCheck = {
   submittedNormalized: 'me llamo',
   verdict: 'valid',
   suggestedAnswer: 'me llamo',
-  critiqueMarkdown: '- valid alternative',
+  feedbackPoints: ['valid alternative'], submittedReading: null,
   model: 'gpt-5.4-mini',
   createdAt: '2026-01-01T00:00:00.000Z',
 };
@@ -50,7 +50,7 @@ describe('getOrCreateAnswerCheck', () => {
         generate: async () => ({
           verdict: 'valid',
           suggestedAnswer: 'me llamo',
-          critiqueMarkdown: '- valid alternative',
+          feedbackPoints: ['valid alternative'], submittedReading: null,
         }),
       },
       INPUT,
@@ -77,7 +77,7 @@ describe('getOrCreateAnswerCheck', () => {
         generate: async () => ({
           verdict: 'valid',
           suggestedAnswer: 'me llamo',
-          critiqueMarkdown: '- valid alternative',
+          feedbackPoints: ['valid alternative'], submittedReading: null,
         }),
       },
       INPUT,
@@ -119,7 +119,7 @@ describe('getOrCreateAnswerCheck', () => {
     const generate = vi.fn().mockResolvedValue({
       verdict: 'invalid',
       suggestedAnswer: null,
-      critiqueMarkdown: '- wrong',
+      feedbackPoints: ['wrong'], submittedReading: null,
     });
     await getOrCreateAnswerCheck(
       {
@@ -140,7 +140,7 @@ describe('getOrCreateAnswerCheck', () => {
     const generate = vi.fn().mockResolvedValue({
       verdict: 'invalid',
       suggestedAnswer: null,
-      critiqueMarkdown: '- wrong',
+      feedbackPoints: ['wrong'], submittedReading: null,
     });
     await getOrCreateAnswerCheck(
       {

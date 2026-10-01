@@ -213,7 +213,7 @@ test('Compare my answer: absent for a correct answer, present for an incorrect o
   await expect(modal.getByRole('button', { name: 'Compare my answer' })).toBeVisible();
 });
 
-test('Compare my answer: invalid critique shown, no Adopt, cached on reopen', async ({ page }) => {
+test('Compare my answer: invalid critique shown, no Add as alternative, cached on reopen', async ({ page }) => {
   await createCard(page, 'me llamo', 'my name is');
   await page.goto('/train');
   await page.getByLabel(/Your answer/).fill('me yamo');
@@ -224,7 +224,9 @@ test('Compare my answer: invalid critique shown, no Adopt, cached on reopen', as
 
   await modal.getByRole('button', { name: 'Compare my answer' }).click();
   await expect(modal.locator('.answer-check-result')).toContainText('stubbed critique');
-  await expect(modal.getByRole('button', { name: 'Adopt' })).toHaveCount(0);
+  await expect(modal.locator('.answer-compare-yours')).toContainText('stub typed');
+  await expect(modal.locator('.answer-compare-correct')).toContainText('me llamo');
+  await expect(modal.getByRole('button', { name: 'Add as alternative' })).toHaveCount(0);
 
   // Close/reopen and run again — served from cache (no new stub calls)
   const countBeforeReopen = await stubRequestCount(page);
@@ -237,7 +239,7 @@ test('Compare my answer: invalid critique shown, no Adopt, cached on reopen', as
   expect(countAfterReopen).toBe(countBeforeReopen);
 });
 
-test('Compare my answer: valid verdict → Adopt adds the suggestion as an alternate, primary unchanged', async ({
+test('Compare my answer: valid verdict → Add as alternative adds the suggestion as an alternate, primary unchanged', async ({
   page,
 }) => {
   await createCard(page, 'me llamo', 'my name is');
@@ -248,12 +250,12 @@ test('Compare my answer: valid verdict → Adopt adds the suggestion as an alter
   const modal = page.getByRole('dialog');
   await modal.getByRole('button', { name: 'Compare my answer' }).click();
 
-  // Valid framing + Adopt visible
+  // Valid framing + Add as alternative visible
   await expect(modal).toContainText('valid alternative');
-  const adopt = modal.getByRole('button', { name: 'Adopt' });
+  const adopt = modal.getByRole('button', { name: 'Add as alternative' });
   await expect(adopt).toBeVisible();
 
-  // Adopt closes the modal, leaves the primary answer as-is, and files the
+  // Add as alternative closes the modal, leaves the primary answer as-is, and files the
   // suggestion as a new alternate — visible once the answer editor expands.
   await adopt.click();
   await expect(modal).toHaveCount(0);
