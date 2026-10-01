@@ -89,3 +89,9 @@ Key facts:
   `integration-test@example.com`), so `pnpm db:verify-users` shows
   `user_count > 1` in dev and `pnpm migrate:down` of the users migration is
   refused on dev — expected.
+- Any edit to `server/src/prompts/*.md` (or adding/removing a prompt) must
+  bump `PROMPT_VERSION` in `server/src/prompt-version.ts` — major: prompt
+  added/removed, minor: significant change, patch: small wording tweak.
+  Cached explanations/answer checks from another version (or another
+  `EXPLANATION_MODEL`) are regenerated and overwritten on next lookup; forget
+  the bump and users keep getting output from the old prompt.
