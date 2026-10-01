@@ -15,6 +15,7 @@ export interface AnswerCheck {
   feedbackPoints: string[];
   submittedReading: SubmittedReading | null;
   model: string;
+  promptVersion: string;
   createdAt: string;
 }
 
@@ -28,7 +29,7 @@ export interface NewAnswerCheck {
   feedbackPoints: string[];
   submittedReading: SubmittedReading | null;
   model: string;
-  promptVersion: number;
+  promptVersion: string;
 }
 
 // The tuple that uniquely identifies a cached answer-check row.
@@ -37,8 +38,6 @@ export interface AnswerCheckKey {
   englishText: string;
   direction: AnswerCheckDirection;
   submittedNormalized: string;
-  // Rows from an older answer-check prompt are never served.
-  promptVersion: number;
 }
 
 interface AnswerCheckRow {
@@ -52,6 +51,7 @@ interface AnswerCheckRow {
   feedback_points: string[];
   submitted_reading: SubmittedReading | null;
   model: string;
+  prompt_version: string;
   created_at: Date;
 }
 
@@ -67,6 +67,7 @@ function toAnswerCheck(row: AnswerCheckRow): AnswerCheck {
     feedbackPoints: row.feedback_points,
     submittedReading: row.submitted_reading,
     model: row.model,
+    promptVersion: row.prompt_version,
     createdAt: row.created_at.toISOString(),
   };
 }
@@ -77,17 +78,20 @@ export async function findAnswerCheck(
 ): Promise<AnswerCheck | null> {
   const result = await db.query<AnswerCheckRow>(
     `SELECT id, spanish_text, english_text, direction, submitted_normalized,
-            verdict, suggested_answer, feedback_points, submitted_reading, model, created_at
+            verdict, suggested_answer, feedback_points, submitted_reading, model,
+            prompt_version, created_at
      FROM answer_checks
      WHERE spanish_text = $1 AND english_text = $2
-       AND direction = $3 AND submitted_normalized = $4
-       AND prompt_version = $5`,
-    [key.spanishText, key.englishText, key.direction, key.submittedNormalized, key.promptVersion],
+       AND direction = $3 AND submitted_normalized = $4`,
+    [key.spanishText, key.englishText, key.direction, key.submittedNormalized],
   );
   return result.rows[0] ? toAnswerCheck(result.rows[0]) : null;
 }
 
-export async function insertAnswerCheck(
+// One row per key: a re-check after a prompt/model change overwrites the row
+// rather than keeping superseded verdicts. Concurrent regenerations are
+// last-write-wins — both results are current.
+export async function upsertAnswerCheck(
   db: DbQueryable,
   input: NewAnswerCheck,
 ): Promise<AnswerCheck> {
@@ -97,10 +101,18 @@ export async function insertAnswerCheck(
         verdict, suggested_answer, critique_markdown, feedback_points, submitted_reading,
         model, prompt_version)
      VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
-     ON CONFLICT (spanish_text, english_text, direction, submitted_normalized, prompt_version)
-       DO NOTHING
+     ON CONFLICT (spanish_text, english_text, direction, submitted_normalized) DO UPDATE SET
+       verdict = EXCLUDED.verdict,
+       suggested_answer = EXCLUDED.suggested_answer,
+       critique_markdown = EXCLUDED.critique_markdown,
+       feedback_points = EXCLUDED.feedback_points,
+       submitted_reading = EXCLUDED.submitted_reading,
+       model = EXCLUDED.model,
+       prompt_version = EXCLUDED.prompt_version,
+       created_at = now()
      RETURNING id, spanish_text, english_text, direction, submitted_normalized,
-               verdict, suggested_answer, feedback_points, submitted_reading, model, created_at`,
+               verdict, suggested_answer, feedback_points, submitted_reading, model,
+               prompt_version, created_at`,
     [
       input.spanishText,
       input.englishText,
@@ -117,19 +129,9 @@ export async function insertAnswerCheck(
       input.promptVersion,
     ],
   );
-  if (result.rows[0]) {
-    return toAnswerCheck(result.rows[0]);
+  const row = result.rows[0];
+  if (!row) {
+    throw new Error('Answer check upsert returned no row');
   }
-  // Concurrent insert won; return the existing row.
-  const existing = await findAnswerCheck(db, {
-    spanishText: input.spanishText,
-    englishText: input.englishText,
-    direction: input.direction,
-    submittedNormalized: input.submittedNormalized,
-    promptVersion: input.promptVersion,
-  });
-  if (!existing) {
-    throw new Error('Answer check not found after conflict');
-  }
-  return existing;
+  return toAnswerCheck(row);
 }

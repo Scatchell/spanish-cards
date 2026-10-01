@@ -1,10 +1,11 @@
 import type { Explanation, NewExplanation } from './repository.js';
 import { EXPLANATION_MODEL } from './llm.js';
 import type { ExplanationGenerator } from './llm.js';
+import { PROMPT_VERSION } from '../prompt-version.js';
 
 export interface ExplanationDeps {
   findExplanation: (spanish: string, english: string) => Promise<Explanation | null>;
-  insertExplanation: (input: NewExplanation) => Promise<Explanation>;
+  upsertExplanation: (input: NewExplanation) => Promise<Explanation>;
   generate: ExplanationGenerator | null;
 }
 
@@ -25,11 +26,12 @@ export async function getOrCreateExplanation(
     return { status: 'unavailable' };
   }
   const contentMarkdown = await deps.generate(spanishText, englishText);
-  const explanation = await deps.insertExplanation({
+  const explanation = await deps.upsertExplanation({
     spanishText,
     englishText,
     contentMarkdown,
     model: EXPLANATION_MODEL,
+    promptVersion: PROMPT_VERSION,
   });
   return { status: 'ok', explanation, source: 'generated' };
 }

@@ -85,10 +85,6 @@ export type AnswerCheckGenerator = (input: {
 
 const ANSWER_CHECK_INSTRUCTIONS = loadPrompt('answer-check.md');
 
-// Part of the answer_checks cache key. Bump whenever answer-check.md changes in
-// a way that could flip verdicts, so stale cached verdicts stop being served.
-export const ANSWER_CHECK_PROMPT_VERSION = 4;
-
 // Structured Outputs: the Responses API constrains decoding so the model's JSON
 // literally cannot violate this schema (missing keys, wrong types, an out-of-enum
 // verdict). This is enforced by OpenAI, not by us — it does not touch the e2e

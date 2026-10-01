@@ -1,4 +1,4 @@
-import { ANSWER_CHECK_PROMPT_VERSION, EXPLANATION_MODEL } from './llm.js';
+import { EXPLANATION_MODEL } from './llm.js';
 import type { AnswerCheckGenerator } from './llm.js';
 import { normalizeSubmitted } from './normalize.js';
 import type {
@@ -7,10 +7,11 @@ import type {
   AnswerCheckKey,
   NewAnswerCheck,
 } from './answer-check-repository.js';
+import { PROMPT_VERSION } from '../prompt-version.js';
 
 export interface AnswerCheckDeps {
   findAnswerCheck: (key: AnswerCheckKey) => Promise<AnswerCheck | null>;
-  insertAnswerCheck: (input: NewAnswerCheck) => Promise<AnswerCheck>;
+  upsertAnswerCheck: (input: NewAnswerCheck) => Promise<AnswerCheck>;
   generate: AnswerCheckGenerator | null;
 }
 
@@ -30,13 +31,7 @@ export async function getOrCreateAnswerCheck(
   const { spanishText, englishText, direction, submittedAnswer } = input;
   const submittedNormalized = normalizeSubmitted(submittedAnswer);
 
-  const key: AnswerCheckKey = {
-    spanishText,
-    englishText,
-    direction,
-    submittedNormalized,
-    promptVersion: ANSWER_CHECK_PROMPT_VERSION,
-  };
+  const key: AnswerCheckKey = { spanishText, englishText, direction, submittedNormalized };
   const cached = await deps.findAnswerCheck(key);
   if (cached) {
     return { status: 'ok', answerCheck: cached, source: 'cached' };
@@ -52,7 +47,7 @@ export async function getOrCreateAnswerCheck(
   const expectedAnswer = direction === 'spanish-to-english' ? englishText : spanishText;
 
   const output = await deps.generate({ promptText, expectedAnswer, submittedAnswer });
-  const answerCheck = await deps.insertAnswerCheck({
+  const answerCheck = await deps.upsertAnswerCheck({
     spanishText,
     englishText,
     direction,
@@ -62,7 +57,7 @@ export async function getOrCreateAnswerCheck(
     feedbackPoints: output.feedbackPoints,
     submittedReading: output.submittedReading,
     model: EXPLANATION_MODEL,
-    promptVersion: ANSWER_CHECK_PROMPT_VERSION,
+    promptVersion: PROMPT_VERSION,
   });
   return { status: 'ok', answerCheck, source: 'generated' };
 }

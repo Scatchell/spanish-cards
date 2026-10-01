@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AnswerCheck, NewAnswerCheck } from '../../src/explanations/answer-check-repository.js';
 import { getOrCreateAnswerCheck } from '../../src/explanations/answer-check-service.js';
-import { ANSWER_CHECK_PROMPT_VERSION } from '../../src/explanations/llm.js';
+import { PROMPT_VERSION } from '../../src/prompt-version.js';
 
 const FAKE_CHECK: AnswerCheck = {
   id: 1,
@@ -13,6 +13,7 @@ const FAKE_CHECK: AnswerCheck = {
   suggestedAnswer: 'me llamo',
   feedbackPoints: ['valid alternative'], submittedReading: null,
   model: 'gpt-5.4-mini',
+  promptVersion: '1.0.0',
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -29,7 +30,7 @@ describe('getOrCreateAnswerCheck', () => {
     const result = await getOrCreateAnswerCheck(
       {
         findAnswerCheck: async () => FAKE_CHECK,
-        insertAnswerCheck: vi.fn(),
+        upsertAnswerCheck: vi.fn(),
         generate,
       },
       INPUT,
@@ -43,7 +44,7 @@ describe('getOrCreateAnswerCheck', () => {
     const result = await getOrCreateAnswerCheck(
       {
         findAnswerCheck: async () => null,
-        insertAnswerCheck: async (input) => {
+        upsertAnswerCheck: async (input) => {
           inserted.push(input);
           return { ...FAKE_CHECK, ...input };
         },
@@ -64,14 +65,14 @@ describe('getOrCreateAnswerCheck', () => {
     expect(inserted[0]?.submittedNormalized).toBe('me llamo');
   });
 
-  it('scopes the cache lookup and insert to the current prompt version', async () => {
+  it('looks up by content key only and stamps the upserted row with PROMPT_VERSION', async () => {
     const findAnswerCheck = vi.fn().mockResolvedValue(null);
-    const inserted: NewAnswerCheck[] = [];
+    const upserted: NewAnswerCheck[] = [];
     await getOrCreateAnswerCheck(
       {
         findAnswerCheck,
-        insertAnswerCheck: async (input) => {
-          inserted.push(input);
+        upsertAnswerCheck: async (input) => {
+          upserted.push(input);
           return { ...FAKE_CHECK, ...input };
         },
         generate: async () => ({
@@ -82,17 +83,20 @@ describe('getOrCreateAnswerCheck', () => {
       },
       INPUT,
     );
-    expect(findAnswerCheck).toHaveBeenCalledWith(
-      expect.objectContaining({ promptVersion: ANSWER_CHECK_PROMPT_VERSION }),
-    );
-    expect(inserted[0]?.promptVersion).toBe(ANSWER_CHECK_PROMPT_VERSION);
+    expect(findAnswerCheck).toHaveBeenCalledWith({
+      spanishText: 'me llamo',
+      englishText: 'my name is',
+      direction: 'english-to-spanish',
+      submittedNormalized: 'me llamo',
+    });
+    expect(upserted[0]?.promptVersion).toBe(PROMPT_VERSION);
   });
 
   it('returns unavailable when generate is null', async () => {
     const result = await getOrCreateAnswerCheck(
       {
         findAnswerCheck: async () => null,
-        insertAnswerCheck: vi.fn(),
+        upsertAnswerCheck: vi.fn(),
         generate: null,
       },
       INPUT,
@@ -105,7 +109,7 @@ describe('getOrCreateAnswerCheck', () => {
       getOrCreateAnswerCheck(
         {
           findAnswerCheck: async () => null,
-          insertAnswerCheck: vi.fn(),
+          upsertAnswerCheck: vi.fn(),
           generate: async () => {
             throw new Error('API error');
           },
@@ -124,7 +128,7 @@ describe('getOrCreateAnswerCheck', () => {
     await getOrCreateAnswerCheck(
       {
         findAnswerCheck: async () => null,
-        insertAnswerCheck: async (input) => ({ ...FAKE_CHECK, ...input }),
+        upsertAnswerCheck: async (input) => ({ ...FAKE_CHECK, ...input }),
         generate,
       },
       { ...INPUT, direction: 'spanish-to-english', submittedAnswer: 'my name is' },
@@ -145,7 +149,7 @@ describe('getOrCreateAnswerCheck', () => {
     await getOrCreateAnswerCheck(
       {
         findAnswerCheck: async () => null,
-        insertAnswerCheck: async (input) => ({ ...FAKE_CHECK, ...input }),
+        upsertAnswerCheck: async (input) => ({ ...FAKE_CHECK, ...input }),
         generate,
       },
       { ...INPUT, direction: 'english-to-spanish', submittedAnswer: 'me llamo' },

@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { Explanation, NewExplanation } from '../../src/explanations/repository.js';
 import { getOrCreateExplanation } from '../../src/explanations/service.js';
+import { PROMPT_VERSION } from '../../src/prompt-version.js';
 
 const FAKE_EXPLANATION: Explanation = {
   id: 1,
@@ -8,6 +9,7 @@ const FAKE_EXPLANATION: Explanation = {
   englishText: 'my name is',
   contentMarkdown: '- **me llamo** = "I call myself"',
   model: 'gpt-5.4-mini',
+  promptVersion: '1.0.0',
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -17,7 +19,7 @@ describe('getOrCreateExplanation', () => {
     const result = await getOrCreateExplanation(
       {
         findExplanation: async () => FAKE_EXPLANATION,
-        insertExplanation: vi.fn(),
+        upsertExplanation: vi.fn(),
         generate,
       },
       'me llamo',
@@ -32,7 +34,7 @@ describe('getOrCreateExplanation', () => {
     const result = await getOrCreateExplanation(
       {
         findExplanation: async () => null,
-        insertExplanation: async (input) => {
+        upsertExplanation: async (input) => {
           inserted.push(input);
           return { ...FAKE_EXPLANATION, ...input };
         },
@@ -47,13 +49,14 @@ describe('getOrCreateExplanation', () => {
       expect(result.explanation.contentMarkdown).toBe('- stubbed');
     }
     expect(inserted).toHaveLength(1);
+    expect(inserted[0]?.promptVersion).toBe(PROMPT_VERSION);
   });
 
   it('returns unavailable when generate is null', async () => {
     const result = await getOrCreateExplanation(
       {
         findExplanation: async () => null,
-        insertExplanation: vi.fn(),
+        upsertExplanation: vi.fn(),
         generate: null,
       },
       'me llamo',
@@ -67,7 +70,7 @@ describe('getOrCreateExplanation', () => {
       getOrCreateExplanation(
         {
           findExplanation: async () => null,
-          insertExplanation: vi.fn(),
+          upsertExplanation: vi.fn(),
           generate: async () => {
             throw new Error('API error');
           },

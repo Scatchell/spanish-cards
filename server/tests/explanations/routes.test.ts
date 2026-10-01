@@ -27,6 +27,7 @@ const FAKE_EXPLANATION: Explanation = {
   englishText: 'my name is',
   contentMarkdown: '- **me llamo** = "I call myself"',
   model: 'gpt-5.4-mini',
+  promptVersion: '1.0.0',
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -116,7 +117,7 @@ describe('POST /:id/explanation', () => {
       {
         getCard: async () => FAKE_CARD,
         findExplanation: async () => null,
-        insertExplanation: vi.fn(),
+        upsertExplanation: vi.fn(),
       },
       async () => {
         throw new Error('API down');
@@ -133,7 +134,7 @@ describe('POST /:id/explanation', () => {
       {
         getCard: async () => FAKE_CARD,
         findExplanation: async () => null,
-        insertExplanation: async () => FAKE_EXPLANATION,
+        upsertExplanation: async () => FAKE_EXPLANATION,
       },
       async () => '- stubbed',
     );
@@ -170,7 +171,7 @@ describe('POST /:id/explanation', () => {
       {
         getCard,
         findExplanation: async () => null,
-        insertExplanation: async () => FAKE_EXPLANATION,
+        upsertExplanation: async () => FAKE_EXPLANATION,
       },
       async (spanish: string, english: string) => `explaining ${spanish} / ${english}`,
     );
@@ -357,6 +358,7 @@ describe('POST /:id/explanation/answer-check', () => {
     feedbackPoints: ['**wrong**: stubbed critique'],
     submittedReading: null,
     model: 'gpt-5.4-mini',
+    promptVersion: '1.0.0',
     createdAt: '2026-01-01T00:00:00.000Z',
   };
 
@@ -395,7 +397,7 @@ describe('POST /:id/explanation/answer-check', () => {
       {
         getCard: async () => FAKE_CARD,
         findAnswerCheck: async () => null,
-        insertAnswerCheck: async () => FAKE_ANSWER_CHECK,
+        upsertAnswerCheck: async () => FAKE_ANSWER_CHECK,
       },
       null,
       null,
@@ -455,7 +457,7 @@ describe('POST /:id/explanation/answer-check', () => {
       {
         getCard: async () => FAKE_CARD,
         findAnswerCheck: async () => null,
-        insertAnswerCheck: vi.fn(),
+        upsertAnswerCheck: vi.fn(),
       },
       null,
       null,
@@ -474,7 +476,7 @@ describe('POST /:id/explanation/answer-check', () => {
       {
         getCard: async () => FAKE_CARD,
         findAnswerCheck: async () => null,
-        insertAnswerCheck: async () => FAKE_ANSWER_CHECK,
+        upsertAnswerCheck: async () => FAKE_ANSWER_CHECK,
       },
       null,
       null,
@@ -504,7 +506,7 @@ describe('POST /:id/explanation/answer-check', () => {
       {
         getCard: async () => FAKE_CARD,
         findAnswerCheck: async () => null,
-        insertAnswerCheck: async (input) => ({ ...FAKE_ANSWER_CHECK, ...input }),
+        upsertAnswerCheck: async (input) => ({ ...FAKE_ANSWER_CHECK, ...input }),
       },
       null,
       null,
@@ -548,7 +550,7 @@ describe('POST /:id/explanation/answer-check', () => {
       {
         getCard,
         findAnswerCheck: async () => null,
-        insertAnswerCheck: async () => FAKE_ANSWER_CHECK,
+        upsertAnswerCheck: async () => FAKE_ANSWER_CHECK,
       },
       null,
       null,

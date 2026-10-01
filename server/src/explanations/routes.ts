@@ -3,9 +3,9 @@ import { getUserId } from '../auth/middleware.js';
 import type { DbPool } from '../db.js';
 import { getCard } from '../cards/repository.js';
 import type { Card } from '../cards/repository.js';
-import { findExplanation, insertExplanation } from './repository.js';
+import { findExplanation, upsertExplanation } from './repository.js';
 import type { Explanation, NewExplanation } from './repository.js';
-import { findAnswerCheck, insertAnswerCheck } from './answer-check-repository.js';
+import { findAnswerCheck, upsertAnswerCheck } from './answer-check-repository.js';
 import type {
   AnswerCheck,
   AnswerCheckDirection,
@@ -25,9 +25,9 @@ const DIRECTIONS: readonly AnswerCheckDirection[] = ['spanish-to-english', 'engl
 export interface ExplanationRouteDeps {
   getCard: (userId: number, id: number) => Promise<Card | null>;
   findExplanation: (spanish: string, english: string) => Promise<Explanation | null>;
-  insertExplanation: (input: NewExplanation) => Promise<Explanation>;
+  upsertExplanation: (input: NewExplanation) => Promise<Explanation>;
   findAnswerCheck: (key: AnswerCheckKey) => Promise<AnswerCheck | null>;
-  insertAnswerCheck: (input: NewAnswerCheck) => Promise<AnswerCheck>;
+  upsertAnswerCheck: (input: NewAnswerCheck) => Promise<AnswerCheck>;
   followUp?: FollowUpGenerator | null;
   answerCheck?: AnswerCheckGenerator | null;
 }
@@ -79,10 +79,10 @@ export function explanationRoutes(
     getCard: overrides?.getCard ?? ((userId, cardId) => getCard(pool, userId, cardId)),
     findExplanation:
       overrides?.findExplanation ?? ((spanish, english) => findExplanation(pool, spanish, english)),
-    insertExplanation:
-      overrides?.insertExplanation ?? ((input) => insertExplanation(pool, input)),
+    upsertExplanation:
+      overrides?.upsertExplanation ?? ((input) => upsertExplanation(pool, input)),
     findAnswerCheck: overrides?.findAnswerCheck ?? ((key) => findAnswerCheck(pool, key)),
-    insertAnswerCheck: overrides?.insertAnswerCheck ?? ((input) => insertAnswerCheck(pool, input)),
+    upsertAnswerCheck: overrides?.upsertAnswerCheck ?? ((input) => upsertAnswerCheck(pool, input)),
     followUp: overrides?.followUp !== undefined ? overrides.followUp : followUp,
     answerCheck: overrides?.answerCheck !== undefined ? overrides.answerCheck : answerCheck,
   };
@@ -113,7 +113,7 @@ export function explanationRoutes(
       result = await getOrCreateExplanation(
         {
           findExplanation: deps.findExplanation,
-          insertExplanation: deps.insertExplanation,
+          upsertExplanation: deps.upsertExplanation,
           generate: generator,
         },
         texts.spanishText,
@@ -246,7 +246,7 @@ export function explanationRoutes(
       result = await getOrCreateAnswerCheck(
         {
           findAnswerCheck: deps.findAnswerCheck,
-          insertAnswerCheck: deps.insertAnswerCheck,
+          upsertAnswerCheck: deps.upsertAnswerCheck,
           generate: deps.answerCheck,
         },
         {
