@@ -64,8 +64,11 @@ Key facts:
   port in one place only.
 - `docker-compose.yml` interpolation defaults (`${VAR:-default}`) target prod
   values (app 4100); the per-env `--env-file` overrides them.
-- `.env` here contains only dev settings. Log in by running
-  `pnpm user:reset-link scatchell@gmail.com` and opening the link. Real
+- `.env` here contains only dev settings. For browser testing, log in to the
+  dev app as `test@gmail.com` / `password` (a throwaway account). **Never
+  reset or change the password for `scatchell@gmail.com`** — that is the
+  owner's real dev account; if the test account ever needs a new password, use
+  `pnpm user:reset-link test@gmail.com`. Real
   secrets live only in the prod checkout's `.prod-env` / `.prod.app.env`;
   never read those.
 - Each `.example` file must stay in sync with its real counterpart's keys.
