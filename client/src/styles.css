@@ -76,6 +76,7 @@ button.danger.subtle:focus-visible {
 }
 
 input[type='text'],
+input[type='email'],
 input[type='password'] {
   font: inherit;
   width: 100%;
@@ -84,6 +85,14 @@ input[type='password'] {
   border-radius: var(--radius);
   background: #fff;
   min-height: 44px;
+}
+
+input[type='text']:focus-visible,
+input[type='email']:focus-visible,
+input[type='password']:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgb(179 84 30 / 18%);
 }
 
 input[aria-invalid='true'] {
@@ -99,6 +108,58 @@ label {
 }
 
 /* ---- Login ---- */
+
+/* A second card peeks out behind the form, like the top of a flashcard deck. */
+.login-stack {
+  position: relative;
+  isolation: isolate;
+  width: min(23rem, 100%);
+}
+
+.login-stack::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: var(--surface-muted);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  transform: rotate(-3deg) translate(-0.4rem, 0.5rem);
+}
+
+.login-stack .login-form {
+  width: 100%;
+  gap: 1.1rem;
+  padding: 2.25rem 2rem 2rem;
+}
+
+.login-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+
+.login-heading h1 {
+  font-size: 1.6rem;
+  letter-spacing: -0.01em;
+}
+
+.login-heading p {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+.login-stack label {
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: var(--text);
+}
+
+.login-stack button[type='submit'] {
+  margin-top: 0.4rem;
+  font-weight: 600;
+}
 
 .centered-page {
   min-height: 100dvh;

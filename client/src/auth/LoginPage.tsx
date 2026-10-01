@@ -24,36 +24,41 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
 
   return (
     <main className="centered-page">
-      <form className="login-form" onSubmit={handleSubmit}>
-        <h1>Spanish Cards</h1>
-        <label>
-          Email
-          <input
-            type="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="username"
-            autoFocus
-          />
-        </label>
-        <label>
-          Password
-          <input
-            type="password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            autoComplete="current-password"
-          />
-        </label>
-        {error && (
-          <p className="form-error" role="alert">
-            {error}
-          </p>
-        )}
-        <button type="submit" disabled={submitting}>
-          {submitting ? 'Logging in…' : 'Log in'}
-        </button>
-      </form>
+      <div className="login-stack">
+        <form className="login-form" onSubmit={handleSubmit}>
+          <div className="login-heading">
+            <h1>Spanish Cards</h1>
+            <p>Log in to keep practicing.</p>
+          </div>
+          <label>
+            Email
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete="username"
+              autoFocus
+            />
+          </label>
+          <label>
+            Password
+            <input
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete="current-password"
+            />
+          </label>
+          {error && (
+            <p className="form-error" role="alert">
+              {error}
+            </p>
+          )}
+          <button type="submit" disabled={submitting}>
+            {submitting ? 'Logging in…' : 'Log in'}
+          </button>
+        </form>
+      </div>
     </main>
   );
 }
