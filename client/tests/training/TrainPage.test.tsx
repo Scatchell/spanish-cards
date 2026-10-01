@@ -69,7 +69,7 @@ describe('TrainPage Adopt', () => {
     fireEvent.click(await screen.findByRole('button', { name: /Explain/ }));
     await screen.findByText('Explanation');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Explain more' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Compare my answer' }));
     fireEvent.click(await screen.findByText('Adopt'));
 
     await waitFor(() => expect(fetchExplanation).toHaveBeenCalled());
@@ -100,7 +100,7 @@ describe('TrainPage Adopt', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Explain/ }));
     await screen.findByText('Explanation');
-    fireEvent.click(screen.getByRole('button', { name: 'Explain more' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Compare my answer' }));
     fireEvent.click(await screen.findByText('Adopt'));
 
     await waitFor(() => expect(addAlternateAnswer).toHaveBeenCalled());

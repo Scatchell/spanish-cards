@@ -162,7 +162,7 @@ docker compose --profile app run --rm app \
   `1` Hard, `2` Good, `3` Easy.
 - After a reveal, `Explain` (or pressing `E`) opens an LLM-backed modal that
   breaks down the card and answers follow-up questions. On an incorrect typed
-  answer, `Explain more` (or pressing `E` again in the modal) additionally
+  answer, `Compare my answer` (or pressing `E` again in the modal) additionally
   checks *your* submission: it shows a critique and, when your wording is a
   valid/better translation, an `Adopt` button that pre-fills the inline answer
   edit with the suggested wording (Enter/blur to save). Results are cached in

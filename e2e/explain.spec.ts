@@ -183,7 +183,7 @@ test('Follow-up: ask a question, see answer block, second question replaces firs
   await expect(page.locator('.followup-answer')).toHaveCount(0);
 });
 
-test('Explain more: absent for a correct answer, present for an incorrect one', async ({
+test('Compare my answer: absent for a correct answer, present for an incorrect one', async ({
   page,
 }) => {
   // Two cards so we can rate the first (advancing) and check the second without
@@ -193,27 +193,27 @@ test('Explain more: absent for a correct answer, present for an incorrect one', 
   await page.goto('/train');
   await expect(page.locator('.train-prompt')).toHaveText('my name is');
 
-  // Correct answer (english-to-spanish: prompt english, type spanish) — no Explain more
+  // Correct answer (english-to-spanish: prompt english, type spanish) — no Compare my answer
   await page.getByLabel(/Your answer/).fill('me llamo');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Explain' }).click();
   const modal = page.getByRole('dialog');
   await expect(modal).toBeVisible();
-  await expect(modal.getByRole('button', { name: 'Explain more' })).toHaveCount(0);
+  await expect(modal.getByRole('button', { name: 'Compare my answer' })).toHaveCount(0);
   await page.getByRole('button', { name: 'Close' }).click();
 
   // Rate it Good to advance to the second card
   await page.keyboard.press('2');
   await expect(page.locator('.train-prompt')).toHaveText('the house');
 
-  // Incorrect answer on the second card — Explain more is present
+  // Incorrect answer on the second card — Compare my answer is present
   await page.getByLabel(/Your answer/).fill('la kasa wrong');
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Explain' }).click();
-  await expect(modal.getByRole('button', { name: 'Explain more' })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Compare my answer' })).toBeVisible();
 });
 
-test('Explain more: invalid critique shown, no Adopt, cached on reopen', async ({ page }) => {
+test('Compare my answer: invalid critique shown, no Adopt, cached on reopen', async ({ page }) => {
   await createCard(page, 'me llamo', 'my name is');
   await page.goto('/train');
   await page.getByLabel(/Your answer/).fill('me yamo');
@@ -222,7 +222,7 @@ test('Explain more: invalid critique shown, no Adopt, cached on reopen', async (
   const modal = page.getByRole('dialog');
   await expect(modal).toContainText('stubbed');
 
-  await modal.getByRole('button', { name: 'Explain more' }).click();
+  await modal.getByRole('button', { name: 'Compare my answer' }).click();
   await expect(modal.locator('.answer-check-result')).toContainText('stubbed critique');
   await expect(modal.getByRole('button', { name: 'Adopt' })).toHaveCount(0);
 
@@ -231,13 +231,13 @@ test('Explain more: invalid critique shown, no Adopt, cached on reopen', async (
   await page.getByRole('button', { name: 'Close' }).click();
   await expect(modal).toHaveCount(0);
   await page.getByRole('button', { name: 'Explain' }).click();
-  await modal.getByRole('button', { name: 'Explain more' }).click();
+  await modal.getByRole('button', { name: 'Compare my answer' }).click();
   await expect(modal.locator('.answer-check-result')).toContainText('stubbed critique');
   const countAfterReopen = await stubRequestCount(page);
   expect(countAfterReopen).toBe(countBeforeReopen);
 });
 
-test('Explain more: valid verdict → Adopt adds the suggestion as an alternate, primary unchanged', async ({
+test('Compare my answer: valid verdict → Adopt adds the suggestion as an alternate, primary unchanged', async ({
   page,
 }) => {
   await createCard(page, 'me llamo', 'my name is');
@@ -246,7 +246,7 @@ test('Explain more: valid verdict → Adopt adds the suggestion as an alternate,
   await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Explain' }).click();
   const modal = page.getByRole('dialog');
-  await modal.getByRole('button', { name: 'Explain more' }).click();
+  await modal.getByRole('button', { name: 'Compare my answer' }).click();
 
   // Valid framing + Adopt visible
   await expect(modal).toContainText('valid alternative');
@@ -269,7 +269,7 @@ test('Explain more: valid verdict → Adopt adds the suggestion as an alternate,
   expect(card?.spanishAlternates.some((a) => a.text === 'la mejor versión')).toBe(true);
 });
 
-test('Explain more: pressing E while the modal is open triggers the check', async ({ page }) => {
+test('Compare my answer: pressing E while the modal is open triggers the check', async ({ page }) => {
   await createCard(page, 'me llamo', 'my name is');
   await page.goto('/train');
   await page.getByLabel(/Your answer/).fill('me yamo');
@@ -284,7 +284,7 @@ test('Explain more: pressing E while the modal is open triggers the check', asyn
   await expect(modal).toBeVisible();
 });
 
-test('Explain more: answer-check failure is isolated from the base explanation', async ({
+test('Compare my answer: answer-check failure is isolated from the base explanation', async ({
   page,
 }) => {
   await createCard(page, 'hola', 'hello');
@@ -297,8 +297,8 @@ test('Explain more: answer-check failure is isolated from the base explanation',
   // Base explanation still renders
   await expect(modal).toContainText('stubbed');
 
-  // Explain more fails with a recoverable inline error + Retry
-  await modal.getByRole('button', { name: 'Explain more' }).click();
+  // Compare my answer fails with a recoverable inline error + Retry
+  await modal.getByRole('button', { name: 'Compare my answer' }).click();
   await expect(modal.getByRole('alert')).toContainText("Couldn't check that answer");
   await expect(modal.getByRole('button', { name: 'Retry' })).toBeVisible();
 });

@@ -1121,7 +1121,7 @@ button.rating.emphasized {
   color: var(--text-muted);
 }
 
-/* ---- Explain more (answer check) ---- */
+/* ---- Compare my answer (answer check) ---- */
 
 .answer-check {
   margin-top: 1.25rem;

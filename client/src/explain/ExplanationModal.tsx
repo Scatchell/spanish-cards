@@ -50,10 +50,10 @@ export function ExplanationModal({
   const followUpInputRef = useRef<HTMLInputElement | null>(null);
   const followUpRef = useRef<HTMLDivElement | null>(null);
 
-  // "Explain more": an LLM check of the learner's actual submitted answer. Only
+  // "Compare my answer": an LLM check of the learner's actual submitted answer. Only
   // meaningful for an `incorrect` typed submission from the Train flow, so it is
   // absent whenever the modal is opened without those props (Learn / retry).
-  const canExplainMore =
+  const canCompareAnswer =
     verdict === 'incorrect' &&
     submittedAnswer !== undefined &&
     direction !== undefined &&
@@ -74,7 +74,7 @@ export function ExplanationModal({
   }, [followUpState, answerMarkdown]);
 
   function runAnswerCheck() {
-    if (!canExplainMore) return;
+    if (!canCompareAnswer) return;
     if (answerCheckState !== 'idle' && answerCheckState !== 'error') return;
 
     answerCheckAbortRef.current?.abort();
@@ -131,18 +131,18 @@ export function ExplanationModal({
         event.target instanceof HTMLTextAreaElement
       )
         return;
-      if (event.code === 'KeyE' && canExplainMore) {
+      if (event.code === 'KeyE' && canCompareAnswer) {
         event.preventDefault();
         runAnswerCheck();
       }
     }
     window.addEventListener('keydown', onKeyDown, { capture: true });
     return () => window.removeEventListener('keydown', onKeyDown, { capture: true });
-  }, [onClose, canExplainMore, answerCheckState]);
+  }, [onClose, canCompareAnswer, answerCheckState]);
 
   // Everything currently visible to the learner in this modal, so a follow-up
   // question is answered with full context — not just the base explanation —
-  // whenever "Explain more" has also been run and is showing a critique.
+  // whenever "Compare my answer" has also been run and is showing a critique.
   function visibleExplanationContext(): string {
     const sections = [markdown];
     if (answerCheckState === 'ready' && answerCheck) {
@@ -213,7 +213,7 @@ export function ExplanationModal({
               Sorry! Something went wrong with this explanation — please try again later.
             </p>
           )}
-          {canExplainMore && answerCheckState !== 'idle' && (
+          {canCompareAnswer && answerCheckState !== 'idle' && (
             <div className="answer-check" ref={answerCheckRef}>
               {answerCheckState === 'loading' && (
                 <p className="hint answer-check-loading">Checking your answer…</p>
@@ -265,19 +265,19 @@ export function ExplanationModal({
             </div>
           )}
         </div>
-        {(canExplainMore || state === 'ready') && (
+        {(canCompareAnswer || state === 'ready') && (
           <div className="explanation-modal-footer">
-            {canExplainMore && answerCheckState === 'idle' && (
+            {canCompareAnswer && answerCheckState === 'idle' && (
               <button
                 type="button"
                 className="explain-button answer-check-trigger"
-                aria-label="Explain more"
+                aria-label="Compare my answer"
                 onClick={runAnswerCheck}
               >
-                Explain more <span className="shortcut-hint">(E)</span>
+                Compare my answer <span className="shortcut-hint">(E)</span>
               </button>
             )}
-            {canExplainMore && answerCheckState === 'error' && (
+            {canCompareAnswer && answerCheckState === 'error' && (
               <button
                 type="button"
                 className="secondary answer-check-retry"
