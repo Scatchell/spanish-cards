@@ -36,6 +36,15 @@ import {
   withCardsIncluded,
 } from './selection.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
+import {
+  AccountLink,
+  BackLink,
+  HeaderSeparator,
+  LogoutButton,
+  MistakesLink,
+  ProgressLink,
+  TrainLink,
+} from '../nav/HeaderItems.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -152,24 +161,14 @@ export function LearnPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       <header className="app-header">
         <h1>Learn</h1>
         <HeaderMenu>
-          <Link to="/" className="back-link">
-            Back to cards
-          </Link>
-          <Link to="/train" className="train-link">
-            Train
-          </Link>
-          <Link to="/progress" className="progress-link">
-            Progress
-          </Link>
-          <Link to="/mistakes" className="mistakes-link">
-            Mistakes
-          </Link>
-          <Link to="/account" className="account-link">
-            Account
-          </Link>
-          <button type="button" className="secondary" onClick={handleLogout}>
-            Log out
-          </button>
+          <BackLink to="/" destination="cards" />
+          <HeaderSeparator />
+          <TrainLink />
+          <ProgressLink />
+          <MistakesLink />
+          <HeaderSeparator />
+          <AccountLink />
+          <LogoutButton onClick={handleLogout} />
         </HeaderMenu>
       </header>
 

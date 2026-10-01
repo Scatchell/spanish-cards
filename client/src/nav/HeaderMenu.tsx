@@ -1,3 +1,4 @@
+import { Menu, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
@@ -38,7 +39,7 @@ export function HeaderMenu({ children }: { children: ReactNode }) {
         aria-controls="header-menu-actions"
         onClick={() => setOpen((o) => !o)}
       >
-        <span aria-hidden="true">{open ? '✕' : '☰'}</span>
+        {open ? <X size={22} /> : <Menu size={22} />}
       </button>
       <div
         id="header-menu-actions"

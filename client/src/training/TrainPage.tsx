@@ -35,6 +35,15 @@ import {
 } from './queue.js';
 import type { TrainingSession } from './queue.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
+import {
+  AccountLink,
+  BackLink,
+  HeaderSeparator,
+  LearnLink,
+  LogoutButton,
+  MistakesLink,
+  ProgressLink,
+} from '../nav/HeaderItems.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -254,24 +263,14 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       <header className="app-header">
         <h1>Training</h1>
         <HeaderMenu>
-          <Link to="/" className="back-link">
-            Back to cards
-          </Link>
-          <Link to="/learn" className="learn-link">
-            Learn
-          </Link>
-          <Link to="/progress" className="progress-link">
-            Progress
-          </Link>
-          <Link to="/mistakes" className="mistakes-link">
-            Mistakes
-          </Link>
-          <Link to="/account" className="account-link">
-            Account
-          </Link>
-          <button type="button" className="secondary" onClick={handleLogout}>
-            Log out
-          </button>
+          <BackLink to="/" destination="cards" />
+          <HeaderSeparator />
+          <LearnLink />
+          <ProgressLink />
+          <MistakesLink />
+          <HeaderSeparator />
+          <AccountLink />
+          <LogoutButton onClick={handleLogout} />
         </HeaderMenu>
       </header>
 

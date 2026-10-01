@@ -5,6 +5,15 @@ import type { Category, CategoryCount, CategoryMistake } from '../api.js';
 import { ApiError, fetchCategorizationMistakes, fetchCategorizationSummary, logout } from '../api.js';
 import { CATEGORY_INFO } from './categoryInfo.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
+import {
+  AccountLink,
+  BackLink,
+  HeaderSeparator,
+  LearnLink,
+  LogoutButton,
+  ProgressLink,
+  TrainLink,
+} from '../nav/HeaderItems.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -124,24 +133,14 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       <header className="app-header">
         <h1>Mistakes</h1>
         <HeaderMenu>
-          <Link to="/" className="back-link">
-            Back to cards
-          </Link>
-          <Link to="/learn" className="learn-link">
-            Learn
-          </Link>
-          <Link to="/train" className="train-link">
-            Train
-          </Link>
-          <Link to="/progress" className="progress-link">
-            Progress
-          </Link>
-          <Link to="/account" className="account-link">
-            Account
-          </Link>
-          <button type="button" className="secondary" onClick={handleLogout}>
-            Log out
-          </button>
+          <BackLink to="/" destination="cards" />
+          <HeaderSeparator />
+          <LearnLink />
+          <TrainLink />
+          <ProgressLink />
+          <HeaderSeparator />
+          <AccountLink />
+          <LogoutButton onClick={handleLogout} />
         </HeaderMenu>
       </header>
 

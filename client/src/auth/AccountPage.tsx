@@ -1,8 +1,12 @@
 import { useEffect, useState } from 'react';
 import type { SubmitEvent } from 'react';
-import { Link } from 'react-router-dom';
 import { ApiError, changePassword, getMe, logout } from '../api.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
+import {
+  CardsLink,
+  HeaderSeparator,
+  LogoutButton,
+} from '../nav/HeaderItems.js';
 
 export function AccountPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [email, setEmail] = useState<string | null>(null);
@@ -54,10 +58,9 @@ export function AccountPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       <header className="app-header">
         <h1>Account</h1>
         <HeaderMenu>
-          <Link to="/">Cards</Link>
-          <button type="button" className="secondary" onClick={handleLogout}>
-            Log out
-          </button>
+          <CardsLink />
+          <HeaderSeparator />
+          <LogoutButton onClick={handleLogout} />
         </HeaderMenu>
       </header>
       <main>

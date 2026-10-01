@@ -4,6 +4,15 @@ import type { DayActivity, ProgressSummary } from '../api.js';
 import { ApiError, fetchProgress, logout } from '../api.js';
 import { formatPercent } from '../format.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
+import {
+  AccountLink,
+  BackLink,
+  HeaderSeparator,
+  LearnLink,
+  LogoutButton,
+  MistakesLink,
+  TrainLink,
+} from '../nav/HeaderItems.js';
 
 type LoadState = 'loading' | 'ready' | 'error';
 
@@ -41,24 +50,14 @@ export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       <header className="app-header">
         <h1>Progress</h1>
         <HeaderMenu>
-          <Link to="/" className="back-link">
-            Back to cards
-          </Link>
-          <Link to="/learn" className="learn-link">
-            Learn
-          </Link>
-          <Link to="/train" className="train-link">
-            Train
-          </Link>
-          <Link to="/mistakes" className="mistakes-link">
-            Mistakes
-          </Link>
-          <Link to="/account" className="account-link">
-            Account
-          </Link>
-          <button type="button" className="secondary" onClick={handleLogout}>
-            Log out
-          </button>
+          <BackLink to="/" destination="cards" />
+          <HeaderSeparator />
+          <LearnLink />
+          <TrainLink />
+          <MistakesLink />
+          <HeaderSeparator />
+          <AccountLink />
+          <LogoutButton onClick={handleLogout} />
         </HeaderMenu>
       </header>
 

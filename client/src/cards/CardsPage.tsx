@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useReducer, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
 import type { Card } from '../api.js';
 import { ApiError, deleteCardById, listCards, logout, saveCardBatch } from '../api.js';
 import { CardDueStatus } from './CardDueStatus.js';
@@ -7,6 +6,15 @@ import { draftsReducer, initialDraftsState, submittableDrafts } from './drafts.j
 import { sortCards } from './sort.js';
 import { DraftCardRow } from './DraftCardRow.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
+import {
+  AccountLink,
+  HeaderSeparator,
+  LearnLink,
+  LogoutButton,
+  MistakesLink,
+  ProgressLink,
+  TrainLink,
+} from '../nav/HeaderItems.js';
 
 export const NEW_CARD_SHORTCUT_LABEL = 'Shift+Enter';
 
@@ -117,24 +125,13 @@ export function CardsPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       <header className="app-header">
         <h1>Spanish Cards</h1>
         <HeaderMenu>
-          <Link to="/learn" className="learn-link">
-            Learn
-          </Link>
-          <Link to="/train" className="train-link">
-            Train
-          </Link>
-          <Link to="/progress" className="progress-link">
-            Progress
-          </Link>
-          <Link to="/mistakes" className="mistakes-link">
-            Mistakes
-          </Link>
-          <Link to="/account" className="account-link">
-            Account
-          </Link>
-          <button type="button" className="secondary" onClick={handleLogout}>
-            Log out
-          </button>
+          <LearnLink />
+          <TrainLink />
+          <ProgressLink />
+          <MistakesLink />
+          <HeaderSeparator />
+          <AccountLink />
+          <LogoutButton onClick={handleLogout} />
         </HeaderMenu>
       </header>
 

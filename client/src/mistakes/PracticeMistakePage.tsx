@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import type { PracticeSessionDto } from '../api.js';
 import { ApiError, fetchPracticeSession, generatePracticeSession, logout } from '../api.js';
 import { LearningSessionView } from '../learning/LearningSessionView.js';
@@ -14,6 +14,12 @@ import {
 import { PracticeSourceModal } from './PracticeSourceModal.js';
 import { sentencesToCards } from './practiceCards.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
+import {
+  AccountLink,
+  BackLink,
+  HeaderSeparator,
+  LogoutButton,
+} from '../nav/HeaderItems.js';
 
 type LoadState = 'loading' | 'ready' | 'unavailable' | 'error';
 
@@ -117,15 +123,10 @@ export function PracticeMistakePage({ onLoggedOut }: { onLoggedOut: () => void }
       <header className="app-header">
         <h1>Practice this mistake</h1>
         <HeaderMenu>
-          <Link to="/mistakes" className="back-link">
-            Back to mistakes
-          </Link>
-          <Link to="/account" className="account-link">
-            Account
-          </Link>
-          <button type="button" className="secondary" onClick={handleLogout}>
-            Log out
-          </button>
+          <BackLink to="/mistakes" destination="mistakes" />
+          <HeaderSeparator />
+          <AccountLink />
+          <LogoutButton onClick={handleLogout} />
         </HeaderMenu>
       </header>
 
