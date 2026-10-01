@@ -38,12 +38,17 @@ the answer the learner actually submitted.
    (missing/extra accents, inverted punctuation, exclamation or question marks,
    capitalization, extra spacing) or likely typos/misspellings as their own bullet or as
    part of why an answer is invalid; those never affect the verdict.
-4. Set submittedReading to your best-effort rendering of exactly what the learner typed:
-   `text` is what they typed, corrected only for spelling/accents/punctuation/spacing
-   (never for grammar or word choice); `translation` is what those words actually mean
-   in the other language, as a native speaker would understand them. Example: text "No
-   me da cuenta", translation "I don't realize". Do not include the correct phrase or any
-   comparison — the app shows that itself. If the learner's answer is unintelligible or
-   empty, set submittedReading to null.
-5. Set suggestedAnswer to the exact wording to store on the card ONLY when verdict is
-   "valid" (otherwise null). Keep suggestedAnswer a single line, at most 70 characters.
+4. Set submittedReading to your best-effort rendering of exactly what the learner typed.
+   `text` is the learner's own words with ONLY these surface fixes: likely
+   typos/misspellings, missing or wrong accent marks, punctuation (including Spanish ¿ ¡),
+   extra or missing spaces, and capitalization and end punctuation matching the style of
+   the expected answer (e.g. capitalize the first word only if the expected answer does).
+   Never change grammar, word choice, word order, gender, or number, and never swap in
+   wording from the expected answer — even when the expected answer is more natural.
+   When the verdict is "valid", `text` is saved as-is as an accepted alternative answer,
+   so it must be the learner's answer, cleaned up, and nothing else. `translation` is
+   what those words actually mean in the other language, as a native speaker would
+   understand them. Example: typed "no me da cuenta", text "No me da cuenta.",
+   translation "I don't realize." Do not include the correct phrase or any comparison —
+   the app shows that itself. If the learner's answer is unintelligible or empty, set
+   submittedReading to null.

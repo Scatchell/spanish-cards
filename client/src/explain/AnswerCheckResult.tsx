@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown';
 import type { AnswerCheckResponse } from '../api.js';
+import { isDuplicateAnswer } from '../training/answer-check.js';
 
 type AnswerCheck = AnswerCheckResponse['answerCheck'];
 
@@ -8,6 +9,8 @@ interface Props {
   spanishText: string;
   englishText: string;
   direction: 'spanish-to-english' | 'english-to-spanish';
+  // The card's primary + alternate answers for this direction.
+  existingAnswers: string[];
   onAdopt: (suggested: string) => void;
 }
 
@@ -36,6 +39,7 @@ export function AnswerCheckResult({
   spanishText,
   englishText,
   direction,
+  existingAnswers,
   onAdopt,
 }: Props) {
   // The learner typed the answer side; the correct phrase and its translation
@@ -73,17 +77,25 @@ export function AnswerCheckResult({
       </div>
       {answerCheck.verdict === 'valid' && suggestedAnswer && (
         <div className="answer-check-adopt">
-          <p className="answer-check-adopt-lead">
-            Your answer works — here's a cleaner version to save:
-          </p>
-          <p className="answer-check-suggested">{suggestedAnswer}</p>
-          <button
-            type="button"
-            className="answer-check-adopt-button"
-            onClick={() => onAdopt(suggestedAnswer)}
-          >
-            Add as alternative
-          </button>
+          {isDuplicateAnswer(suggestedAnswer, existingAnswers) ? (
+            <p className="answer-check-adopt-lead">
+              Your answer works — it already matches a saved answer.
+            </p>
+          ) : (
+            <>
+              <p className="answer-check-adopt-lead">
+                Your answer works — save it as an alternative:
+              </p>
+              <p className="answer-check-suggested">{suggestedAnswer}</p>
+              <button
+                type="button"
+                className="answer-check-adopt-button"
+                onClick={() => onAdopt(suggestedAnswer)}
+              >
+                Add as alternative
+              </button>
+            </>
+          )}
         </div>
       )}
     </div>

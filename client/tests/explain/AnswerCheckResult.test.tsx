@@ -13,7 +13,11 @@ const BASE = {
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
-function renderResult(overrides = {}, direction: 'spanish-to-english' | 'english-to-spanish' = 'english-to-spanish') {
+function renderResult(
+  overrides = {},
+  direction: 'spanish-to-english' | 'english-to-spanish' = 'english-to-spanish',
+  existingAnswers: string[] = ['No la usarás en mi contra?'],
+) {
   const onAdopt = vi.fn();
   render(
     <AnswerCheckResult
@@ -21,6 +25,7 @@ function renderResult(overrides = {}, direction: 'spanish-to-english' | 'english
       spanishText="No la usarás en mi contra?"
       englishText="Won't you use it against me?"
       direction={direction}
+      existingAnswers={existingAnswers}
       onAdopt={onAdopt}
     />,
   );
@@ -35,6 +40,7 @@ describe('AnswerCheckResult', () => {
         spanishText="s"
         englishText="e"
         direction="english-to-spanish"
+        existingAnswers={[]}
         onAdopt={() => {}}
       />,
     );
@@ -57,6 +63,7 @@ describe('AnswerCheckResult', () => {
         spanishText="la casa"
         englishText="the house"
         direction="spanish-to-english"
+        existingAnswers={[]}
         onAdopt={() => {}}
       />,
     );
@@ -86,5 +93,11 @@ describe('AnswerCheckResult', () => {
     const onAdopt = renderResult({ verdict: 'valid', suggestedAnswer: 'la mejor versión' });
     fireEvent.click(screen.getByRole('button', { name: 'Add as alternative' }));
     expect(onAdopt).toHaveBeenCalledWith('la mejor versión');
+  });
+
+  it('says the answer is already saved instead of offering a duplicate', () => {
+    renderResult({ verdict: 'valid', suggestedAnswer: 'no LA usaras en mi contra' });
+    expect(screen.queryByRole('button', { name: 'Add as alternative' })).toBeNull();
+    expect(screen.getByText(/already matches a saved answer/)).toBeTruthy();
   });
 });

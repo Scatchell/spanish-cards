@@ -75,6 +75,7 @@ export interface AnswerCheckOutput {
 }
 
 const MAX_FEEDBACK_POINTS = 3;
+const MAX_ANSWER_CHARS = 70;
 
 export type AnswerCheckGenerator = (input: {
   promptText: string; // the side shown to the learner
@@ -86,7 +87,7 @@ const ANSWER_CHECK_INSTRUCTIONS = loadPrompt('answer-check.md');
 
 // Part of the answer_checks cache key. Bump whenever answer-check.md changes in
 // a way that could flip verdicts, so stale cached verdicts stop being served.
-export const ANSWER_CHECK_PROMPT_VERSION = 3;
+export const ANSWER_CHECK_PROMPT_VERSION = 4;
 
 // Structured Outputs: the Responses API constrains decoding so the model's JSON
 // literally cannot violate this schema (missing keys, wrong types, an out-of-enum
@@ -96,7 +97,6 @@ const ANSWER_CHECK_SCHEMA = {
   type: 'object',
   properties: {
     verdict: { type: 'string', enum: ['valid', 'invalid'] },
-    suggestedAnswer: { type: ['string', 'null'] },
     feedbackPoints: { type: 'array', items: { type: 'string' } },
     submittedReading: {
       anyOf: [
@@ -110,14 +110,13 @@ const ANSWER_CHECK_SCHEMA = {
       ],
     },
   },
-  required: ['verdict', 'suggestedAnswer', 'feedbackPoints', 'submittedReading'],
+  required: ['verdict', 'feedbackPoints', 'submittedReading'],
   additionalProperties: false,
 } as const;
 
-// The schema guarantees shape and types but can't express the cross-field rule
-// (suggestedAnswer must be null unless verdict is valid), the length cap, or the
-// 1-3 feedbackPoints bound (strict mode has no minItems/maxItems), so those
-// still need a boundary check. Throws on violation so the route maps it
+// The schema guarantees shape and types but can't express the 1-3
+// feedbackPoints bound (strict mode has no minItems/maxItems), so that still
+// needs a boundary check. Throws on violation so the route maps it
 // to a retryable 502.
 export function parseAnswerCheck(raw: string | undefined): AnswerCheckOutput {
   if (!raw || raw.trim() === '') {
@@ -125,7 +124,6 @@ export function parseAnswerCheck(raw: string | undefined): AnswerCheckOutput {
   }
   const obj = JSON.parse(raw) as {
     verdict: 'valid' | 'invalid';
-    suggestedAnswer: string | null;
     feedbackPoints: string[];
     submittedReading: SubmittedReading | null;
   };
@@ -136,13 +134,6 @@ export function parseAnswerCheck(raw: string | undefined): AnswerCheckOutput {
   if (feedbackPoints.length === 0) {
     throw new Error('Answer-check feedback was missing');
   }
-  let suggestedAnswer: string | null = null;
-  if (obj.verdict === 'valid' && typeof obj.suggestedAnswer === 'string') {
-    const trimmed = obj.suggestedAnswer.trim();
-    if (trimmed !== '') {
-      suggestedAnswer = trimmed.slice(0, 70);
-    }
-  }
   // A reading with either half blank is as good as none.
   let submittedReading: SubmittedReading | null = null;
   if (obj.submittedReading) {
@@ -152,6 +143,13 @@ export function parseAnswerCheck(raw: string | undefined): AnswerCheckOutput {
       submittedReading = { text, translation };
     }
   }
+  // The suggestion is the learner's own answer (surface-cleaned in the
+  // reading), never model-chosen wording, so it can't drift to the card's
+  // answer. Too long to store as an alternate means no suggestion.
+  const suggestedAnswer =
+    obj.verdict === 'valid' && submittedReading && submittedReading.text.length <= MAX_ANSWER_CHARS
+      ? submittedReading.text
+      : null;
   return { verdict: obj.verdict, suggestedAnswer, feedbackPoints, submittedReading };
 }
 

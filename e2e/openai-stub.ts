@@ -62,8 +62,8 @@ const server = http.createServer((req, res) => {
       const isFollowUp = input.includes("Learner's question:");
       const text = isAnswerCheck
         ? input.includes('ADOPT-ME')
-          ? '{"verdict":"valid","suggestedAnswer":"la mejor versión","feedbackPoints":["**valid** alternative"],"submittedReading":{"text":"stub typed","translation":"stub translation"}}'
-          : '{"verdict":"invalid","suggestedAnswer":null,"feedbackPoints":["**wrong**: stubbed critique"],"submittedReading":{"text":"stub typed","translation":"stub translation"}}'
+          ? '{"verdict":"valid","feedbackPoints":["**valid** alternative"],"submittedReading":{"text":"la mejor versión","translation":"stub translation"}}'
+          : '{"verdict":"invalid","feedbackPoints":["**wrong**: stubbed critique"],"submittedReading":{"text":"stub typed","translation":"stub translation"}}'
         : isFollowUp
           ? '- **stubbed** follow-up answer'
           : '- **stubbed** explanation for e2e';

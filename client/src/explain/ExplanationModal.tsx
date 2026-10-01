@@ -14,6 +14,9 @@ interface Props {
   submittedAnswer?: string;
   direction?: 'spanish-to-english' | 'english-to-spanish';
   verdict?: Verdict;
+  // The card's primary + alternate answers for `direction`, so an already-saved
+  // suggestion isn't offered again:
+  existingAnswers?: string[];
   // Adopts the suggested wording (closes the modal + pre-fills the inline edit):
   onAdoptAnswer?: (suggested: string) => void;
 }
@@ -38,6 +41,7 @@ export function ExplanationModal({
   submittedAnswer,
   direction,
   verdict,
+  existingAnswers = [],
   onAdoptAnswer,
 }: Props) {
   const [state, setState] = useState<State>('loading');
@@ -233,6 +237,7 @@ export function ExplanationModal({
                   spanishText={spanishText}
                   englishText={englishText}
                   direction={direction!}
+                  existingAnswers={existingAnswers}
                   onAdopt={onAdoptAnswer!}
                 />
               )}

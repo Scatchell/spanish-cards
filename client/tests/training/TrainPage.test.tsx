@@ -56,7 +56,7 @@ beforeEach(() => {
 afterEach(cleanup);
 
 describe('TrainPage Adopt', () => {
-  it('does not call addAlternateAnswer when the suggested answer duplicates the primary', async () => {
+  it('does not offer to add a suggestion that duplicates the primary', async () => {
     render(
       <MemoryRouter>
         <TrainPage onLoggedOut={() => {}} />
@@ -71,9 +71,9 @@ describe('TrainPage Adopt', () => {
     await screen.findByText('Explanation');
 
     fireEvent.click(screen.getByRole('button', { name: 'Compare my answer' }));
-    fireEvent.click(await screen.findByText('Add as alternative'));
+    await screen.findByText(/already matches a saved answer/);
 
-    await waitFor(() => expect(fetchExplanation).toHaveBeenCalled());
+    expect(screen.queryByRole('button', { name: 'Add as alternative' })).toBeNull();
     expect(addAlternateAnswer).not.toHaveBeenCalled();
   });
 

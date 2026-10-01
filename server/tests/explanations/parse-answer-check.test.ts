@@ -4,7 +4,6 @@ import { parseAnswerCheck } from '../../src/explanations/llm.js';
 function raw(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
     verdict: 'invalid',
-    suggestedAnswer: null,
     feedbackPoints: ['Wrong tense.'],
     submittedReading: { text: 'No me da cuenta', translation: "I don't realize" },
     ...overrides,
@@ -30,12 +29,30 @@ describe('parseAnswerCheck', () => {
     expect(() => parseAnswerCheck(raw({ feedbackPoints: ['  '] }))).toThrow(/feedback/);
   });
 
-  it('keeps suggestedAnswer only for a valid verdict, trimmed to 70 characters', () => {
-    expect(parseAnswerCheck(raw({ suggestedAnswer: 'x' })).suggestedAnswer).toBeNull();
-    const long = 'y'.repeat(100);
+  it('suggests nothing for an invalid verdict', () => {
+    expect(parseAnswerCheck(raw()).suggestedAnswer).toBeNull();
+  });
+
+  it("suggests the learner's own cleaned-up reading for a valid verdict", () => {
+    const result = parseAnswerCheck(
+      raw({
+        verdict: 'valid',
+        submittedReading: { text: 'Quiero hacer un omelette para cenar', translation: 'x' },
+        // A stray field from the model must not override the learner's answer.
+        suggestedAnswer: 'Quiero hacer una tortilla para cenar',
+      }),
+    );
+    expect(result.suggestedAnswer).toBe('Quiero hacer un omelette para cenar');
+  });
+
+  it('suggests nothing for a valid verdict without a reading or longer than 70 characters', () => {
     expect(
-      parseAnswerCheck(raw({ verdict: 'valid', suggestedAnswer: long })).suggestedAnswer,
-    ).toHaveLength(70);
+      parseAnswerCheck(raw({ verdict: 'valid', submittedReading: null })).suggestedAnswer,
+    ).toBeNull();
+    const long = { text: 'y'.repeat(71), translation: 'x' };
+    expect(
+      parseAnswerCheck(raw({ verdict: 'valid', submittedReading: long })).suggestedAnswer,
+    ).toBeNull();
   });
 
   it('treats a null or half-blank reading as no reading', () => {

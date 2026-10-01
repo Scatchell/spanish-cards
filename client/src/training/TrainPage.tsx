@@ -401,6 +401,10 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                           submittedAnswer={reveal.submitted}
                           direction={direction}
                           verdict={reveal.result.verdict}
+                          existingAnswers={[
+                            answerText(card, direction),
+                            ...answerAlternates(card, direction).map((a) => a.text),
+                          ]}
                           onAdoptAnswer={(suggested) => {
                             setAdoptError(null);
                             adoptSuggestedAnswer(suggested)
