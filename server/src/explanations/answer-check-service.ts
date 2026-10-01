@@ -7,7 +7,7 @@ import type {
   AnswerCheckKey,
   NewAnswerCheck,
 } from './answer-check-repository.js';
-import { PROMPT_VERSION } from '../prompt-version.js';
+import { PROMPT_VERSION, isCacheEntryCurrent } from '../prompt-version.js';
 
 export interface AnswerCheckDeps {
   findAnswerCheck: (key: AnswerCheckKey) => Promise<AnswerCheck | null>;
@@ -33,7 +33,9 @@ export async function getOrCreateAnswerCheck(
 
   const key: AnswerCheckKey = { spanishText, englishText, direction, submittedNormalized };
   const cached = await deps.findAnswerCheck(key);
-  if (cached) {
+  // A row from another prompt version or model is treated as a miss and
+  // overwritten below — stale verdicts are never served.
+  if (cached && isCacheEntryCurrent(cached, { model: EXPLANATION_MODEL, promptVersion: PROMPT_VERSION })) {
     return { status: 'ok', answerCheck: cached, source: 'cached' };
   }
 

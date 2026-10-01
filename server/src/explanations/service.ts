@@ -1,7 +1,7 @@
 import type { Explanation, NewExplanation } from './repository.js';
 import { EXPLANATION_MODEL } from './llm.js';
 import type { ExplanationGenerator } from './llm.js';
-import { PROMPT_VERSION } from '../prompt-version.js';
+import { PROMPT_VERSION, isCacheEntryCurrent } from '../prompt-version.js';
 
 export interface ExplanationDeps {
   findExplanation: (spanish: string, english: string) => Promise<Explanation | null>;
@@ -19,7 +19,9 @@ export async function getOrCreateExplanation(
   englishText: string,
 ): Promise<ExplanationResult> {
   const cached = await deps.findExplanation(spanishText, englishText);
-  if (cached) {
+  // A row from another prompt version or model is treated as a miss and
+  // overwritten below — stale output is never served.
+  if (cached && isCacheEntryCurrent(cached, { model: EXPLANATION_MODEL, promptVersion: PROMPT_VERSION })) {
     return { status: 'ok', explanation: cached, source: 'cached' };
   }
   if (!deps.generate) {

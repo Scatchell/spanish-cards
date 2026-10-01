@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { AnswerCheck, NewAnswerCheck } from '../../src/explanations/answer-check-repository.js';
 import { getOrCreateAnswerCheck } from '../../src/explanations/answer-check-service.js';
+import { EXPLANATION_MODEL } from '../../src/explanations/llm.js';
 import { PROMPT_VERSION } from '../../src/prompt-version.js';
 
 const FAKE_CHECK: AnswerCheck = {
@@ -12,8 +13,8 @@ const FAKE_CHECK: AnswerCheck = {
   verdict: 'valid',
   suggestedAnswer: 'me llamo',
   feedbackPoints: ['valid alternative'], submittedReading: null,
-  model: 'gpt-5.4-mini',
-  promptVersion: '1.0.0',
+  model: EXPLANATION_MODEL,
+  promptVersion: PROMPT_VERSION,
   createdAt: '2026-01-01T00:00:00.000Z',
 };
 
@@ -159,5 +160,76 @@ describe('getOrCreateAnswerCheck', () => {
       expectedAnswer: 'me llamo',
       submittedAnswer: 'me llamo',
     });
+  });
+
+  it('regenerates and overwrites a row cached under an older prompt version', async () => {
+    const stale = { ...FAKE_CHECK, promptVersion: '0.9.0', verdict: 'invalid' as const, suggestedAnswer: null };
+    const upserted: NewAnswerCheck[] = [];
+    const result = await getOrCreateAnswerCheck(
+      {
+        findAnswerCheck: async () => stale,
+        upsertAnswerCheck: async (input) => {
+          upserted.push(input);
+          return { ...stale, ...input };
+        },
+        generate: async () => ({
+          verdict: 'valid',
+          suggestedAnswer: 'me llamo',
+          feedbackPoints: ['fresh'],
+          submittedReading: null,
+        }),
+      },
+      INPUT,
+    );
+    expect(result.status === 'ok' && result.source).toBe('generated');
+    expect(result.status === 'ok' && result.answerCheck.verdict).toBe('valid');
+    expect(upserted[0]).toMatchObject({ model: EXPLANATION_MODEL, promptVersion: PROMPT_VERSION });
+  });
+
+  it('regenerates a row cached under a different model even if the version matches', async () => {
+    const generate = vi.fn().mockResolvedValue({
+      verdict: 'valid',
+      suggestedAnswer: 'me llamo',
+      feedbackPoints: ['fresh'],
+      submittedReading: null,
+    });
+    await getOrCreateAnswerCheck(
+      {
+        findAnswerCheck: async () => ({ ...FAKE_CHECK, model: 'retired-model' }),
+        upsertAnswerCheck: async (input) => ({ ...FAKE_CHECK, ...input }),
+        generate,
+      },
+      INPUT,
+    );
+    expect(generate).toHaveBeenCalledOnce();
+  });
+
+  it('returns unavailable instead of serving a stale row when generation is not configured', async () => {
+    const result = await getOrCreateAnswerCheck(
+      {
+        findAnswerCheck: async () => ({ ...FAKE_CHECK, promptVersion: '0.9.0' }),
+        upsertAnswerCheck: vi.fn(),
+        generate: null,
+      },
+      INPUT,
+    );
+    expect(result).toEqual({ status: 'unavailable' });
+  });
+
+  it('leaves a stale row untouched when regeneration fails', async () => {
+    const upsertAnswerCheck = vi.fn();
+    await expect(
+      getOrCreateAnswerCheck(
+        {
+          findAnswerCheck: async () => ({ ...FAKE_CHECK, promptVersion: '0.9.0' }),
+          upsertAnswerCheck,
+          generate: async () => {
+            throw new Error('API error');
+          },
+        },
+        INPUT,
+      ),
+    ).rejects.toThrow('API error');
+    expect(upsertAnswerCheck).not.toHaveBeenCalled();
   });
 });
