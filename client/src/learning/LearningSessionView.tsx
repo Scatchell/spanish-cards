@@ -47,29 +47,31 @@ export function LearningSessionView({
   return (
     <>
       {card && (
-        <section className="train-card" aria-label="Learning card">
-          <div className="train-meta">
-            <span className="queue-count">
-              Remembered {session.rememberedIds.length} of {session.selected.length}
-            </span>
-            <button type="button" className="secondary direction-toggle" onClick={onToggleDirection}>
-              {direction === 'spanish-to-english' ? 'Spanish → English' : 'English → Spanish'}
-            </button>
-          </div>
+        <div className="card-stack train-card-stack">
+          <section className="train-card" aria-label="Learning card">
+            <div className="train-meta">
+              <span className="queue-count">
+                Remembered {session.rememberedIds.length} of {session.selected.length}
+              </span>
+              <button type="button" className="secondary direction-toggle" onClick={onToggleDirection}>
+                {direction === 'spanish-to-english' ? 'Spanish → English' : 'English → Spanish'}
+              </button>
+            </div>
 
-          <FlipCard
-            card={card}
-            direction={direction}
-            onRemembered={onRemembered}
-            onStillLearning={onStillLearning}
-            onSavePrompt={onSavePrompt}
-            onSaveAnswer={onSaveAnswer}
-            onAddAlternate={onAddAlternate}
-            onUpdateAlternate={onUpdateAlternate}
-            onDeleteAlternate={onDeleteAlternate}
-            editable={editable}
-          />
-        </section>
+            <FlipCard
+              card={card}
+              direction={direction}
+              onRemembered={onRemembered}
+              onStillLearning={onStillLearning}
+              onSavePrompt={onSavePrompt}
+              onSaveAnswer={onSaveAnswer}
+              onAddAlternate={onAddAlternate}
+              onUpdateAlternate={onUpdateAlternate}
+              onDeleteAlternate={onDeleteAlternate}
+              editable={editable}
+            />
+          </section>
+        </div>
       )}
 
       {!card && (

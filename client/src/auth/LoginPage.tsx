@@ -24,7 +24,7 @@ export function LoginPage({ onLogin }: { onLogin: () => void }) {
 
   return (
     <main className="centered-page">
-      <div className="login-stack">
+      <div className="card-stack login-stack">
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-heading">
             <h1>Spanish Cards</h1>

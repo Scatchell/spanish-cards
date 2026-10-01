@@ -107,16 +107,16 @@ label {
   color: var(--text-muted);
 }
 
-/* ---- Login ---- */
+/* ---- Stacked card ---- */
 
-/* A second card peeks out behind the form, like the top of a flashcard deck. */
-.login-stack {
+/* A second card peeks out behind the wrapped card, like the top of a
+   flashcard deck. */
+.card-stack {
   position: relative;
   isolation: isolate;
-  width: min(23rem, 100%);
 }
 
-.login-stack::before {
+.card-stack::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -124,7 +124,13 @@ label {
   background: var(--surface-muted);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  transform: rotate(-3deg) translate(-0.4rem, 0.5rem);
+  transform: rotate(var(--stack-tilt, -3deg)) translate(-0.4rem, 0.5rem);
+}
+
+/* ---- Login ---- */
+
+.login-stack {
+  width: min(23rem, 100%);
 }
 
 .login-stack .login-form {
@@ -506,6 +512,11 @@ label {
 .train-page main {
   max-width: 34rem;
   margin: 0 auto;
+}
+
+.train-card-stack {
+  /* A wide card needs less tilt for the same peek at its edges. */
+  --stack-tilt: -1.2deg;
 }
 
 .train-card {

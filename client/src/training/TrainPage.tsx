@@ -284,141 +284,143 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         )}
 
         {loadState === 'ready' && card && (
-          <section className="train-card" aria-label="Training card">
-            <div className="train-meta">
-              <span className="queue-count">
-                Card {cardPosition} of {cardTotal}
-                {isRetry ? (
-                  <em className="retry-badge"> · second chance</em>
-                ) : studyingAhead ? (
-                  <em className="ahead-badge"> · extra practice (ahead of schedule)</em>
-                ) : (
-                  ' scheduled'
-                )}
-              </span>
-              {!isRetry && (
-                <button
-                  type="button"
-                  className="secondary direction-toggle"
-                  onClick={toggleDirection}
-                  disabled={reveal !== null}
-                >
-                  {direction === 'spanish-to-english' ? 'Spanish → English' : 'English → Spanish'}
-                </button>
-              )}
-            </div>
-
-            {isRetry ? (
-              <FlipCard
-                card={card}
-                direction={direction}
-                onRemembered={() => {
-                  setSession((s) => resolveRetry(s, { remembered: true }));
-                  setTyped('');
-                  setAnswerOverride(null);
-                }}
-                onStillLearning={() => {
-                  setSession((s) => resolveRetry(s, { remembered: false }));
-                  setTyped('');
-                  setAnswerOverride(null);
-                }}
-                onSavePrompt={(newText) => saveCardField(promptField, newText)}
-                onSaveAnswer={(newText) => saveCardField(answerField, newText)}
-                onAddAlternate={addAlternate}
-                onUpdateAlternate={saveAlternateEdit}
-                onDeleteAlternate={removeAlternate}
-              />
-            ) : (
-              <>
-                <EditableSentence
-                  className="train-prompt"
-                  text={promptText(card, direction)}
-                  ariaLabel={promptLabel}
-                  sentenceAriaLabel="Prompt"
-                  onSave={(newText) => saveCardField(promptField, newText)}
-                />
-
-                <form onSubmit={handleSubmit}>
-                  <label className="answer-label">
-                    Your answer ({direction === 'spanish-to-english' ? 'English' : 'Spanish'})
-                    <input
-                      ref={answerInput}
-                      type="text"
-                      value={typed}
-                      onChange={(event) => setTyped(event.target.value)}
-                      autoComplete="off"
-                      autoCapitalize="off"
-                      autoCorrect="off"
-                      spellCheck={false}
-                      disabled={reveal !== null}
-                    />
-                  </label>
-                  {reveal === null && (
-                    <p className="hint">Press Enter to check — leave empty if you don't remember.</p>
+          <div className="card-stack train-card-stack">
+            <section className="train-card" aria-label="Training card">
+              <div className="train-meta">
+                <span className="queue-count">
+                  Card {cardPosition} of {cardTotal}
+                  {isRetry ? (
+                    <em className="retry-badge"> · second chance</em>
+                  ) : studyingAhead ? (
+                    <em className="ahead-badge"> · extra practice (ahead of schedule)</em>
+                  ) : (
+                    ' scheduled'
                   )}
-                </form>
-
-                {reveal !== null && (
-                  <>
-                    <AnswerReveal
-                      submitted={reveal.submitted}
-                      result={reveal.result}
-                      primaryText={answerText(card, direction)}
-                      alternates={answerAlternates(card, direction)}
-                      answerOverride={answerOverride}
-                      answerAriaLabel={answerLabel}
-                      onSavePrimary={(newText) =>
-                        saveCardField(answerField, newText).then(() => setAnswerOverride(newText))
-                      }
-                      onAddAlternate={addAlternate}
-                      onUpdateAlternate={saveAlternateEdit}
-                      onDeleteAlternate={removeAlternate}
-                    />
-                    {canExplain(card) && (
-                      <ExplainButton
-                        onClick={() => {
-                          setAdoptError(null);
-                          setExplainOpen(true);
-                        }}
-                      />
-                    )}
-                    {adoptError && (
-                      <p className="field-error" role="alert">
-                        {adoptError}
-                      </p>
-                    )}
-                    <RatingBar
-                      allowAgain={!isCorrect}
-                      emphasized={isCorrect ? 'good' : 'again'}
-                      disabled={saving || explainOpen}
-                      onRate={handleRate}
-                    />
-                    {explainOpen && (
-                      <ExplanationModal
-                        cardId={card.id}
-                        spanishText={card.spanishText}
-                        englishText={card.englishText}
-                        submittedAnswer={reveal.submitted}
-                        direction={direction}
-                        verdict={reveal.result.verdict}
-                        onAdoptAnswer={(suggested) => {
-                          setAdoptError(null);
-                          adoptSuggestedAnswer(suggested)
-                            .catch((err: unknown) => {
-                              setAdoptError(
-                                err instanceof Error ? err.message : 'Could not adopt this answer.',
-                              );
-                            })
-                            .finally(() => setExplainOpen(false));
-                        }}
-                        onClose={() => setExplainOpen(false)}
-                      />
-                    )}
-                  </>
+                </span>
+                {!isRetry && (
+                  <button
+                    type="button"
+                    className="secondary direction-toggle"
+                    onClick={toggleDirection}
+                    disabled={reveal !== null}
+                  >
+                    {direction === 'spanish-to-english' ? 'Spanish → English' : 'English → Spanish'}
+                  </button>
                 )}
-              </>
-            )}
-          </section>
+              </div>
+
+              {isRetry ? (
+                <FlipCard
+                  card={card}
+                  direction={direction}
+                  onRemembered={() => {
+                    setSession((s) => resolveRetry(s, { remembered: true }));
+                    setTyped('');
+                    setAnswerOverride(null);
+                  }}
+                  onStillLearning={() => {
+                    setSession((s) => resolveRetry(s, { remembered: false }));
+                    setTyped('');
+                    setAnswerOverride(null);
+                  }}
+                  onSavePrompt={(newText) => saveCardField(promptField, newText)}
+                  onSaveAnswer={(newText) => saveCardField(answerField, newText)}
+                  onAddAlternate={addAlternate}
+                  onUpdateAlternate={saveAlternateEdit}
+                  onDeleteAlternate={removeAlternate}
+                />
+              ) : (
+                <>
+                  <EditableSentence
+                    className="train-prompt"
+                    text={promptText(card, direction)}
+                    ariaLabel={promptLabel}
+                    sentenceAriaLabel="Prompt"
+                    onSave={(newText) => saveCardField(promptField, newText)}
+                  />
+
+                  <form onSubmit={handleSubmit}>
+                    <label className="answer-label">
+                      Your answer ({direction === 'spanish-to-english' ? 'English' : 'Spanish'})
+                      <input
+                        ref={answerInput}
+                        type="text"
+                        value={typed}
+                        onChange={(event) => setTyped(event.target.value)}
+                        autoComplete="off"
+                        autoCapitalize="off"
+                        autoCorrect="off"
+                        spellCheck={false}
+                        disabled={reveal !== null}
+                      />
+                    </label>
+                    {reveal === null && (
+                      <p className="hint">Press Enter to check — leave empty if you don't remember.</p>
+                    )}
+                  </form>
+
+                  {reveal !== null && (
+                    <>
+                      <AnswerReveal
+                        submitted={reveal.submitted}
+                        result={reveal.result}
+                        primaryText={answerText(card, direction)}
+                        alternates={answerAlternates(card, direction)}
+                        answerOverride={answerOverride}
+                        answerAriaLabel={answerLabel}
+                        onSavePrimary={(newText) =>
+                          saveCardField(answerField, newText).then(() => setAnswerOverride(newText))
+                        }
+                        onAddAlternate={addAlternate}
+                        onUpdateAlternate={saveAlternateEdit}
+                        onDeleteAlternate={removeAlternate}
+                      />
+                      {canExplain(card) && (
+                        <ExplainButton
+                          onClick={() => {
+                            setAdoptError(null);
+                            setExplainOpen(true);
+                          }}
+                        />
+                      )}
+                      {adoptError && (
+                        <p className="field-error" role="alert">
+                          {adoptError}
+                        </p>
+                      )}
+                      <RatingBar
+                        allowAgain={!isCorrect}
+                        emphasized={isCorrect ? 'good' : 'again'}
+                        disabled={saving || explainOpen}
+                        onRate={handleRate}
+                      />
+                      {explainOpen && (
+                        <ExplanationModal
+                          cardId={card.id}
+                          spanishText={card.spanishText}
+                          englishText={card.englishText}
+                          submittedAnswer={reveal.submitted}
+                          direction={direction}
+                          verdict={reveal.result.verdict}
+                          onAdoptAnswer={(suggested) => {
+                            setAdoptError(null);
+                            adoptSuggestedAnswer(suggested)
+                              .catch((err: unknown) => {
+                                setAdoptError(
+                                  err instanceof Error ? err.message : 'Could not adopt this answer.',
+                                );
+                              })
+                              .finally(() => setExplainOpen(false));
+                          }}
+                          onClose={() => setExplainOpen(false)}
+                        />
+                      )}
+                    </>
+                  )}
+                </>
+              )}
+            </section>
+          </div>
         )}
 
         {loadState === 'ready' && !card && !studyingAhead && (
