@@ -1,7 +1,10 @@
-// One hand-bumped version for every prompt in src/prompts (semver):
+// One hand-bumped version covering the prompts behind cached LLM output (semver):
 //   major — a prompt file added or removed
 //   minor — a meaningful change to an existing prompt
 //   patch — a small wording tweak (a few words, a rephrased sentence)
+// Bump ONLY when explain.md or answer-check.md changes (or a cache-feeding
+// prompt is added/removed); categorize.md, practice-sentences.md and
+// explain-followup.md don't feed a cache, so changing them needs no bump.
 // Cached LLM output (explanations, answer_checks) records the version and
 // model that produced it; a lookup that finds a row stamped differently
 // regenerates it and overwrites the row in place. The code only compares for

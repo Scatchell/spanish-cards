@@ -89,9 +89,14 @@ Key facts:
   `integration-test@example.com`), so `pnpm db:verify-users` shows
   `user_count > 1` in dev and `pnpm migrate:down` of the users migration is
   refused on dev — expected.
-- Any edit to `server/src/prompts/*.md` (or adding/removing a prompt) must
-  bump `PROMPT_VERSION` in `server/src/prompt-version.ts` — major: prompt
+- Bump `PROMPT_VERSION` in `server/src/prompt-version.ts` ONLY when a prompt
+  that feeds a cached row changes: `server/src/prompts/explain.md`
+  (`explanations`) or `server/src/prompts/answer-check.md` (`answer_checks`),
+  or when a prompt that feeds a cache is added/removed. major: prompt
   added/removed, minor: significant change, patch: small wording tweak.
-  Cached explanations/answer checks from another version (or another
-  `EXPLANATION_MODEL`) are regenerated and overwritten on next lookup; forget
-  the bump and users keep getting output from the old prompt.
+  Cached rows from another version (or another `EXPLANATION_MODEL`) are
+  regenerated and overwritten on next lookup; forget the bump and users keep
+  getting output from the old prompt. Do NOT bump for `categorize.md`,
+  `practice-sentences.md` or `explain-followup.md`: they produce stored user
+  records or uncached text, and a bump would needlessly regenerate every
+  cached explanation and answer check (real OpenAI cost).
