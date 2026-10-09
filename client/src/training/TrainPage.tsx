@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { SubmitEvent } from 'react';
 import { Link } from 'react-router-dom';
 import type { ReviewRating, TrainingScope } from '../api.js';
@@ -63,7 +63,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [saving, setSaving] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const [adoptError, setAdoptError] = useState<string | null>(null);
-  const answerInput = useRef<HTMLInputElement>(null);
+  const answerInput = useRef<HTMLTextAreaElement>(null);
 
   const current = currentCard(session);
   const isRetry = current?.kind === 'retry';
@@ -105,6 +105,13 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   useEffect(() => {
     loadQueue('due');
   }, [loadQueue]);
+
+  useLayoutEffect(() => {
+    const el = answerInput.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [typed, card, reveal, isRetry]);
 
   useEffect(() => {
     if (card && !reveal && !isRetry) {
@@ -341,11 +348,17 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                   <form onSubmit={handleSubmit}>
                     <label className="answer-label">
                       Your answer ({direction === 'spanish-to-english' ? 'English' : 'Spanish'})
-                      <input
+                      <textarea
                         ref={answerInput}
-                        type="text"
+                        rows={1}
                         value={typed}
-                        onChange={(event) => setTyped(event.target.value)}
+                        onChange={(event) => setTyped(event.target.value.replace(/\n/g, ' '))}
+                        onKeyDown={(event) => {
+                          if (event.key === 'Enter' && !event.nativeEvent.isComposing) {
+                            event.preventDefault();
+                            event.currentTarget.form?.requestSubmit();
+                          }
+                        }}
                         autoComplete="off"
                         autoCapitalize="off"
                         autoCorrect="off"
