@@ -50,3 +50,32 @@ export async function countCardsByState(
   );
   return result.rows;
 }
+
+export async function getCardCreatedAts(db: DbQueryable, userId: number): Promise<Date[]> {
+  const result = await db.query<{ created_at: Date }>(
+    'SELECT created_at FROM cards WHERE user_id = $1',
+    [userId],
+  );
+  return result.rows.map((row) => row.created_at);
+}
+
+// Card counts per (FSRS state, stability at or above the mastery threshold).
+// state is null for cards that have never been reviewed (no schedule row);
+// durable is only meaningful for cards in the Review state.
+export async function countDeckBuckets(
+  db: DbQueryable,
+  userId: number,
+  masteredStabilityDays: number,
+): Promise<{ state: number | null; durable: boolean; count: number }[]> {
+  const result = await db.query<{ state: number | null; durable: boolean; count: number }>(
+    `SELECT s.state AS state,
+            COALESCE(s.stability >= $2, false) AS durable,
+            COUNT(*)::int AS count
+     FROM cards c
+     LEFT JOIN card_schedules s ON s.card_id = c.id
+     WHERE c.user_id = $1
+     GROUP BY 1, 2`,
+    [userId, masteredStabilityDays],
+  );
+  return result.rows;
+}
