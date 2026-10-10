@@ -1,12 +1,7 @@
-import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CategoryMistake } from '../api.js';
-
-const LONG_RATIONALE_CHARS = 120;
-
-function formatMistakeDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
+import { formatMistakeDate } from '../format.js';
+import { RationaleToggle } from './RationaleToggle.js';
 
 // Explicit roles because the narrow-screen CSS sets display: grid on rows, which
 // makes some screen readers drop the table semantics.
@@ -67,23 +62,9 @@ function MistakeRow({ item }: { item: CategoryMistake }) {
 }
 
 function RationaleCell({ text }: { text: string }) {
-  const [expanded, setExpanded] = useState(false);
-  const long = text.length > LONG_RATIONALE_CHARS;
   return (
     <td role="cell" className="mistake-rationale" data-label="Rationale">
-      <span className={long && !expanded ? 'mistake-rationale-text is-clamped' : 'mistake-rationale-text'}>
-        {text}
-      </span>
-      {long && (
-        <button
-          type="button"
-          className="mistake-rationale-toggle"
-          aria-expanded={expanded}
-          onClick={() => setExpanded((value) => !value)}
-        >
-          {expanded ? 'Show less' : 'Show more'}
-        </button>
-      )}
+      <RationaleToggle text={text} />
     </td>
   );
 }

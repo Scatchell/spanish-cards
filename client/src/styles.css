@@ -1104,6 +1104,111 @@ button.rating.emphasized {
   font-size: 0.85rem;
 }
 
+/* ---- Recent mistakes (progress page) ---- */
+
+.mistake-card-list {
+  list-style: none;
+  margin: 0.75rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr));
+  gap: 0.75rem;
+}
+
+.mistake-card-list > li {
+  min-width: 0;
+}
+
+.mistake-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  height: 100%;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.9rem 1rem;
+  overflow-wrap: anywhere;
+}
+
+.mistake-card-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+.mistake-card-category {
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mistake-card-field,
+.mistake-card-rationale {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.mistake-card-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.mistake-card-correct {
+  color: var(--accent-secondary);
+  font-weight: 600;
+}
+
+.mistake-card-submitted {
+  color: var(--danger);
+}
+
+.mistake-card-rationale {
+  background: var(--surface-muted);
+  border-radius: var(--radius);
+  padding: 0.6rem 0.75rem;
+}
+
+.mistake-card .mistake-rationale-text.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
+.mistake-card .mistake-rationale-toggle {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: -0.5rem;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  text-decoration: underline;
+}
+
+.mistake-card-practice {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  margin-top: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.recent-mistakes-all {
+  display: inline-block;
+  margin-top: 0.75rem;
+}
+
 /* ---- Explain Button ---- */
 
 .explain-button {

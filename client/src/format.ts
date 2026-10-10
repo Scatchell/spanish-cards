@@ -45,3 +45,8 @@ export function formatLastStudied(iso: string | null): string {
   }
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
+
+// ISO instant -> "Jun 10" in the browser's locale and timezone.
+export function formatMistakeDate(iso: string): string {
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
