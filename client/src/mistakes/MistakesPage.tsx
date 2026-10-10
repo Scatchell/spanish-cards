@@ -4,6 +4,7 @@ import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import type { Category, CategoryCount, CategoryMistake } from '../api.js';
 import { ApiError, fetchCategorizationMistakes, fetchCategorizationSummary, logout } from '../api.js';
 import { CATEGORY_INFO } from './categoryInfo.js';
+import { MistakesTable } from './MistakesTable.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
 import {
   AccountLink,
@@ -253,40 +254,7 @@ function CategoryAccordion({
       )}
       {state.items.length > 0 && (
         <>
-          <table className="mistakes-table">
-            <thead>
-              <tr>
-                <th>Correct</th>
-                <th>Submitted</th>
-                <th>Rationale</th>
-                <th>Practice targets</th>
-                <th>Practice</th>
-                <th>When</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.items.map((item) => (
-                <tr key={item.id}>
-                  <td>{item.correctText}</td>
-                  <td>{item.submittedText}</td>
-                  <td>{item.rationale}</td>
-                  <td>
-                    {item.practiceTargets.map((target, i) => (
-                      <span key={i} className="practice-target-pill">
-                        {target.submitted ?? '(nothing entered)'} &rarr; {target.expected}
-                      </span>
-                    ))}
-                  </td>
-                  <td>
-                    <Link to={`/mistakes/${item.id}/practice`} className="secondary">
-                      Practice this mistake
-                    </Link>
-                  </td>
-                  <td>{new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <MistakesTable items={state.items} />
           {state.nextCursor && (
             <button
               type="button"
