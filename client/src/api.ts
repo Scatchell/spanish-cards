@@ -71,6 +71,67 @@ export interface ReviewSubmission {
   matchedText: string;
 }
 
+export interface DayPoint {
+  date: string;
+  reviews: number;
+  correct: number;
+  accuracy: number | null;
+  cardsAdded: number;
+}
+
+export interface WeekPoint {
+  weekStart: string;
+  weekEnd: string;
+  reviews: number;
+  correct: number;
+  accuracy: number | null;
+  cardsAdded: number;
+}
+
+export interface PeriodTotals {
+  reviews: number;
+  correct: number;
+  accuracy: number | null;
+  cardsAdded: number;
+}
+
+export interface ActivitySummary {
+  reviewedToday: number;
+  accuracyToday: number | null;
+  currentStreak: number;
+  bestStreak: number;
+  daysStudiedLast7: number;
+  daysStudiedLast30: number;
+  lastStudiedAt: string | null;
+}
+
+export interface ActivityTrend {
+  daily: DayPoint[];
+  weekly: WeekPoint[];
+  thisWeek: PeriodTotals;
+  lastWeek: PeriodTotals;
+}
+
+export interface ProgressDeck {
+  total: number;
+  mastered: number;
+  familiar: number;
+  learning: number;
+  lapsed: number;
+  new: number;
+  masteredThresholdDays: number;
+  dueNow: number;
+}
+
+export interface ProgressReport {
+  generatedAt: string;
+  tzOffsetMinutes: number;
+  summary: ActivitySummary;
+  trend: ActivityTrend;
+  deck: ProgressDeck;
+  recentMistakes: CategoryMistake[];
+}
+
 export interface DayActivity {
   date: string;
   reviews: number;
@@ -319,6 +380,11 @@ export function fetchProgress(): Promise<ProgressSummary> {
   // of UTC, the negation of Date#getTimezoneOffset).
   const tzOffset = -new Date().getTimezoneOffset();
   return request(`/api/progress?tzOffset=${tzOffset}`);
+}
+
+export function fetchProgressReport(): Promise<ProgressReport> {
+  const tzOffset = -new Date().getTimezoneOffset();
+  return request(`/api/progress/report?tzOffset=${tzOffset}`);
 }
 
 export function fetchCategorizationSummary(): Promise<{ categories: CategoryCount[] }> {

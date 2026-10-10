@@ -27,3 +27,21 @@ export function formatPercent(rate: number | null): string {
   }
   return `${Math.round(rate * 100)}%`;
 }
+
+// 'YYYY-MM-DD' -> "Jun 10". Built from UTC parts so the calendar date is never
+// shifted by the browser's timezone.
+export function formatShortDate(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  return new Date(Date.UTC(year ?? 1970, (month ?? 1) - 1, day ?? 1)).toLocaleDateString(undefined, {
+    month: 'short',
+    day: 'numeric',
+    timeZone: 'UTC',
+  });
+}
+
+export function formatLastStudied(iso: string | null): string {
+  if (iso === null) {
+    return 'Never';
+  }
+  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}

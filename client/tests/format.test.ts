@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { formatDueStatus, formatPercent } from '../src/format.js';
+import { formatDueStatus, formatLastStudied, formatPercent, formatShortDate } from '../src/format.js';
 
 const NOW = new Date('2026-06-10T12:00:00Z');
 
@@ -34,5 +34,22 @@ describe('formatPercent', () => {
 
   it('shows a placeholder when there is no data', () => {
     expect(formatPercent(null)).toBe('—');
+  });
+});
+
+describe('formatShortDate', () => {
+  it('formats a plain calendar date without shifting it by timezone', () => {
+    expect(formatShortDate('2026-05-13')).toContain('13');
+    expect(formatShortDate('2026-05-13')).toMatch(/may/i);
+  });
+});
+
+describe('formatLastStudied', () => {
+  it('says Never when there is no history', () => {
+    expect(formatLastStudied(null)).toBe('Never');
+  });
+
+  it('formats an instant as a short date', () => {
+    expect(formatLastStudied('2026-06-10T10:00:00.000Z')).toMatch(/jun/i);
   });
 });
