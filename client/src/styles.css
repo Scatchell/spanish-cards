@@ -1059,6 +1059,51 @@ button.rating.emphasized {
   }
 }
 
+/* ---- Deck section ---- */
+
+.deck-total {
+  margin: 0.4rem 0 0;
+  font-weight: 600;
+}
+
+.deck-bar {
+  display: flex;
+  height: 1.1rem;
+  margin-top: 0.75rem;
+  border-radius: 999px;
+  overflow: hidden;
+  background: var(--surface-muted);
+}
+
+.deck-segment {
+  min-width: 4px;
+}
+
+.deck-mastered {
+  background: var(--accent-secondary);
+}
+
+.deck-familiar {
+  background: color-mix(in srgb, var(--accent-secondary) 55%, var(--surface));
+}
+
+.deck-learning {
+  background: var(--accent);
+}
+
+.deck-lapsed {
+  background: var(--danger);
+}
+
+.deck-new {
+  background: var(--border);
+}
+
+.deck-explainer {
+  margin: 0.75rem 0 0;
+  font-size: 0.85rem;
+}
+
 /* ---- Explain Button ---- */
 
 .explain-button {
