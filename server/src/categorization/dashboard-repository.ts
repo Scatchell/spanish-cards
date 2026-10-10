@@ -80,6 +80,17 @@ function toCategoryMistake(row: MistakeRow): CategoryMistake {
   };
 }
 
+const MISTAKE_SELECT = `SELECT rc.id, rc.category, rc.rationale, rc.created_at,
+            rh.correct_text, rh.submitted_text, rh.direction, rh.verdict,
+            COALESCE(pt.targets, '[]') AS practice_targets
+     FROM review_categorizations rc
+     JOIN review_history rh ON rh.id = rc.review_history_id
+     LEFT JOIN LATERAL (
+       SELECT json_agg(json_build_object('expected', pt.expected, 'submitted', pt.submitted) ORDER BY pt.id) AS targets
+       FROM practice_targets pt
+       WHERE pt.review_categorization_id = rc.id
+     ) pt ON true`;
+
 // Keyset pagination on (created_at DESC, id DESC): created_at alone isn't
 // unique enough (a batch insert can share a millisecond timestamp), so id
 // breaks ties deterministically without skipping or repeating rows across
@@ -100,16 +111,7 @@ export async function getCategoryMistakes(
   const limitParamIndex = params.length;
 
   const result = await db.query<MistakeRow>(
-    `SELECT rc.id, rc.category, rc.rationale, rc.created_at,
-            rh.correct_text, rh.submitted_text, rh.direction, rh.verdict,
-            COALESCE(pt.targets, '[]') AS practice_targets
-     FROM review_categorizations rc
-     JOIN review_history rh ON rh.id = rc.review_history_id
-     LEFT JOIN LATERAL (
-       SELECT json_agg(json_build_object('expected', pt.expected, 'submitted', pt.submitted) ORDER BY pt.id) AS targets
-       FROM practice_targets pt
-       WHERE pt.review_categorization_id = rc.id
-     ) pt ON true
+    `${MISTAKE_SELECT}
      WHERE rc.category = $1 AND rh.user_id = $2
      ${cursorClause}
      ORDER BY rc.created_at DESC, rc.id DESC
@@ -121,6 +123,23 @@ export async function getCategoryMistakes(
   const last = items[items.length - 1];
   const nextCursor = items.length === opts.limit && last ? `${last.createdAt},${last.id}` : null;
   return { items, nextCursor };
+}
+
+// The newest categorized mistakes across every category, for the progress
+// page. Same ordering as the per-category list so ties break identically.
+export async function getRecentMistakes(
+  db: DbQueryable,
+  userId: number,
+  limit: number,
+): Promise<CategoryMistake[]> {
+  const result = await db.query<MistakeRow>(
+    `${MISTAKE_SELECT}
+     WHERE rh.user_id = $1
+     ORDER BY rc.created_at DESC, rc.id DESC
+     LIMIT $2`,
+    [userId, limit],
+  );
+  return result.rows.map(toCategoryMistake);
 }
 
 export function parseCursor(raw: string): MistakesCursor | null {

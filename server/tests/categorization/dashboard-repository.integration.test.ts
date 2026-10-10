@@ -3,7 +3,12 @@ import { loadConfig } from '../../src/config.js';
 import { createPool } from '../../src/db.js';
 import type { DbPool } from '../../src/db.js';
 import { CATEGORIES } from '../../src/categorization/repository.js';
-import { getCategoryMistakes, getCategorySummary, parseCursor } from '../../src/categorization/dashboard-repository.js';
+import {
+  getCategoryMistakes,
+  getCategorySummary,
+  getRecentMistakes,
+  parseCursor,
+} from '../../src/categorization/dashboard-repository.js';
 import { ensureTestUser } from '../helpers/test-users.js';
 
 // Connects to real dev Postgres via loadConfig().databaseUrl, same caveat as
@@ -131,6 +136,28 @@ describe('getCategoryMistakes', () => {
     expect(await getCategorySummary(pool, otherUser)).toEqual(before);
     const page = await getCategoryMistakes(pool, otherUser, 'verb_form', { cursor: null, limit: 50 });
     expect(page.items.every((item) => !item.submittedText.startsWith(MARKER))).toBe(true);
+  });
+});
+
+describe('getRecentMistakes', () => {
+  it('returns the newest mistakes across all categories, newest first, up to the limit', async () => {
+    await insertMistake({ category: 'vocabulary', createdAt: '2099-09-01T10:00:00Z', submittedTextSuffix: 'oldest' });
+    await insertMistake({ category: 'agreement', createdAt: '2099-09-03T10:00:00Z', submittedTextSuffix: 'newest' });
+    await insertMistake({ category: 'idiom', createdAt: '2099-09-02T10:00:00Z', submittedTextSuffix: 'middle' });
+
+    const recent = await getRecentMistakes(pool, testUserId, 2);
+
+    expect(recent.map((m) => m.submittedText)).toEqual([`${MARKER} newest`, `${MARKER} middle`]);
+    expect(recent[0]).toMatchObject({
+      category: 'agreement',
+      correctText: 'la casa blanca',
+      practiceTargets: [{ expected: 'blanca', submitted: 'blanco' }],
+    });
+  });
+
+  it('returns an empty list when the user has no categorized mistakes', async () => {
+    const other = await ensureTestUser(pool, 'dashboard-recent-empty@example.com');
+    expect(await getRecentMistakes(pool, other, 5)).toEqual([]);
   });
 });
 
