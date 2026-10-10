@@ -26,31 +26,6 @@ export async function getAllReviews(db: DbQueryable, userId: number): Promise<Re
   }));
 }
 
-export async function countCards(db: DbQueryable, userId: number): Promise<number> {
-  const result = await db.query<{ count: number }>(
-    'SELECT COUNT(*)::int AS count FROM cards WHERE user_id = $1',
-    [userId],
-  );
-  return result.rows[0]?.count ?? 0;
-}
-
-// Card counts grouped by raw FSRS state; state is null for cards that have
-// never been reviewed (no schedule row).
-export async function countCardsByState(
-  db: DbQueryable,
-  userId: number,
-): Promise<{ state: number | null; count: number }[]> {
-  const result = await db.query<{ state: number | null; count: number }>(
-    `SELECT s.state AS state, COUNT(*)::int AS count
-     FROM cards c
-     LEFT JOIN card_schedules s ON s.card_id = c.id
-     WHERE c.user_id = $1
-     GROUP BY s.state`,
-    [userId],
-  );
-  return result.rows;
-}
-
 export async function getCardCreatedAts(db: DbQueryable, userId: number): Promise<Date[]> {
   const result = await db.query<{ created_at: Date }>(
     'SELECT created_at FROM cards WHERE user_id = $1',

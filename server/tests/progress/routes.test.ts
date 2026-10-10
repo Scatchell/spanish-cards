@@ -29,11 +29,11 @@ async function startServer(buildReport: (...args: unknown[]) => Promise<Progress
 
 const fakeReport = { generatedAt: 'x' } as unknown as ProgressReport;
 
-describe('GET /api/progress/report', () => {
+describe('GET /api/progress', () => {
   it('returns the built report for the signed-in user', async () => {
     const buildReport = vi.fn(async (..._args: unknown[]) => fakeReport);
     const base = await startServer(buildReport);
-    const res = await fetch(`${base}/report?tzOffset=120`);
+    const res = await fetch(`${base}?tzOffset=120`);
     expect(res.status).toBe(200);
     expect(await res.json()).toEqual({ generatedAt: 'x' });
     expect(buildReport).toHaveBeenCalledWith({}, 7, expect.any(Date), 120);
@@ -42,8 +42,8 @@ describe('GET /api/progress/report', () => {
   it('clamps an absurd offset and falls back to UTC for garbage', async () => {
     const buildReport = vi.fn(async (..._args: unknown[]) => fakeReport);
     const base = await startServer(buildReport);
-    await fetch(`${base}/report?tzOffset=99999`);
-    await fetch(`${base}/report?tzOffset=abc`);
+    await fetch(`${base}?tzOffset=99999`);
+    await fetch(`${base}?tzOffset=abc`);
     expect(buildReport.mock.calls.map((call) => call[3])).toEqual([840, 0]);
   });
 });

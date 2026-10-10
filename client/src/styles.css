@@ -767,45 +767,6 @@ button.rating.emphasized {
   color: var(--accent);
 }
 
-.trend-chart {
-  margin: 0.75rem 0 0;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  padding: 0.85rem;
-}
-
-.trend-chart figcaption {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin-bottom: 0.6rem;
-}
-
-.trend-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 3px;
-  height: 6rem;
-}
-
-.trend-bar {
-  flex: 1;
-  background: var(--accent);
-  border-radius: 3px 3px 0 0;
-  min-width: 4px;
-}
-
-.trend-bar.empty {
-  background: var(--surface-muted);
-}
-
-.trend-range {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.75rem;
-  margin-top: 0.35rem;
-}
-
 /* ---- Accuracy trend ---- */
 
 .accuracy-trend {

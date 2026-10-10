@@ -30,23 +30,6 @@ const RATING_TO_GRADE = {
   easy: Rating.Easy,
 } as const;
 
-// Coarse user-facing grouping of the FSRS state machine. A card with no
-// schedule row (state null) has never been reviewed and is 'new'; relearning
-// after a lapse counts as 'learning'.
-export type LearningStage = 'new' | 'learning' | 'review';
-
-export function learningStage(state: number | null): LearningStage {
-  switch (state) {
-    case null:
-    case State.New:
-      return 'new';
-    case State.Review:
-      return 'review';
-    default:
-      return 'learning';
-  }
-}
-
 const scheduler = fsrs(); // default FSRS parameters
 
 // Applies a rating to a card's schedule. `current` is null for a card that has

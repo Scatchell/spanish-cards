@@ -41,7 +41,9 @@ async function reviewCard(page: Page, spanishText: string) {
 async function fetchProgress(page: Page) {
   const response = await page.request.get('/api/progress?tzOffset=0');
   expect(response.ok()).toBe(true);
-  return response.json() as Promise<Record<string, unknown>>;
+  // generatedAt changes on every request; everything else must stay put.
+  const { generatedAt: _generatedAt, ...report } = (await response.json()) as Record<string, unknown>;
+  return report;
 }
 
 const learnCard = (page: Page, text: string) => page.locator('.learn-card', { hasText: text });

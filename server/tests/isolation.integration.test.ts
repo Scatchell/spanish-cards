@@ -92,8 +92,8 @@ describe('cross-user isolation (full app)', () => {
     expect((await api('b', 'GET', '/api/cards')).body.cards).toEqual([]);
     expect((await api('b', 'GET', '/api/training/queue')).body.cards).toEqual([]);
     const progress = (await api('b', 'GET', '/api/progress')).body;
-    expect(progress.totalCards).toBe(0);
-    expect(progress.dueNow).toBe(0);
+    expect(progress.deck.total).toBe(0);
+    expect(progress.deck.dueNow).toBe(0);
 
     expect(await api('b', 'PATCH', `/api/cards/${cardId}`, { spanishText: 'x', englishText: 'y' })).toMatchObject({
       status: 404,
@@ -155,7 +155,7 @@ describe('cross-user isolation (full app)', () => {
     expect(aCards).toHaveLength(1);
     expect(aCards[0].spanishText).toBe('rojo');
     expect(aCards[0].englishAlternates.map((x: { text: string }) => x.text)).toEqual(['crimson']);
-    expect((await api('a', 'GET', '/api/progress')).body.totalCards).toBe(1);
+    expect((await api('a', 'GET', '/api/progress')).body.deck.total).toBe(1);
   });
 
   it('B cannot see, fetch, or generate A\'s practice session for a mistake', async () => {

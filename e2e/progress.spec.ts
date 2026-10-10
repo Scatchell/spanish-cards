@@ -43,12 +43,12 @@ test('full journey: create cards, train, and watch the dashboard update', async 
   // Dashboard before training: everything due, nothing studied yet.
   await page.getByRole('link', { name: 'Progress' }).click();
   await expect(page).toHaveURL('/progress');
-  await expect(stat(page, 'Total cards')).toHaveText('2');
+  await expect(page.getByText('2 cards')).toBeVisible();
   await expect(stat(page, 'Due now')).toHaveText('2');
   await expect(stat(page, 'New')).toHaveText('2');
   await expect(stat(page, 'Reviewed today')).toHaveText('0');
-  await expect(stat(page, 'Correct today')).toHaveText('—');
-  await expect(stat(page, 'Streak')).toHaveText('0 days');
+  await expect(stat(page, 'Accuracy today')).toHaveText('—');
+  await expect(page.locator('.streak-number')).toHaveText('0');
   await expect(stat(page, 'Last studied')).toHaveText('Never');
   await expect(page.getByText('No reviews yet')).toBeVisible();
 
@@ -73,14 +73,13 @@ test('full journey: create cards, train, and watch the dashboard update', async 
 
   // Both reviews are reflected, rated honestly (1 of 2 detected correct),
   // and both cards have moved out of "new" into learning.
-  await expect(stat(page, 'Total cards')).toHaveText('2');
+  await expect(page.getByText('2 cards')).toBeVisible();
   await expect(stat(page, 'Reviewed today')).toHaveText('2');
-  await expect(stat(page, 'Correct today')).toHaveText('50%');
-  await expect(stat(page, 'Avg daily correct')).toHaveText('50%');
-  await expect(stat(page, 'Streak')).toHaveText('1 day');
+  await expect(stat(page, 'Accuracy today')).toHaveText('50%');
+  await expect(page.locator('.streak-number')).toHaveText('1');
   await expect(stat(page, 'New')).toHaveText('0');
   await expect(stat(page, 'Learning')).toHaveText('2');
-  await expect(page.locator('.trend-chart')).toHaveCount(2);
+  await expect(page.locator('.accuracy-trend')).toBeVisible();
 
   // The cards page now shows when each card is next due instead of "new".
   await page.getByRole('link', { name: 'Back to cards' }).click();
@@ -107,7 +106,7 @@ test('extra practice ahead of schedule is recorded but does not count as due', a
   // Both the scheduled review and the extra practice count as activity.
   await page.goto('/progress');
   await expect(stat(page, 'Reviewed today')).toHaveText('2');
-  await expect(stat(page, 'Correct today')).toHaveText('100%');
+  await expect(stat(page, 'Accuracy today')).toHaveText('100%');
 
   // The ahead-of-schedule rating advanced FSRS: the card is not due again
   // immediately.

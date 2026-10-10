@@ -29,7 +29,7 @@ const PROTECTED: [string, string][] = [
   ['GET', '/api/cards'], ['POST', '/api/cards/batch'], ['PATCH', '/api/cards/1'], ['DELETE', '/api/cards/1'],
   ['POST', '/api/cards/1/alternates'], ['POST', '/api/cards/1/explanation'],
   ['GET', '/api/training/queue'], ['POST', '/api/training/reviews'],
-  ['GET', '/api/progress'], ['GET', '/api/progress/report'], ['GET', '/api/categorization/summary'], ['GET', '/api/categorization/mistakes'],
+  ['GET', '/api/progress'], ['GET', '/api/categorization/summary'], ['GET', '/api/categorization/mistakes'],
   ['GET', '/api/practice/1'], ['POST', '/api/practice/1'],
 ];
 

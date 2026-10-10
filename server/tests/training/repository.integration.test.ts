@@ -3,7 +3,7 @@ import { loadConfig } from '../../src/config.js';
 import { createPool } from '../../src/db.js';
 import type { DbPool } from '../../src/db.js';
 import { insertCards } from '../../src/cards/repository.js';
-import { countCards, countCardsByState, getAllReviews } from '../../src/progress/repository.js';
+import { countDeckBuckets, getAllReviews } from '../../src/progress/repository.js';
 import { countDueCards, getTrainingQueue } from '../../src/training/repository.js';
 import { recordReview } from '../../src/training/service.js';
 import { ensureTestUser } from '../helpers/test-users.js';
@@ -31,7 +31,7 @@ describe('training and progress scoping', () => {
 
     expect((await getTrainingQueue(pool, alice, 'due', FAR_FUTURE)).map((c) => c.id)).toEqual([aliceCard!.id]);
     expect(await countDueCards(pool, alice, FAR_FUTURE)).toBe(1);
-    expect(await countCards(pool, alice)).toBe(1);
+    expect((await countDeckBuckets(pool, alice, 21)).reduce((n, r) => n + r.count, 0)).toBe(1);
 
     const request = {
       cardId: bobCard!.id, rating: 'good', direction: 'spanish-to-english', verdict: 'correct',
@@ -45,6 +45,6 @@ describe('training and progress scoping', () => {
     expect(await getAllReviews(pool, bob)).toEqual([]);
     const history = await pool.query('SELECT user_id FROM review_history WHERE card_id = $1', [aliceCard!.id]);
     expect(history.rows).toEqual([{ user_id: alice }]);
-    expect((await countCardsByState(pool, bob)).reduce((n, r) => n + r.count, 0)).toBe(1);
+    expect((await countDeckBuckets(pool, bob, 21)).reduce((n, r) => n + r.count, 0)).toBe(1);
   });
 });

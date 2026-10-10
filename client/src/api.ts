@@ -132,25 +132,6 @@ export interface ProgressReport {
   recentMistakes: CategoryMistake[];
 }
 
-export interface DayActivity {
-  date: string;
-  reviews: number;
-  correct: number;
-  cardsStudiedToDate: number;
-}
-
-export interface ProgressSummary {
-  totalCards: number;
-  dueNow: number;
-  stages: { new: number; learning: number; review: number };
-  reviewedToday: number;
-  correctRateToday: number | null;
-  averageDailyCorrectRate: number | null;
-  streakDays: number;
-  lastStudiedAt: string | null;
-  recentDays: DayActivity[];
-}
-
 export type Category =
   | 'vocabulary'
   | 'verb_form'
@@ -375,16 +356,11 @@ export function checkSubmittedAnswer(
   });
 }
 
-export function fetchProgress(): Promise<ProgressSummary> {
+export function fetchProgress(): Promise<ProgressReport> {
   // The server buckets days in local time using this offset (minutes ahead
   // of UTC, the negation of Date#getTimezoneOffset).
   const tzOffset = -new Date().getTimezoneOffset();
   return request(`/api/progress?tzOffset=${tzOffset}`);
-}
-
-export function fetchProgressReport(): Promise<ProgressReport> {
-  const tzOffset = -new Date().getTimezoneOffset();
-  return request(`/api/progress/report?tzOffset=${tzOffset}`);
 }
 
 export function fetchCategorizationSummary(): Promise<{ categories: CategoryCount[] }> {
