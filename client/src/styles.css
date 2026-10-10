@@ -1380,6 +1380,132 @@ button.rating.emphasized {
   font-size: 0.75rem;
 }
 
+.mistake-rationale-toggle {
+  display: none;
+}
+
+/* Six columns stop fitting below 56rem, so rows stack; labels come from data-label. */
+@media (max-width: 55.999rem) {
+  .mistakes-accordion {
+    min-width: 0;
+  }
+
+  .mistakes-table,
+  .mistakes-table tbody {
+    display: block;
+  }
+
+  .mistakes-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .mistakes-table tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'correct when'
+      'submitted submitted'
+      'rationale rationale'
+      'targets targets'
+      'practice practice';
+    gap: 0.6rem 0.75rem;
+    padding: 1rem 0;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .mistakes-table tr:last-child {
+    border-bottom: none;
+  }
+
+  .mistakes-table td {
+    display: block;
+    min-width: 0;
+    padding: 0;
+    border: none;
+    overflow-wrap: anywhere;
+  }
+
+  .mistakes-table td[data-label]::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.15rem;
+    font-size: 0.75rem;
+    font-weight: 400;
+    color: var(--text-muted);
+  }
+
+  .mistake-correct {
+    grid-area: correct;
+    color: var(--accent-secondary);
+    font-weight: 600;
+  }
+
+  .mistake-submitted {
+    grid-area: submitted;
+    color: var(--danger);
+  }
+
+  .mistake-rationale {
+    grid-area: rationale;
+    background: var(--surface-muted);
+    border-radius: var(--radius);
+    padding: 0.6rem 0.75rem;
+  }
+
+  .mistake-rationale-text.is-clamped {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+    overflow: hidden;
+  }
+
+  .mistake-rationale-toggle {
+    display: inline-flex;
+    align-items: center;
+    min-height: 44px;
+    padding: 0;
+    background: transparent;
+    color: var(--accent);
+    border: none;
+    text-decoration: underline;
+  }
+
+  .mistake-targets {
+    grid-area: targets;
+  }
+
+  .mistake-targets-empty {
+    display: none;
+  }
+
+  .mistake-practice {
+    grid-area: practice;
+  }
+
+  .mistake-practice a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    color: var(--text);
+    text-decoration: none;
+  }
+
+  .mistake-when {
+    grid-area: when;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    text-align: right;
+    white-space: nowrap;
+  }
+}
+
 /* ---- Practice Modal ---- */
 
 .practice-modal {
