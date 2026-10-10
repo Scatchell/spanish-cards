@@ -806,6 +806,203 @@ button.rating.emphasized {
   margin-top: 0.35rem;
 }
 
+/* ---- Accuracy trend ---- */
+
+.accuracy-trend {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 0.85rem;
+  margin-top: 0.75rem;
+}
+
+.trend-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.trend-readout {
+  margin: 0;
+  min-height: 1.5rem;
+  font-weight: 600;
+}
+
+.range-switcher {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+
+.range-button {
+  min-height: 36px;
+  padding: 0.3rem 0.75rem;
+  background: transparent;
+  color: var(--text-muted);
+  border: none;
+  border-radius: 0;
+  font-size: 0.85rem;
+}
+
+.range-button + .range-button {
+  border-left: 1px solid var(--border);
+}
+
+.range-button[aria-pressed='true'] {
+  background: var(--surface-muted);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.chart-frame {
+  --plot-height: 9rem;
+  --volume-height: 3.5rem;
+  display: grid;
+  grid-template-columns: 2.5rem minmax(0, 1fr);
+  grid-template-rows: var(--plot-height) var(--volume-height) auto;
+  margin-top: 0.75rem;
+}
+
+.chart-yaxis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding-right: 0.4rem;
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  text-align: right;
+}
+
+.chart-yaxis-accuracy {
+  grid-column: 1;
+  grid-row: 1;
+}
+
+.chart-yaxis-volume {
+  grid-column: 1;
+  grid-row: 2;
+}
+
+.chart-body {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  position: relative;
+}
+
+.chart-grid {
+  position: absolute;
+  inset: 0 0 var(--volume-height) 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.chart-grid span {
+  border-top: 1px solid var(--border);
+}
+
+.chart-line {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: var(--plot-height);
+  overflow: visible;
+  pointer-events: none;
+}
+
+.chart-line path {
+  stroke: var(--accent-secondary);
+  stroke-width: 2;
+  stroke-linejoin: round;
+}
+
+.chart-cols {
+  position: relative;
+  display: grid;
+  height: 100%;
+}
+
+.chart-col {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  cursor: default;
+}
+
+.chart-col:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+.chart-col.is-active {
+  background: var(--surface-muted);
+}
+
+.chart-plot {
+  position: relative;
+  height: var(--plot-height);
+}
+
+.chart-dot {
+  position: absolute;
+  left: 50%;
+  width: 6px;
+  height: 6px;
+  margin: 0 0 -3px -3px;
+  border-radius: 50%;
+  background: var(--accent-secondary);
+}
+
+.chart-volume {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  height: var(--volume-height);
+}
+
+.chart-bar {
+  display: block;
+  width: 60%;
+  min-height: 2px;
+  background: var(--accent);
+  border-radius: 2px 2px 0 0;
+  opacity: 0.8;
+}
+
+.chart-xaxis {
+  grid-column: 2;
+  grid-row: 3;
+  display: flex;
+  justify-content: space-between;
+  margin-top: 0.35rem;
+  font-size: 0.75rem;
+}
+
+.chart-caption {
+  margin: 0.5rem 0 0;
+  font-size: 0.75rem;
+}
+
+.week-comparison {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid var(--border);
+}
+
+.week-comparison p {
+  margin: 0.15rem 0;
+}
+
+.week-delta {
+  font-weight: 600;
+  color: var(--accent-secondary);
+}
+
 /* ---- Explain Button ---- */
 
 .explain-button {
