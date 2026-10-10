@@ -1449,7 +1449,7 @@ button.rating.emphasized {
     color: var(--danger);
   }
 
-  .mistake-rationale {
+  .mistakes-table .mistake-rationale {
     grid-area: rationale;
     background: var(--surface-muted);
     border-radius: var(--radius);
@@ -1464,9 +1464,10 @@ button.rating.emphasized {
   }
 
   .mistake-rationale-toggle {
-    display: inline-flex;
+    display: flex;
     align-items: center;
     min-height: 44px;
+    margin-bottom: -0.5rem;
     padding: 0;
     background: transparent;
     color: var(--accent);
