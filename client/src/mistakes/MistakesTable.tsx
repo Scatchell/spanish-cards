@@ -1,5 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { CategoryMistake } from '../api.js';
+
+const LONG_RATIONALE_CHARS = 120;
 
 function formatMistakeDate(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
@@ -39,9 +42,7 @@ function MistakeRow({ item }: { item: CategoryMistake }) {
       <td role="cell" className="mistake-submitted" data-label="Submitted">
         {item.submittedText}
       </td>
-      <td role="cell" className="mistake-rationale" data-label="Rationale">
-        {item.rationale}
-      </td>
+      <RationaleCell text={item.rationale} />
       <td
         role="cell"
         className={hasTargets ? 'mistake-targets' : 'mistake-targets mistake-targets-empty'}
@@ -62,5 +63,27 @@ function MistakeRow({ item }: { item: CategoryMistake }) {
         {formatMistakeDate(item.createdAt)}
       </td>
     </tr>
+  );
+}
+
+function RationaleCell({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const long = text.length > LONG_RATIONALE_CHARS;
+  return (
+    <td role="cell" className="mistake-rationale" data-label="Rationale">
+      <span className={long && !expanded ? 'mistake-rationale-text is-clamped' : 'mistake-rationale-text'}>
+        {text}
+      </span>
+      {long && (
+        <button
+          type="button"
+          className="mistake-rationale-toggle"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </td>
   );
 }

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 import type { CategoryMistake } from '../../src/api.js';
@@ -90,5 +90,41 @@ describe('MistakesTable', () => {
     const rows = screen.getAllByRole('row');
     expect(rows).toHaveLength(3);
     expect(within(rows[2] as HTMLElement).getByText('otra')).toBeInTheDocument();
+  });
+});
+
+describe('MistakesTable rationale toggle', () => {
+  const longRationale = 'x'.repeat(121);
+
+  it('shows no toggle for a short rationale', () => {
+    renderTable([mistake({ rationale: 'x'.repeat(120) })]);
+
+    expect(screen.queryByRole('button', { name: /show (more|less)/i })).not.toBeInTheDocument();
+  });
+
+  it('toggles a long rationale between collapsed and expanded', () => {
+    renderTable([mistake({ rationale: longRationale })]);
+
+    const toggle = screen.getByRole('button', { name: 'Show more' });
+    expect(toggle).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.getByText(longRationale)).toHaveClass('is-clamped');
+
+    fireEvent.click(toggle);
+
+    const expanded = screen.getByRole('button', { name: 'Show less' });
+    expect(expanded).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByText(longRationale)).not.toHaveClass('is-clamped');
+  });
+
+  it('expands each rationale independently', () => {
+    renderTable([
+      mistake({ id: 1, rationale: longRationale }),
+      mistake({ id: 2, rationale: longRationale + 'y' }),
+    ]);
+
+    fireEvent.click(screen.getAllByRole('button', { name: 'Show more' })[0] as HTMLElement);
+
+    expect(screen.getAllByRole('button', { name: 'Show more' })).toHaveLength(1);
+    expect(screen.getAllByRole('button', { name: 'Show less' })).toHaveLength(1);
   });
 });
