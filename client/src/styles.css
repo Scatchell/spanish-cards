@@ -821,9 +821,10 @@ button.rating.emphasized {
 .chart-frame {
   --plot-height: 9rem;
   --volume-height: 3.5rem;
+  --volume-gap: 1rem;
   display: grid;
   grid-template-columns: 2.5rem minmax(0, 1fr);
-  grid-template-rows: var(--plot-height) var(--volume-height) auto;
+  grid-template-rows: var(--plot-height) calc(var(--volume-height) + var(--volume-gap)) auto;
   margin-top: 0.75rem;
 }
 
@@ -845,6 +846,7 @@ button.rating.emphasized {
 .chart-yaxis-volume {
   grid-column: 1;
   grid-row: 2;
+  padding-top: var(--volume-gap);
 }
 
 .chart-body {
@@ -855,7 +857,7 @@ button.rating.emphasized {
 
 .chart-grid {
   position: absolute;
-  inset: 0 0 var(--volume-height) 0;
+  inset: 0 0 calc(var(--volume-height) + var(--volume-gap)) 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -878,8 +880,9 @@ button.rating.emphasized {
 
 .chart-line path {
   stroke: var(--accent-secondary);
-  stroke-width: 2;
+  stroke-width: 2.5;
   stroke-linejoin: round;
+  stroke-linecap: round;
 }
 
 .chart-cols {
@@ -924,6 +927,8 @@ button.rating.emphasized {
   align-items: flex-end;
   justify-content: center;
   height: var(--volume-height);
+  margin-top: var(--volume-gap);
+  border-bottom: 1px solid var(--border);
 }
 
 .chart-bar {
@@ -976,24 +981,32 @@ button.rating.emphasized {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1rem 1.25rem;
+  padding: 1.25rem 1.25rem 1.1rem;
   text-align: center;
 }
 
 .streak-hero.is-live {
+  background: var(--accent);
   border-color: var(--accent);
+  color: var(--surface);
+}
+
+.streak-hero.is-live .streak-note {
+  color: inherit;
+  opacity: 0.85;
 }
 
 .streak-number {
   margin: 0;
-  font-size: 3.5rem;
-  font-weight: 700;
-  line-height: 1;
+  font-size: 5rem;
+  font-weight: 800;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
   color: var(--text-muted);
 }
 
 .streak-hero.is-live .streak-number {
-  color: var(--accent);
+  color: inherit;
 }
 
 .streak-label {
