@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import { askFollowUp, checkSubmittedAnswer, fetchExplanation } from '../api.js';
+import { askFollowUp, checkSubmittedAnswer, describeError, fetchExplanation } from '../api.js';
 import type { AnswerCheckResponse } from '../api.js';
 import { AnswerCheckResult } from './AnswerCheckResult.js';
 import type { Verdict } from '../training/answer-check.js';
@@ -25,6 +25,10 @@ function isAbort(err: unknown): boolean {
   return err instanceof Error && err.name === 'AbortError';
 }
 
+const EXPLANATION_ERROR = 'Sorry! Something went wrong with this explanation — please try again later.';
+const ANSWER_CHECK_ERROR = "Sorry! Couldn't check that answer — try again.";
+const FOLLOW_UP_ERROR = "Sorry! Couldn't answer that one — try again.";
+
 function scrollIntoBodyView(el: HTMLElement | null) {
   el?.scrollIntoView?.({ block: 'start', behavior: 'smooth' });
 }
@@ -45,6 +49,9 @@ export function ExplanationModal({
   onAdoptAnswer,
 }: Props) {
   const [state, setState] = useState<State>('loading');
+  const [explanationError, setExplanationError] = useState(EXPLANATION_ERROR);
+  const [answerCheckError, setAnswerCheckError] = useState(ANSWER_CHECK_ERROR);
+  const [followUpError, setFollowUpError] = useState(FOLLOW_UP_ERROR);
   const [markdown, setMarkdown] = useState('');
 
   const [question, setQuestion] = useState('');
@@ -95,6 +102,7 @@ export function ExplanationModal({
       .catch((err: unknown) => {
         if (isAbort(err)) return;
         console.error('Answer check request failed:', err);
+        setAnswerCheckError(describeError(err, ANSWER_CHECK_ERROR));
         setAnswerCheckState('error');
       });
   }
@@ -109,6 +117,7 @@ export function ExplanationModal({
       .catch((err: unknown) => {
         if (isAbort(err)) return;
         console.error('Explanation request failed:', err);
+        setExplanationError(describeError(err, EXPLANATION_ERROR));
         setState('error');
       });
     return () => controller.abort();
@@ -190,6 +199,7 @@ export function ExplanationModal({
       .catch((err: unknown) => {
         if (isAbort(err)) return;
         console.error('Follow-up request failed:', err);
+        setFollowUpError(describeError(err, FOLLOW_UP_ERROR));
         setFollowUpState('error');
       });
   }
@@ -218,7 +228,7 @@ export function ExplanationModal({
           {state === 'ready' && <ReactMarkdown>{markdown}</ReactMarkdown>}
           {state === 'error' && (
             <p className="form-error" role="alert">
-              Sorry! Something went wrong with this explanation — please try again later.
+              {explanationError}
             </p>
           )}
           {canCompareAnswer && answerCheckState !== 'idle' && (
@@ -228,7 +238,7 @@ export function ExplanationModal({
               )}
               {answerCheckState === 'error' && (
                 <p className="form-error" role="alert">
-                  Sorry! Couldn't check that answer — try again.
+                  {answerCheckError}
                 </p>
               )}
               {answerCheckState === 'ready' && answerCheck && (
@@ -257,7 +267,7 @@ export function ExplanationModal({
               )}
               {followUpState === 'error' && (
                 <p className="form-error" role="alert">
-                  Sorry! Couldn't answer that one — try again.
+                  {followUpError}
                 </p>
               )}
             </div>

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import type { Ref } from 'react';
 import { Link, Navigate, useNavigate, useParams } from 'react-router-dom';
 import type { Category, CategoryCount, CategoryMistake } from '../api.js';
-import { ApiError, fetchCategorizationMistakes, fetchCategorizationSummary, logout } from '../api.js';
+import { ApiError, describeError, fetchCategorizationMistakes, fetchCategorizationSummary, logout } from '../api.js';
 import { CATEGORY_INFO } from './categoryInfo.js';
 import { MistakesTable } from './MistakesTable.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
@@ -22,6 +22,7 @@ interface CategoryState {
   items: CategoryMistake[];
   nextCursor: string | null;
   loadState: LoadState;
+  errorMessage?: string;
 }
 
 function isCategory(value: string | undefined): value is Category {
@@ -34,6 +35,7 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const openCategory: Category | null = isCategory(categoryParam) ? categoryParam : null;
   const openInfo = CATEGORY_INFO.find((info) => info.category === openCategory);
   const [loadState, setLoadState] = useState<LoadState>('loading');
+  const [errorMessage, setErrorMessage] = useState('Something went wrong.');
   const [counts, setCounts] = useState<Map<Category, number>>(new Map());
   const [categoryStates, setCategoryStates] = useState<Map<Category, CategoryState>>(new Map());
 
@@ -57,6 +59,7 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       })
       .catch((err) => {
         if (!handleUnauthenticated(err)) {
+          setErrorMessage(describeError(err, 'Something went wrong.'));
           setLoadState('error');
         }
       });
@@ -71,7 +74,7 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       setCategoryStates((existing) => {
         const next = new Map(existing);
         const current = next.get(category) ?? { items: [], nextCursor: null, loadState: 'loading' as LoadState };
-        next.set(category, { ...current, loadState: 'loading' });
+        next.set(category, { ...current, loadState: 'loading', errorMessage: undefined });
         return next;
       });
       fetchCategorizationMistakes(category, cursor)
@@ -89,7 +92,11 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
           setCategoryStates((existing) => {
             const next = new Map(existing);
             const current = next.get(category) ?? { items: [], nextCursor: null, loadState: 'loading' as LoadState };
-            next.set(category, { ...current, loadState: 'error' });
+            next.set(category, {
+              ...current,
+              loadState: 'error',
+              errorMessage: describeError(err, 'Something went wrong.'),
+            });
             return next;
           });
         });
@@ -149,7 +156,7 @@ export function MistakesPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         {loadState === 'loading' && <p className="hint">Loading mistakes…</p>}
         {loadState === 'error' && (
           <p className="form-error" role="alert">
-            Something went wrong.{' '}
+            {errorMessage}{' '}
             <button type="button" className="secondary" onClick={load}>
               Retry
             </button>
@@ -243,7 +250,7 @@ function CategoryAccordion({
       )}
       {state.loadState === 'error' && (
         <p className="form-error" role="alert">
-          Something went wrong.{' '}
+          {state.errorMessage ?? 'Something went wrong.'}{' '}
           <button type="button" className="secondary" onClick={onRetry}>
             Retry
           </button>

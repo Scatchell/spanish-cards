@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { ServerUnavailableError } from '../../src/api.js';
 import { EditableSentence } from '../../src/cards/EditableSentence.js';
 
 afterEach(cleanup);
@@ -54,5 +55,16 @@ describe('EditableSentence', () => {
     await waitFor(() => expect(screen.getByText('Could not save — reverted.')).toBeTruthy());
     // Stays in edit mode so the user can retry, with the value reverted.
     expect((screen.getByRole('textbox') as HTMLInputElement).value).toBe('hola');
+  });
+
+  it('shows the server-unavailable message instead of the generic one when offline', async () => {
+    const onSave = vi.fn().mockRejectedValue(new ServerUnavailableError());
+    const input = renderSentence(onSave);
+    fireEvent.change(input, { target: { value: 'adiós' } });
+    fireEvent.keyDown(input, { key: 'Enter' });
+    await waitFor(() =>
+      expect(screen.getByText(/The server is not available for this action/)).toBeTruthy(),
+    );
+    expect(screen.queryByText('Could not save — reverted.')).toBeNull();
   });
 });

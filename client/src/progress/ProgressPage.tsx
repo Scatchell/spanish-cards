@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { ProgressReport } from '../api.js';
-import { ApiError, fetchProgress, logout } from '../api.js';
+import { ApiError, describeError, fetchProgress, logout } from '../api.js';
 import { HeaderMenu } from '../nav/HeaderMenu.js';
 import {
   AccountLink,
@@ -17,7 +17,10 @@ import { ActivityStrip } from './ActivityStrip.js';
 import { DeckSection } from './DeckSection.js';
 import { RecentMistakes } from './RecentMistakes.js';
 
-type LoadState = { status: 'loading' | 'error' } | { status: 'ready'; report: ProgressReport };
+type LoadState =
+  | { status: 'loading' }
+  | { status: 'error'; message: string }
+  | { status: 'ready'; report: ProgressReport };
 
 export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
@@ -30,7 +33,7 @@ export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         if (err instanceof ApiError && err.status === 401) {
           onLoggedOut();
         } else {
-          setLoadState({ status: 'error' });
+          setLoadState({ status: 'error', message: describeError(err, 'Something went wrong.') });
         }
       });
   }, [onLoggedOut]);
@@ -64,7 +67,7 @@ export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
         {loadState.status === 'loading' && <p className="hint">Loading progress…</p>}
         {loadState.status === 'error' && (
           <p className="form-error" role="alert">
-            Something went wrong.{' '}
+            {loadState.message}{' '}
             <button type="button" className="secondary" onClick={load}>
               Retry
             </button>

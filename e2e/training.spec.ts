@@ -169,3 +169,19 @@ test('keeps training offline and syncs the queued reviews once, in order, on rec
   const queue = await page.request.get('/api/training/queue?scope=due');
   expect(((await queue.json()) as { cards: unknown[] }).cards).toHaveLength(0);
 });
+
+test('shows the unavailable message for Explain while offline', async ({ page, context }) => {
+  await createCard(page, 'el perro', 'the dog');
+  await page.getByRole('link', { name: 'Train' }).click();
+  await page.getByLabel(/Your answer/).fill('el gato');
+  await page.keyboard.press('Enter');
+
+  await context.setOffline(true);
+  await page.getByRole('button', { name: /Explain/ }).click();
+
+  await expect(
+    page.getByText(
+      'The server is not available for this action. Check your internet connection and try again.',
+    ),
+  ).toBeVisible();
+});

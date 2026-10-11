@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { describeError } from '../api.js';
 
 // Matches the server-side CARD_TEXT_MAX_LENGTH and DraftCardRow's input cap.
 const CARD_TEXT_MAX_LENGTH = 70;
@@ -70,9 +71,9 @@ export function EditableSentence({
     try {
       await onSave(trimmed);
       setEditing(false);
-    } catch {
+    } catch (err) {
       setValue(text);
-      setError('Could not save — reverted.');
+      setError(describeError(err, 'Could not save — reverted.'));
     } finally {
       setSaving(false);
     }

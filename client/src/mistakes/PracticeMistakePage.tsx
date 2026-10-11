@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import type { PracticeSessionDto } from '../api.js';
-import { ApiError, fetchPracticeSession, generatePracticeSession, logout } from '../api.js';
+import { ApiError, describeError, fetchPracticeSession, generatePracticeSession, logout } from '../api.js';
 import { LearningSessionView } from '../learning/LearningSessionView.js';
 import type { LearningSession } from '../learning/session.js';
 import { markRemembered, markStillLearning, restartPass, startSession } from '../learning/session.js';
@@ -33,6 +33,7 @@ export function PracticeMistakePage({ onLoggedOut }: { onLoggedOut: () => void }
   const [direction, setDirection] = useState<Direction>(loadDirection);
   const [sourceModalOpen, setSourceModalOpen] = useState(false);
   const [regenerating, setRegenerating] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('Something went wrong generating practice sentences.');
 
   const handleUnauthenticated = useCallback(
     (err: unknown) => {
@@ -63,6 +64,7 @@ export function PracticeMistakePage({ onLoggedOut }: { onLoggedOut: () => void }
       .catch((err: unknown) => {
         if (cancelled) return;
         if (handleUnauthenticated(err)) return;
+        setErrorMessage(describeError(err, 'Something went wrong generating practice sentences.'));
         setLoadState(err instanceof ApiError && err.status === 503 ? 'unavailable' : 'error');
       });
     return () => {
@@ -98,6 +100,7 @@ export function PracticeMistakePage({ onLoggedOut }: { onLoggedOut: () => void }
       .catch((err: unknown) => {
         if (handleUnauthenticated(err)) return;
         setRegenerating(false);
+        setErrorMessage(describeError(err, 'Something went wrong generating practice sentences.'));
         setLoadState('error');
       });
   }
@@ -141,7 +144,7 @@ export function PracticeMistakePage({ onLoggedOut }: { onLoggedOut: () => void }
         )}
         {loadState === 'error' && (
           <p className="form-error" role="alert">
-            Something went wrong generating practice sentences.
+            {errorMessage}
           </p>
         )}
 

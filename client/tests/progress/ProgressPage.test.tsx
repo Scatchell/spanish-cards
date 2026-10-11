@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as api from '../../src/api.js';
+import { ServerUnavailableError } from '../../src/api.js';
 import { ProgressPage } from '../../src/progress/ProgressPage.js';
 import { makeReport } from './fixtures.js';
 
@@ -26,6 +27,15 @@ function renderPage(onLoggedOut = vi.fn()) {
 }
 
 describe('ProgressPage', () => {
+  it('shows the unavailable message with a retry when offline', async () => {
+    mockedFetch.mockRejectedValueOnce(new ServerUnavailableError());
+    renderPage();
+    expect(
+      await screen.findByText(/The server is not available for this action/),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeInTheDocument();
+  });
+
   it('shows a loading state, then every section', async () => {
     mockedFetch.mockResolvedValue(makeReport());
     renderPage();
