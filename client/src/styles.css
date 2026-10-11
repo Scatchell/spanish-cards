@@ -862,6 +862,7 @@ button.rating.emphasized {
   flex-direction: column;
   justify-content: space-between;
   pointer-events: none;
+  z-index: 1;
 }
 
 .chart-grid span {
@@ -876,6 +877,7 @@ button.rating.emphasized {
   height: var(--plot-height);
   overflow: visible;
   pointer-events: none;
+  z-index: 1;
 }
 
 .chart-line path {
@@ -885,6 +887,7 @@ button.rating.emphasized {
   stroke-linecap: round;
 }
 
+/* The gridlines and the line sit above the columns so a highlighted column never hides them. */
 .chart-cols {
   position: relative;
   display: grid;
