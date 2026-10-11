@@ -791,6 +791,25 @@ button.rating.emphasized {
   font-weight: 600;
 }
 
+/* Narrow screens: the switcher gets its own row above the readout, so the
+   buttons never move, and the readout reserves two lines so a long reading
+   cannot push the chart down. */
+@media (max-width: 29.999rem) {
+  .trend-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.6rem;
+  }
+
+  .range-switcher {
+    order: -1;
+  }
+
+  .trend-readout {
+    min-height: 3rem;
+  }
+}
+
 .range-switcher {
   display: inline-flex;
   border: 1px solid var(--border);
