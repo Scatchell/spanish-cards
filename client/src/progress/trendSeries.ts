@@ -51,21 +51,16 @@ export function selectTrendSeries(trend: ActivityTrend, range: TrendRange): Tren
 }
 
 // SVG path in a 0..100 square (drawn with preserveAspectRatio="none"): each
-// point sits at the centre of its column, accuracy 1 is the top. A day with no
-// reviews starts a new subpath, so the line breaks there instead of dropping
-// to zero.
+// point sits at the centre of its column, accuracy 1 is the top. Days with no
+// reviews are skipped, so the line bridges the gap between the days that have
+// data; the dots still show which days those are.
 export function linePath(points: TrendPoint[]): string {
   const commands: string[] = [];
-  let drawing = false;
   points.forEach((point, index) => {
-    if (point.accuracy === null) {
-      drawing = false;
-      return;
-    }
+    if (point.accuracy === null) return;
     const x = ((index + 0.5) / points.length) * 100;
     const y = 100 - point.accuracy * 100;
-    commands.push(`${drawing ? 'L' : 'M'} ${x} ${y}`);
-    drawing = true;
+    commands.push(`${commands.length === 0 ? 'M' : 'L'} ${x} ${y}`);
   });
   return commands.join(' ');
 }

@@ -19,12 +19,12 @@ async function createCard(page: Page, spanishText: string, englishText: string) 
   expect(response.ok()).toBe(true);
 }
 
-// The dd value of the stat tile whose dt label matches exactly.
+// The value (dd, or the count on a deck legend button) of the stat tile whose label matches exactly.
 function stat(page: Page, label: string): Locator {
   return page
     .locator('.stat-tile')
     .filter({ has: page.getByText(label, { exact: true }) })
-    .locator('dd');
+    .locator('dd, .deck-legend-count');
 }
 
 test.beforeEach(async ({ page }) => {

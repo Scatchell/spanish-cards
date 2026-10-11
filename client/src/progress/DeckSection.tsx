@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { PeriodTotals, ProgressDeck } from '../api.js';
 import { Stat } from './Stat.js';
@@ -12,8 +13,26 @@ const BUCKETS: { key: Bucket; label: string }[] = [
   { key: 'new', label: 'New' },
 ];
 
+function explain(bucket: Bucket, masteredThresholdDays: number): string {
+  switch (bucket) {
+    case 'mastered':
+      return `You would likely still remember these in ${masteredThresholdDays} days.`;
+    case 'familiar':
+      return 'You know these, but they are not that solid yet.';
+    case 'learning':
+      return 'You are still learning these. Keep reviewing them and they will settle.';
+    case 'lapsed':
+      return 'You forgot these and are relearning them.';
+    case 'new':
+      return 'You added these but have not reviewed them yet.';
+  }
+}
+
 export function DeckSection({ deck, last7Days }: { deck: ProgressDeck; last7Days: PeriodTotals }) {
+  const [selected, setSelected] = useState<Bucket | null>(null);
   const composition = BUCKETS.map(({ key }) => `${deck[key]} ${key}`).join(', ');
+  const select = (key: Bucket) => setSelected((current) => (current === key ? null : key));
+
   return (
     <section aria-label="Deck overview" className="deck-section">
       <h2>Deck</h2>
@@ -24,21 +43,37 @@ export function DeckSection({ deck, last7Days }: { deck: ProgressDeck; last7Days
           Nothing here yet. <Link to="/">Add some cards</Link> to start building your deck.
         </p>
       ) : (
-        <div className="deck-bar" role="img" aria-label={`Deck: ${composition}`}>
+        <div
+          className={selected ? 'deck-bar has-selection' : 'deck-bar'}
+          role="img"
+          aria-label={`Deck: ${composition}`}
+        >
           {BUCKETS.filter(({ key }) => deck[key] > 0).map(({ key }) => (
-            <span key={key} className={`deck-segment deck-${key}`} style={{ flexGrow: deck[key] }} />
+            <span
+              key={key}
+              className={`deck-segment deck-${key}${key === selected ? ' is-selected' : ''}`}
+              style={{ flexGrow: deck[key] }}
+            />
           ))}
         </div>
       )}
 
-      <dl className="stats-grid">
+      <div className="deck-legend" role="group" aria-label="Deck buckets">
         {BUCKETS.map(({ key, label }) => (
-          <Stat key={key} label={label} value={deck[key]} className={`deck-legend-item deck-${key}`} />
+          <button
+            key={key}
+            type="button"
+            className={`stat-tile deck-legend-item deck-${key}`}
+            aria-pressed={selected === key}
+            onClick={() => select(key)}
+          >
+            <span className="deck-legend-label">{label}</span>
+            <span className="deck-legend-count">{deck[key]}</span>
+          </button>
         ))}
-      </dl>
-      <p className="hint deck-explainer">
-        Mastered: you would likely still remember it in {deck.masteredThresholdDays} days. Familiar: you know it, but
-        it is not that solid yet. Lapsed: you forgot it and are relearning it.
+      </div>
+      <p className={selected ? `deck-explainer deck-${selected}` : 'deck-explainer'} role="status">
+        {selected ? explain(selected, deck.masteredThresholdDays) : 'Select a box to see what it means.'}
       </p>
 
       <dl className="stats-grid">

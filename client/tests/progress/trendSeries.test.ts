@@ -50,9 +50,9 @@ describe('linePath', () => {
     expect(linePath([point(1), point(0.5)])).toBe('M 25 0 L 75 50');
   });
 
-  it('breaks the line at a day with no reviews instead of dropping to zero', () => {
+  it('bridges days with no reviews instead of dropping to zero or breaking', () => {
     expect(linePath([point(1), point(null), point(0.5)])).toBe(
-      `M ${(0.5 / 3) * 100} 0 M ${(2.5 / 3) * 100} 50`,
+      `M ${(0.5 / 3) * 100} 0 L ${(2.5 / 3) * 100} 50`,
     );
   });
 

@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import { afterEach, describe, expect, it } from 'vitest';
 import { DeckSection } from '../../src/progress/DeckSection.js';
@@ -45,9 +45,35 @@ describe('DeckSection', () => {
     expect(bar.querySelectorAll('.deck-segment')).toHaveLength(1);
   });
 
-  it('explains the buckets, deriving the mastery bar from the threshold', () => {
+  it('invites a click until a box is selected', () => {
+    renderDeck();
+    expect(screen.getByText('Select a box to see what it means.')).toBeInTheDocument();
+    for (const name of ['Mastered', 'Familiar', 'Learning', 'Lapsed', 'New']) {
+      expect(screen.getByRole('button', { name: new RegExp(name) })).toHaveAttribute('aria-pressed', 'false');
+    }
+  });
+
+  it('explains only the selected bucket and spotlights its bar segment', () => {
     renderDeck({ masteredThresholdDays: 21 });
-    expect(screen.getByText(/Mastered: you would likely still remember it in 21 days/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Mastered/ }));
+    expect(screen.getByRole('status')).toHaveTextContent('You would likely still remember these in 21 days.');
+    expect(screen.getByRole('button', { name: /Mastered/ })).toHaveAttribute('aria-pressed', 'true');
+    const selected = screen.getByRole('img', { name: /^Deck:/ }).querySelectorAll('.is-selected');
+    expect(selected).toHaveLength(1);
+    expect(selected[0]).toHaveClass('deck-mastered');
+
+    fireEvent.click(screen.getByRole('button', { name: /Lapsed/ }));
+    expect(screen.getByRole('status')).toHaveTextContent('You forgot these and are relearning them.');
+    expect(screen.getByRole('button', { name: /Mastered/ })).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('clears the selection when the same box is clicked again', () => {
+    renderDeck();
+    const learning = screen.getByRole('button', { name: /Learning/ });
+    fireEvent.click(learning);
+    fireEvent.click(learning);
+    expect(screen.getByText('Select a box to see what it means.')).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /^Deck:/ })).not.toHaveClass('has-selection');
   });
 
   it('compares cards added with cards reviewed in the last 7 days, and flags due cards', () => {

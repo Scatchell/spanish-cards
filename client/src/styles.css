@@ -1074,8 +1074,27 @@ button.rating.emphasized {
   --bucket: var(--border);
 }
 
-/* The legend tiles reuse the bar's bucket colours as a swatch. */
-.deck-legend-item dt::before {
+/* Legend tiles are buttons: selecting one explains it and spotlights its slice of the bar. */
+.deck-legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(8.5rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+}
+
+.deck-legend-item {
+  align-items: flex-start;
+  text-align: left;
+  color: var(--text);
+  font: inherit;
+}
+
+.deck-legend-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+}
+
+.deck-legend-label::before {
   content: '';
   display: inline-block;
   width: 0.6rem;
@@ -1086,9 +1105,48 @@ button.rating.emphasized {
   border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
 }
 
+.deck-legend-count {
+  font-size: 1.35rem;
+  font-weight: 600;
+}
+
+.deck-legend-item[aria-pressed='true'] {
+  border-color: var(--bucket);
+  box-shadow: inset 0 0 0 1px var(--bucket);
+  background: color-mix(in srgb, var(--bucket) 10%, var(--surface));
+}
+
+.deck-legend-item[aria-pressed='true'] .deck-legend-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.deck-bar.has-selection .deck-segment:not(.is-selected) {
+  opacity: 0.35;
+}
+
+/* Fixed height keeps the layout still as the text changes. */
 .deck-explainer {
+  box-sizing: border-box;
+  min-height: 3.25rem;
   margin: 0.75rem 0 0;
-  font-size: 0.85rem;
+  padding: 0.65rem 0.85rem;
+  display: flex;
+  align-items: center;
+  border-left: 4px solid var(--border);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  background: var(--surface-muted);
+  color: var(--text);
+  font-size: 0.95rem;
+}
+
+.deck-explainer.deck-mastered,
+.deck-explainer.deck-familiar,
+.deck-explainer.deck-learning,
+.deck-explainer.deck-lapsed,
+.deck-explainer.deck-new {
+  border-left-color: var(--bucket);
+  background: color-mix(in srgb, var(--bucket) 12%, var(--surface));
 }
 
 /* ---- Recent mistakes (progress page) ---- */
