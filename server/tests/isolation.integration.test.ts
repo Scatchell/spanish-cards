@@ -85,9 +85,15 @@ describe('cross-user isolation (full app)', () => {
     const aQueueBefore = (await api('a', 'GET', '/api/training/queue')).body.cards;
     expect(aQueueBefore.map((c: { id: number }) => c.id)).toContain(cardId);
 
-    await api('a', 'POST', '/api/training/reviews', {
-      cardId, rating: 'again', direction: 'spanish-to-english', verdict: 'incorrect', submittedText: 'blue', matchedText: 'red',
+    const aReview = await api('a', 'POST', '/api/training/reviews', {
+      reviews: [
+        {
+          cardId, rating: 'again', direction: 'spanish-to-english', verdict: 'incorrect', submittedText: 'blue', matchedText: 'red',
+          clientReviewId: '44444444-4444-4444-8444-444444444444', reviewedAt: new Date().toISOString(),
+        },
+      ],
     });
+    expect(aReview.body.results.map((r: { status: string }) => r.status)).toEqual(['applied']);
 
     expect((await api('b', 'GET', '/api/cards')).body.cards).toEqual([]);
     expect((await api('b', 'GET', '/api/training/queue')).body.cards).toEqual([]);
@@ -112,9 +118,17 @@ describe('cross-user isolation (full app)', () => {
     });
     expect(
       await api('b', 'POST', '/api/training/reviews', {
-        cardId, rating: 'easy', direction: 'spanish-to-english', verdict: 'correct', submittedText: 'red', matchedText: 'red',
+        reviews: [
+          {
+            cardId, rating: 'easy', direction: 'spanish-to-english', verdict: 'correct', submittedText: 'red', matchedText: 'red',
+            clientReviewId: '55555555-5555-4555-8555-555555555555', reviewedAt: new Date().toISOString(),
+          },
+        ],
       }),
-    ).toMatchObject({ status: 404, body: { error: 'Card not found' } });
+    ).toMatchObject({
+      status: 200,
+      body: { results: [{ clientReviewId: '55555555-5555-4555-8555-555555555555', status: 'cardNotFound' }] },
+    });
     expect(await api('b', 'POST', `/api/cards/${cardId}/explanation`, {})).toMatchObject({
       status: 404,
       body: { error: 'Card not found' },

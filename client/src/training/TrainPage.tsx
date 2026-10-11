@@ -4,11 +4,12 @@ import { Link } from 'react-router-dom';
 import type { ReviewRating, TrainingScope } from '../api.js';
 import {
   ApiError,
+  ServerUnavailableError,
   addAlternateAnswer,
   deleteAlternateAnswer,
+  describeError,
   fetchTrainingQueue,
   logout,
-  submitReview,
   updateAlternateAnswer,
   updateCardText,
 } from '../api.js';
@@ -24,6 +25,7 @@ import type { Direction } from './direction.js';
 import { answerAlternates, answerText, loadDirection, oppositeDirection, promptText, saveDirection } from './direction.js';
 import { AnswerReveal } from './AnswerReveal.js';
 import { RatingBar } from './RatingBar.js';
+import { useReviewOutbox } from './useReviewOutbox.js';
 import {
   currentCard,
   patchCard,
@@ -47,12 +49,14 @@ import {
 
 type LoadState = 'loading' | 'ready' | 'error';
 
+const GENERIC_ERROR = 'Something went wrong.';
+
 interface Reveal {
   submitted: string;
   result: AlternateAwareResult;
 }
 
-export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
+export function TrainPage({ onLoggedOut, userEmail }: { onLoggedOut: () => void; userEmail: string }) {
   const [loadState, setLoadState] = useState<LoadState>('loading');
   const [session, setSession] = useState<TrainingSession>(() => startSession([]));
   const [studyingAhead, setStudyingAhead] = useState(false);
@@ -60,9 +64,10 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [typed, setTyped] = useState('');
   const [reveal, setReveal] = useState<Reveal | null>(null);
   const [answerOverride, setAnswerOverride] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const [explainOpen, setExplainOpen] = useState(false);
   const [adoptError, setAdoptError] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState(GENERIC_ERROR);
+  const { pendingCount, isFull, enqueue, flush } = useReviewOutbox(userEmail, onLoggedOut);
   const answerInput = useRef<HTMLTextAreaElement>(null);
 
   const current = currentCard(session);
@@ -85,21 +90,28 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     onLoggedOut();
   }
 
+  // Syncs any offline reviews first so the fetched queue does not hand back
+  // cards that were already reviewed but not yet recorded server-side.
   const loadQueue = useCallback(
     (scope: TrainingScope) => {
       setLoadState('loading');
-      fetchTrainingQueue(scope)
+      flush()
+        .then((drained) => {
+          if (!drained) throw new ServerUnavailableError();
+          return fetchTrainingQueue(scope);
+        })
         .then((cards) => {
           setSession(startSession(cards));
           setLoadState('ready');
         })
         .catch((err) => {
           if (!handleUnauthenticated(err)) {
+            setErrorMessage(describeError(err, GENERIC_ERROR));
             setLoadState('error');
           }
         });
     },
-    [handleUnauthenticated],
+    [flush, handleUnauthenticated],
   );
 
   useEffect(() => {
@@ -143,40 +155,34 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
     });
   }
 
+  // Rating never waits on the network: the review is queued (and synced in the
+  // background) and the session advances immediately.
   const handleRate = useCallback(
-    async (rating: ReviewRating) => {
-      if (!card || !reveal || saving) return;
+    (rating: ReviewRating) => {
+      if (!card || !reveal) return;
       const detectedCorrect = reveal.result.verdict !== 'incorrect';
-      setSaving(true);
-      try {
-        await submitReview({
-          cardId: card.id,
-          rating,
-          direction,
-          verdict: reveal.result.verdict,
-          submittedText: reveal.submitted,
-          matchedText: reveal.result.matchedText,
-        });
-        setSession((s) =>
-          recordGraded(s, {
-            detectedCorrect,
-            requeueAsRetry: rating === 'again',
-          }),
-        );
-        setReveal(null);
-        setAnswerOverride(null);
-        setTyped('');
-        setExplainOpen(false);
-        setAdoptError(null);
-      } catch (err) {
-        if (!handleUnauthenticated(err)) {
-          setLoadState('error');
-        }
-      } finally {
-        setSaving(false);
-      }
+      const accepted = enqueue({
+        cardId: card.id,
+        rating,
+        direction,
+        verdict: reveal.result.verdict,
+        submittedText: reveal.submitted,
+        matchedText: reveal.result.matchedText,
+      });
+      if (!accepted) return;
+      setSession((s) =>
+        recordGraded(s, {
+          detectedCorrect,
+          requeueAsRetry: rating === 'again',
+        }),
+      );
+      setReveal(null);
+      setAnswerOverride(null);
+      setTyped('');
+      setExplainOpen(false);
+      setAdoptError(null);
     },
-    [card, reveal, saving, direction, handleUnauthenticated],
+    [card, reveal, direction, enqueue],
   );
 
   // Persists a single field's text for a card, then patches the local session so
@@ -282,10 +288,17 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       </header>
 
       <main>
+        <p className="hint sync-status" role="status" aria-live="polite">
+          {pendingCount === 0
+            ? ''
+            : isFull
+              ? `${pendingCount} reviews waiting to sync. Training resumes once they sync — check your internet connection.`
+              : `${pendingCount} review${pendingCount === 1 ? '' : 's'} waiting to sync`}
+        </p>
         {loadState === 'loading' && <p className="hint">Loading cards…</p>}
         {loadState === 'error' && (
           <p className="form-error" role="alert">
-            Something went wrong. <button type="button" className="secondary" onClick={() => loadQueue(studyingAhead ? 'ahead' : 'due')}>Retry</button>
+            {errorMessage} <button type="button" className="secondary" onClick={() => loadQueue(studyingAhead ? 'ahead' : 'due')}>Retry</button>
           </p>
         )}
 
@@ -403,7 +416,7 @@ export function TrainPage({ onLoggedOut }: { onLoggedOut: () => void }) {
                       <RatingBar
                         allowAgain={!isCorrect}
                         emphasized={isCorrect ? 'good' : 'again'}
-                        disabled={saving || explainOpen}
+                        disabled={isFull || explainOpen}
                         onRate={handleRate}
                       />
                       {explainOpen && (

@@ -2023,3 +2023,8 @@ button.rating.emphasized {
 .practice-sentence-english {
   color: var(--text-muted);
 }
+
+.sync-status {
+  min-height: 1.5em;
+  margin: 0 0 0.5rem;
+}

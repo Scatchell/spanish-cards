@@ -2,8 +2,8 @@ import { Router } from 'express';
 import { getUserId } from '../auth/middleware.js';
 import type { DbPool } from '../db.js';
 import { getTrainingQueue } from './repository.js';
-import { recordReview } from './service.js';
-import { parseReviewRequest } from './validation.js';
+import { recordReviewBatch } from './service.js';
+import { parseReviewBatch } from './validation.js';
 
 export function trainingRoutes(pool: DbPool): Router {
   const router = Router();
@@ -13,21 +13,19 @@ export function trainingRoutes(pool: DbPool): Router {
     res.json({ cards: await getTrainingQueue(pool, getUserId(req), scope, new Date()) });
   });
 
+  // Accepts one or many queued reviews. Each carries a client-generated id (so
+  // a retry is a no-op) and the time the user rated it. A bad item is reported
+  // per-item and never fails the batch.
   router.post('/reviews', async (req, res) => {
-    const request = parseReviewRequest(req.body);
-    if (!request) {
+    const entries = parseReviewBatch(req.body);
+    if (!entries) {
       res.status(400).json({
-        error:
-          'Body must be { cardId, rating, direction, verdict, submittedText } with rating one of again/hard/good/easy and verdict one of correct/correctWithDifferences/incorrect',
+        error: 'Body must be { reviews: [...] } with 1 to 100 reviews',
       });
       return;
     }
-    const outcome = await recordReview(pool, getUserId(req), request, new Date());
-    if (!outcome) {
-      res.status(404).json({ error: 'Card not found' });
-      return;
-    }
-    res.json({ schedule: { due: outcome.due.toISOString() }, wasDue: outcome.wasDue });
+    const results = await recordReviewBatch(pool, getUserId(req), entries, new Date());
+    res.json({ results });
   });
 
   return router;

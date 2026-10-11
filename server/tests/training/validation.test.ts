@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { parseReviewRequest } from '../../src/training/validation.js';
+import {
+  MAX_BATCH_REVIEWS,
+  parseReviewBatch,
+  parseReviewItem,
+  parseReviewRequest,
+} from '../../src/training/validation.js';
 
 const validBody = {
   cardId: 7,
@@ -84,5 +89,62 @@ describe('parseReviewRequest', () => {
       matchedText: 'cat',
     });
     expect(result?.matchedText).toBe('cat');
+  });
+});
+
+const ID_A = '3f8f6f0e-5b7a-4a52-9d4e-0f2f6a1c9b11';
+const ID_B = '8d1c3b52-77a4-4a0e-8a2e-6e9b9a1f2c33';
+const validItem = { ...validBody, clientReviewId: ID_A, reviewedAt: '2026-01-02T03:04:05.000Z' };
+
+describe('parseReviewItem', () => {
+  it('accepts a review with an id and timestamp', () => {
+    expect(parseReviewItem(validItem)).toEqual({
+      clientReviewId: ID_A,
+      reviewedAt: new Date('2026-01-02T03:04:05.000Z'),
+      request: validBody,
+    });
+  });
+
+  it('rejects a missing, non-uuid, or non-string clientReviewId', () => {
+    expect(parseReviewItem({ ...validItem, clientReviewId: undefined })).toBeNull();
+    expect(parseReviewItem({ ...validItem, clientReviewId: 'not-a-uuid' })).toBeNull();
+    expect(parseReviewItem({ ...validItem, clientReviewId: 5 })).toBeNull();
+  });
+
+  it('rejects a missing, non-string, or unparseable reviewedAt', () => {
+    expect(parseReviewItem({ ...validItem, reviewedAt: undefined })).toBeNull();
+    expect(parseReviewItem({ ...validItem, reviewedAt: 1700000000000 })).toBeNull();
+    expect(parseReviewItem({ ...validItem, reviewedAt: 'yesterday-ish' })).toBeNull();
+  });
+
+  it('rejects an item whose review fields are invalid', () => {
+    expect(parseReviewItem({ ...validItem, rating: 'perfect' })).toBeNull();
+  });
+});
+
+describe('parseReviewBatch', () => {
+  it('returns null for a non-array, empty, or oversized reviews list', () => {
+    expect(parseReviewBatch(undefined)).toBeNull();
+    expect(parseReviewBatch({})).toBeNull();
+    expect(parseReviewBatch({ reviews: 'x' })).toBeNull();
+    expect(parseReviewBatch({ reviews: [] })).toBeNull();
+    expect(
+      parseReviewBatch({ reviews: Array.from({ length: MAX_BATCH_REVIEWS + 1 }, () => validItem) }),
+    ).toBeNull();
+  });
+
+  it('accepts exactly the maximum', () => {
+    const entries = parseReviewBatch({
+      reviews: Array.from({ length: MAX_BATCH_REVIEWS }, () => validItem),
+    });
+    expect(entries).toHaveLength(MAX_BATCH_REVIEWS);
+  });
+
+  it('keeps one entry per input in order, flagging malformed ones without dropping them', () => {
+    const entries = parseReviewBatch({
+      reviews: [validItem, { ...validItem, clientReviewId: ID_B, rating: 'nope' }, null, 7],
+    })!;
+    expect(entries.map((e) => e.item !== null)).toEqual([true, false, false, false]);
+    expect(entries.map((e) => e.clientReviewId)).toEqual([ID_A, ID_B, null, null]);
   });
 });

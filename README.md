@@ -175,6 +175,15 @@ docker compose --profile app run --rm app \
   summary (cards reviewed, correct rate) and offers studying ahead of
   schedule (soonest-due cards first). Ahead-of-schedule ratings update FSRS
   normally but are recorded as extra practice rather than due reviews.
+- Training keeps working on a flaky or dropped connection. Rating a card
+  queues the review in `localStorage` (per user) and moves on at once; reviews
+  sync in the background (one request each while online, batched after an
+  outage) and again on reconnect or reload. `POST /api/training/reviews` takes
+  `{ reviews: [...] }`, each with a client `clientReviewId` and `reviewedAt`;
+  a retried review is a no-op. The page must already be loaded when the signal
+  drops, and at 50 unsynced reviews rating pauses until they sync. Server-only
+  actions (Explain, card edits, progress) show "The server is not available for
+  this action" instead of failing generically.
 
 ## Progress dashboard
 

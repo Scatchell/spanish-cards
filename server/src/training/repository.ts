@@ -179,12 +179,19 @@ export interface NewReview {
   rating: ReviewRating;
   wasDue: boolean;
   reviewedAt: Date;
+  // Client-generated idempotency key; null for writers that do not supply one.
+  clientReviewId: string | null;
 }
 
-export async function insertReview(db: DbQueryable, review: NewReview): Promise<void> {
-  await db.query(
-    `INSERT INTO reviews (card_id, direction, detected_correct, rating, was_due, reviewed_at)
-     VALUES ($1, $2, $3, $4, $5, $6)`,
+// Returns true when a row was inserted, false when this (card, clientReviewId)
+// was already recorded — the caller must then skip every other side effect.
+export async function insertReview(db: DbQueryable, review: NewReview): Promise<boolean> {
+  const result = await db.query(
+    `INSERT INTO reviews
+       (card_id, direction, detected_correct, rating, was_due, reviewed_at, client_review_id)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT (card_id, client_review_id) WHERE client_review_id IS NOT NULL DO NOTHING
+     RETURNING id`,
     [
       review.cardId,
       review.direction,
@@ -192,8 +199,10 @@ export async function insertReview(db: DbQueryable, review: NewReview): Promise<
       review.rating,
       review.wasDue,
       review.reviewedAt,
+      review.clientReviewId,
     ],
   );
+  return result.rows.length > 0;
 }
 
 // One row of the independent review_history log (see the review-history

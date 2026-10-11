@@ -61,7 +61,7 @@ describe('recordReview', () => {
   it('writes the alternate-aware matched text as correctText, not the primary', async () => {
     getEffectiveDue.mockResolvedValue(new Date('2026-01-01T00:00:00.000Z'));
     getSchedule.mockResolvedValue(null);
-    insertReview.mockResolvedValue(undefined);
+    insertReview.mockResolvedValue(true);
     insertReviewHistory.mockResolvedValue(undefined);
     upsertSchedule.mockResolvedValue(undefined);
 
@@ -78,7 +78,7 @@ describe('recordReview', () => {
   it('caps an over-long matchedText to the column width instead of throwing', async () => {
     getEffectiveDue.mockResolvedValue(new Date('2026-01-01T00:00:00.000Z'));
     getSchedule.mockResolvedValue(FIXED_SCHEDULE);
-    insertReview.mockResolvedValue(undefined);
+    insertReview.mockResolvedValue(true);
     insertReviewHistory.mockResolvedValue(undefined);
     upsertSchedule.mockResolvedValue(undefined);
 
@@ -99,5 +99,61 @@ describe('recordReview', () => {
 
     expect(outcome).toBeNull();
     expect(insertReviewHistory).not.toHaveBeenCalled();
+  });
+
+  const CLIENT_ID = '3f8f6f0e-5b7a-4a52-9d4e-0f2f6a1c9b11';
+
+  it('reports a duplicate and skips the schedule update and history when the id was already recorded', async () => {
+    getEffectiveDue.mockResolvedValue(new Date('2026-01-01T00:00:00.000Z'));
+    getSchedule.mockResolvedValue(FIXED_SCHEDULE);
+    insertReview.mockResolvedValue(false);
+
+    const outcome = await recordReview(
+      {} as never,
+      1,
+      makeRequest(),
+      new Date('2026-01-02T00:00:00.000Z'),
+      CLIENT_ID,
+    );
+
+    expect(outcome).toMatchObject({ duplicate: true });
+    expect(upsertSchedule).not.toHaveBeenCalled();
+    expect(insertReviewHistory).not.toHaveBeenCalled();
+    expect(insertReview.mock.calls[0]![1]).toMatchObject({ clientReviewId: CLIENT_ID });
+  });
+
+  it('marks a freshly applied review as not duplicate and forwards the id', async () => {
+    getEffectiveDue.mockResolvedValue(new Date('2026-01-01T00:00:00.000Z'));
+    getSchedule.mockResolvedValue(FIXED_SCHEDULE);
+    insertReview.mockResolvedValue(true);
+    insertReviewHistory.mockResolvedValue(undefined);
+    upsertSchedule.mockResolvedValue(undefined);
+
+    const outcome = await recordReview(
+      {} as never,
+      1,
+      makeRequest(),
+      new Date('2026-01-02T00:00:00.000Z'),
+      CLIENT_ID,
+    );
+
+    expect(outcome).toMatchObject({ duplicate: false });
+    expect(upsertSchedule).toHaveBeenCalledOnce();
+    expect(insertReview.mock.calls[0]![1]).toMatchObject({ clientReviewId: CLIENT_ID });
+  });
+
+  it('computes wasDue and history time from the supplied review time, not the wall clock', async () => {
+    getEffectiveDue.mockResolvedValue(new Date('2026-01-05T00:00:00.000Z'));
+    getSchedule.mockResolvedValue(FIXED_SCHEDULE);
+    insertReview.mockResolvedValue(true);
+    insertReviewHistory.mockResolvedValue(undefined);
+    upsertSchedule.mockResolvedValue(undefined);
+
+    const early = await recordReview({} as never, 1, makeRequest(), new Date('2026-01-02T00:00:00.000Z'));
+    const late = await recordReview({} as never, 1, makeRequest(), new Date('2026-01-06T00:00:00.000Z'));
+
+    expect(early!.wasDue).toBe(false);
+    expect(late!.wasDue).toBe(true);
+    expect(insertReviewHistory.mock.calls[1]![1].attemptedAt).toEqual(new Date('2026-01-06T00:00:00.000Z'));
   });
 });

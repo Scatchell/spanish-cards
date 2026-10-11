@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
 import { logIn } from './auth.js';
@@ -27,12 +28,18 @@ async function reviewCard(page: Page, spanishText: string) {
   expect(card).toBeDefined();
   const response = await page.request.post('/api/training/reviews', {
     data: {
-      cardId: card!.id,
-      rating: 'good',
-      direction: 'spanish-to-english',
-      verdict: 'correct',
-      submittedText: spanishText,
-      matchedText: spanishText,
+      reviews: [
+        {
+          cardId: card!.id,
+          rating: 'good',
+          direction: 'spanish-to-english',
+          verdict: 'correct',
+          submittedText: spanishText,
+          matchedText: spanishText,
+          clientReviewId: randomUUID(),
+          reviewedAt: new Date().toISOString(),
+        },
+      ],
     },
   });
   expect(response.ok()).toBe(true);

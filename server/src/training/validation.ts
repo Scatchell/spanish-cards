@@ -49,3 +49,57 @@ export function parseReviewRequest(body: unknown): ReviewRequest | null {
   }
   return { cardId: cardId as number, rating, direction, verdict, submittedText, matchedText };
 }
+
+// Upper bound on reviews per request. The client sends at most 25 per chunk;
+// this only bounds a hostile or buggy caller.
+export const MAX_BATCH_REVIEWS = 100;
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// One queued review: the review itself plus the client's idempotency key and
+// the time the user actually rated the card.
+export interface ReviewItem {
+  clientReviewId: string;
+  reviewedAt: Date;
+  request: ReviewRequest;
+}
+
+export function parseReviewItem(body: unknown): ReviewItem | null {
+  const request = parseReviewRequest(body);
+  const { clientReviewId, reviewedAt } = (body ?? {}) as Record<string, unknown>;
+  if (
+    !request ||
+    typeof clientReviewId !== 'string' ||
+    !UUID_PATTERN.test(clientReviewId) ||
+    typeof reviewedAt !== 'string'
+  ) {
+    return null;
+  }
+  const parsedAt = new Date(reviewedAt);
+  if (Number.isNaN(parsedAt.getTime())) {
+    return null;
+  }
+  return { clientReviewId, reviewedAt: parsedAt, request };
+}
+
+// A batch entry keeps its place even when malformed, so the response can
+// report `invalid` for exactly that item without blocking the others.
+export interface ParsedReviewEntry {
+  clientReviewId: string | null;
+  item: ReviewItem | null;
+}
+
+export function parseReviewBatch(body: unknown): ParsedReviewEntry[] | null {
+  const reviews = (body as { reviews?: unknown } | null | undefined)?.reviews;
+  if (!Array.isArray(reviews) || reviews.length === 0 || reviews.length > MAX_BATCH_REVIEWS) {
+    return null;
+  }
+  return reviews.map((raw: unknown) => {
+    const item = parseReviewItem(raw);
+    const rawId = (raw as { clientReviewId?: unknown } | null | undefined)?.clientReviewId;
+    return {
+      clientReviewId: item?.clientReviewId ?? (typeof rawId === 'string' ? rawId : null),
+      item,
+    };
+  });
+}

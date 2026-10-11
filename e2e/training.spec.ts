@@ -130,3 +130,42 @@ test('direction toggle trains English to Spanish with lenient accent matching', 
   await expect(page.getByRole('button', { name: 'English → Spanish' })).toBeVisible();
   await expect(page.locator('.train-prompt')).toHaveText('hello');
 });
+
+test('keeps training offline and syncs the queued reviews once, in order, on reconnect', async ({
+  page,
+  context,
+}) => {
+  await createCard(page, 'el perro', 'the dog');
+  await createCard(page, 'la casa', 'the house');
+
+  await page.getByRole('link', { name: 'Train' }).click();
+  await expect(page.locator('.train-prompt')).toHaveText('the dog');
+
+  // Signal drops after the queue has loaded.
+  await context.setOffline(true);
+
+  await page.getByLabel(/Your answer/).fill('el perro');
+  await page.keyboard.press('Enter');
+  await expect(page.locator('.verdict')).toHaveText('Correct!');
+  await page.keyboard.press('2');
+
+  // The next card appears immediately, with no error page.
+  await expect(page.locator('.train-prompt')).toHaveText('the house');
+  await expect(page.locator('.sync-status')).toContainText('1 review waiting to sync');
+
+  await page.getByLabel(/Your answer/).fill('la casa');
+  await page.keyboard.press('Enter');
+  await page.keyboard.press('2');
+  await expect(page.getByText('All done')).toBeVisible();
+  await expect(page.locator('.sync-status')).toContainText('2 reviews waiting to sync');
+
+  // Back online: the outbox drains without any user action.
+  await context.setOffline(false);
+  await expect(page.locator('.sync-status')).toHaveText('', { timeout: 15_000 });
+
+  // Both schedules advanced exactly once: a reload shows nothing due.
+  await page.reload();
+  await expect(page.getByText('All done')).toBeVisible();
+  const queue = await page.request.get('/api/training/queue?scope=due');
+  expect(((await queue.json()) as { cards: unknown[] }).cards).toHaveLength(0);
+});

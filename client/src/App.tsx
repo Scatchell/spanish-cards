@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { getMe } from './api.js';
 import { AccountPage } from './auth/AccountPage.js';
@@ -15,12 +15,21 @@ type AuthState = 'loading' | 'authenticated' | 'anonymous';
 
 export function App() {
   const [auth, setAuth] = useState<AuthState>('loading');
+  const [userEmail, setUserEmail] = useState('');
 
-  useEffect(() => {
-    getMe()
-      .then(() => setAuth('authenticated'))
+  // Resolves the session; also used right after login so the email is known.
+  const refreshSession = useCallback(() => {
+    return getMe()
+      .then(({ email }) => {
+        setUserEmail(email);
+        setAuth('authenticated');
+      })
       .catch(() => setAuth('anonymous'));
   }, []);
+
+  useEffect(() => {
+    void refreshSession();
+  }, [refreshSession]);
 
   if (auth === 'loading') {
     return <main className="centered-page">Loading…</main>;
@@ -34,7 +43,7 @@ export function App() {
           auth === 'authenticated' ? (
             <Navigate to="/" replace />
           ) : (
-            <LoginPage onLogin={() => setAuth('authenticated')} />
+            <LoginPage onLogin={() => void refreshSession()} />
           )
         }
       />
@@ -62,7 +71,7 @@ export function App() {
         path="/train"
         element={
           auth === 'authenticated' ? (
-            <TrainPage onLoggedOut={() => setAuth('anonymous')} />
+            <TrainPage onLoggedOut={() => setAuth('anonymous')} userEmail={userEmail} />
           ) : (
             <Navigate to="/login" replace />
           )
@@ -98,7 +107,7 @@ export function App() {
           )
         }
       />
-      <Route path="/set-password" element={<SetPasswordPage onLogin={() => setAuth('authenticated')} />} />
+      <Route path="/set-password" element={<SetPasswordPage onLogin={() => void refreshSession()} />} />
       <Route
         path="/account"
         element={

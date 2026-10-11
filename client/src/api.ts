@@ -167,11 +167,39 @@ export class ApiError extends Error {
   }
 }
 
+export const SERVER_UNAVAILABLE_MESSAGE =
+  'The server is not available for this action. Check your internet connection and try again.';
+
+// Thrown when a request never reached the server (offline, dropped signal).
+// Distinct from ApiError, which means the server answered with an error.
+export class ServerUnavailableError extends Error {
+  constructor() {
+    super(SERVER_UNAVAILABLE_MESSAGE);
+    this.name = 'ServerUnavailableError';
+  }
+}
+
+// The text to show for a failed server action: the standard unavailable
+// message when the network is the problem, else the caller's own fallback.
+export function describeError(err: unknown, fallback: string): string {
+  return err instanceof ServerUnavailableError ? err.message : fallback;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(path, {
-    headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
-    ...init,
-  });
+  let response: Response;
+  try {
+    response = await fetch(path, {
+      headers: init?.body ? { 'Content-Type': 'application/json' } : undefined,
+      ...init,
+    });
+  } catch (err) {
+    // Aborts are deliberate (callers cancel in-flight requests); everything
+    // else means the server could not be reached.
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw err;
+    }
+    throw new ServerUnavailableError();
+  }
   if (!response.ok) {
     const body = (await response.json().catch(() => null)) as { error?: string } | null;
     throw new ApiError(response.status, body?.error ?? `Request failed (${response.status})`);
@@ -269,11 +297,26 @@ export async function fetchTrainingQueue(scope: TrainingScope): Promise<Training
   return cards;
 }
 
-export function submitReview(review: ReviewSubmission): Promise<{ schedule: { due: string } }> {
-  return request('/api/training/reviews', {
+export interface ReviewBatchItem extends ReviewSubmission {
+  // Idempotency key: re-sending the same id never records the review twice.
+  clientReviewId: string;
+  // ISO time the user rated the card; the server uses it as the review time.
+  reviewedAt: string;
+}
+
+export type ReviewResultStatus = 'applied' | 'duplicate' | 'cardNotFound' | 'invalid';
+
+export interface ReviewResult {
+  clientReviewId: string | null;
+  status: ReviewResultStatus;
+}
+
+export async function submitReviews(reviews: ReviewBatchItem[]): Promise<ReviewResult[]> {
+  const { results } = await request<{ results: ReviewResult[] }>('/api/training/reviews', {
     method: 'POST',
-    body: JSON.stringify(review),
+    body: JSON.stringify({ reviews }),
   });
+  return results;
 }
 
 export interface ExplanationResponse {
