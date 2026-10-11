@@ -20,7 +20,7 @@ function describePoint(point: TrendPoint, granularity: 'day' | 'week'): string {
 function describePeriod(points: TrendPoint[], range: TrendRange): string {
   const reviews = points.reduce((sum, p) => sum + p.reviews, 0);
   const correct = points.reduce((sum, p) => sum + p.correct, 0);
-  const prefix = range === 'all' ? 'All time' : `Last ${TREND_RANGES.find((r) => r.value === range)?.label}`;
+  const prefix = TREND_RANGES.find((r) => r.value === range)?.summary;
   if (reviews === 0) {
     return `${prefix}: no reviews`;
   }
@@ -44,7 +44,7 @@ export function AccuracyTrend({ trend }: { trend: ActivityTrend }) {
   return (
     <div className="accuracy-trend">
       <div className="trend-toolbar">
-        <p className="trend-readout" role="status">
+        <p className="trend-readout" data-testid="trend-readout">
           {readout}
         </p>
         <div className="range-switcher" role="group" aria-label="Time range">
@@ -109,37 +109,39 @@ export function AccuracyTrend({ trend }: { trend: ActivityTrend }) {
           <span>0</span>
         </div>
         <div className="chart-xaxis hint" aria-hidden="true">
-          <span>{formatShortDate(points[0]?.start ?? '1970-01-01')}</span>
-          <span>{formatShortDate(points[points.length - 1]?.end ?? '1970-01-01')}</span>
+          <span>{formatShortDate(points[0]!.start)}</span>
+          <span>{formatShortDate(points[points.length - 1]!.end)}</span>
         </div>
       </div>
       <p className="chart-caption hint">Line: percent correct. Bars: reviews.</p>
 
-      <WeekComparison thisWeek={trend.thisWeek} lastWeek={trend.lastWeek} />
+      <WeekComparison last7Days={trend.last7Days} previous7Days={trend.previous7Days} />
     </div>
   );
 }
 
-function WeekComparison({ thisWeek, lastWeek }: { thisWeek: PeriodTotals; lastWeek: PeriodTotals }) {
-  if (thisWeek.accuracy === null) {
+function WeekComparison({ last7Days, previous7Days }: { last7Days: PeriodTotals; previous7Days: PeriodTotals }) {
+  if (last7Days.accuracy === null) {
     return <p className="week-comparison hint">No reviews in the last 7 days.</p>;
   }
-  const hasPrevious = lastWeek.accuracy !== null;
-  const delta = hasPrevious
-    ? Math.round(thisWeek.accuracy * 100) - Math.round((lastWeek.accuracy as number) * 100)
-    : null;
+  const delta =
+    previous7Days.accuracy === null
+      ? null
+      : Math.round(last7Days.accuracy * 100) - Math.round(previous7Days.accuracy * 100);
   return (
     <div className="week-comparison">
       <p>
-        Last 7 days: {formatPercent(thisWeek.accuracy)} ({reviewsLabel(thisWeek.reviews)})
+        Last 7 days: {formatPercent(last7Days.accuracy)} ({reviewsLabel(last7Days.reviews)})
       </p>
-      {hasPrevious && (
-        <p>
-          Previous 7 days: {formatPercent(lastWeek.accuracy)} ({reviewsLabel(lastWeek.reviews)})
-        </p>
-      )}
       {delta !== null && (
-        <p className="week-delta">{delta === 0 ? 'Same as before' : `${delta > 0 ? 'Up' : 'Down'} ${Math.abs(delta)} points`}</p>
+        <>
+          <p>
+            Previous 7 days: {formatPercent(previous7Days.accuracy)} ({reviewsLabel(previous7Days.reviews)})
+          </p>
+          <p className="week-delta">
+            {delta === 0 ? 'Same as before' : `${delta > 0 ? 'Up' : 'Down'} ${Math.abs(delta)} points`}
+          </p>
+        </>
       )}
     </div>
   );

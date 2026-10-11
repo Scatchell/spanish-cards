@@ -1,11 +1,13 @@
 import type { ActivityTrend } from '../api.js';
 
-export type TrendRange = '7d' | '30d' | 'all';
+export type TrendRange = '7d' | '30d' | 'year';
 
-export const TREND_RANGES: { value: TrendRange; label: string }[] = [
-  { value: '7d', label: '7 days' },
-  { value: '30d', label: '30 days' },
-  { value: 'all', label: 'All time' },
+// `summary` leads the readout while no column is hovered. The server keeps at
+// most a year of daily history, so the longest range is a year, not "all time".
+export const TREND_RANGES: { value: TrendRange; label: string; summary: string }[] = [
+  { value: '7d', label: '7 days', summary: 'Last 7 days' },
+  { value: '30d', label: '30 days', summary: 'Last 30 days' },
+  { value: 'year', label: 'Year', summary: 'Last year' },
 ];
 
 export interface TrendPoint {
@@ -24,7 +26,7 @@ export interface TrendSeries {
 const RANGE_DAYS = { '7d': 7, '30d': 30 } as const;
 
 export function selectTrendSeries(trend: ActivityTrend, range: TrendRange): TrendSeries {
-  if (range === 'all') {
+  if (range === 'year') {
     return {
       granularity: 'week',
       points: trend.weekly.map((week) => ({

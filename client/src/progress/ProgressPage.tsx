@@ -17,24 +17,20 @@ import { ActivityStrip } from './ActivityStrip.js';
 import { DeckSection } from './DeckSection.js';
 import { RecentMistakes } from './RecentMistakes.js';
 
-type LoadState = 'loading' | 'ready' | 'error';
+type LoadState = { status: 'loading' | 'error' } | { status: 'ready'; report: ProgressReport };
 
 export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
-  const [loadState, setLoadState] = useState<LoadState>('loading');
-  const [report, setReport] = useState<ProgressReport | null>(null);
+  const [loadState, setLoadState] = useState<LoadState>({ status: 'loading' });
 
   const load = useCallback(() => {
-    setLoadState('loading');
+    setLoadState({ status: 'loading' });
     fetchProgress()
-      .then((data) => {
-        setReport(data);
-        setLoadState('ready');
-      })
+      .then((report) => setLoadState({ status: 'ready', report }))
       .catch((err) => {
         if (err instanceof ApiError && err.status === 401) {
           onLoggedOut();
         } else {
-          setLoadState('error');
+          setLoadState({ status: 'error' });
         }
       });
   }, [onLoggedOut]);
@@ -65,8 +61,8 @@ export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
       </header>
 
       <main>
-        {loadState === 'loading' && <p className="hint">Loading progress…</p>}
-        {loadState === 'error' && (
+        {loadState.status === 'loading' && <p className="hint">Loading progress…</p>}
+        {loadState.status === 'error' && (
           <p className="form-error" role="alert">
             Something went wrong.{' '}
             <button type="button" className="secondary" onClick={load}>
@@ -74,7 +70,7 @@ export function ProgressPage({ onLoggedOut }: { onLoggedOut: () => void }) {
             </button>
           </p>
         )}
-        {loadState === 'ready' && report && <ProgressReportView report={report} />}
+        {loadState.status === 'ready' && <ProgressReportView report={loadState.report} />}
       </main>
     </div>
   );
@@ -96,7 +92,7 @@ function ProgressReportView({ report }: { report: ProgressReport }) {
         )}
       </section>
 
-      <DeckSection deck={report.deck} thisWeek={report.trend.thisWeek} />
+      <DeckSection deck={report.deck} last7Days={report.trend.last7Days} />
       <RecentMistakes items={report.recentMistakes} />
     </>
   );

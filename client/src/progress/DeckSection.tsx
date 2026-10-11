@@ -12,7 +12,7 @@ const BUCKETS: { key: Bucket; label: string }[] = [
   { key: 'new', label: 'New' },
 ];
 
-export function DeckSection({ deck, thisWeek }: { deck: ProgressDeck; thisWeek: PeriodTotals }) {
+export function DeckSection({ deck, last7Days }: { deck: ProgressDeck; last7Days: PeriodTotals }) {
   const composition = BUCKETS.map(({ key }) => `${deck[key]} ${key}`).join(', ');
   return (
     <section aria-label="Deck overview" className="deck-section">
@@ -31,9 +31,9 @@ export function DeckSection({ deck, thisWeek }: { deck: ProgressDeck; thisWeek: 
         </div>
       )}
 
-      <dl className="stats-grid deck-legend">
+      <dl className="stats-grid">
         {BUCKETS.map(({ key, label }) => (
-          <Stat key={key} label={label} value={deck[key]} />
+          <Stat key={key} label={label} value={deck[key]} className={`deck-legend-item deck-${key}`} />
         ))}
       </dl>
       <p className="hint deck-explainer">
@@ -43,8 +43,8 @@ export function DeckSection({ deck, thisWeek }: { deck: ProgressDeck; thisWeek: 
 
       <dl className="stats-grid">
         <Stat label="Due now" value={deck.dueNow} emphasized={deck.dueNow > 0} />
-        <Stat label="Added this week" value={thisWeek.cardsAdded} />
-        <Stat label="Reviewed this week" value={thisWeek.reviews} />
+        <Stat label="Added (7d)" value={last7Days.cardsAdded} />
+        <Stat label="Reviewed (7d)" value={last7Days.reviews} />
       </dl>
     </section>
   );

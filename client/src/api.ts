@@ -71,29 +71,16 @@ export interface ReviewSubmission {
   matchedText: string;
 }
 
-export interface DayPoint {
-  date: string;
-  reviews: number;
-  correct: number;
-  accuracy: number | null;
-  cardsAdded: number;
-}
-
-export interface WeekPoint {
-  weekStart: string;
-  weekEnd: string;
-  reviews: number;
-  correct: number;
-  accuracy: number | null;
-  cardsAdded: number;
-}
-
 export interface PeriodTotals {
   reviews: number;
   correct: number;
   accuracy: number | null;
   cardsAdded: number;
 }
+
+export type DayPoint = PeriodTotals & { date: string };
+
+export type WeekPoint = PeriodTotals & { weekStart: string; weekEnd: string };
 
 export interface ActivitySummary {
   reviewedToday: number;
@@ -108,8 +95,9 @@ export interface ActivitySummary {
 export interface ActivityTrend {
   daily: DayPoint[];
   weekly: WeekPoint[];
-  thisWeek: PeriodTotals;
-  lastWeek: PeriodTotals;
+  // Rolling windows ending today.
+  last7Days: PeriodTotals;
+  previous7Days: PeriodTotals;
 }
 
 export interface ProgressDeck {

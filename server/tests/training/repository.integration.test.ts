@@ -41,7 +41,7 @@ describe('training and progress scoping', () => {
     expect(await getAllReviews(pool, bob)).toEqual([]);
 
     await recordReview(pool, alice, { ...request, cardId: aliceCard!.id, submittedText: 'sun', matchedText: 'sun' }, new Date());
-    expect((await getAllReviews(pool, alice)).map((r) => r.cardId)).toEqual([aliceCard!.id]);
+    expect(await getAllReviews(pool, alice)).toHaveLength(1);
     expect(await getAllReviews(pool, bob)).toEqual([]);
     const history = await pool.query('SELECT user_id FROM review_history WHERE card_id = $1', [aliceCard!.id]);
     expect(history.rows).toEqual([{ user_id: alice }]);

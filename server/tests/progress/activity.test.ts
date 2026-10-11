@@ -1,14 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { computeActivity } from '../../src/progress/activity.js';
-import type { ReviewEvent } from '../../src/progress/metrics.js';
+import type { ReviewEvent } from '../../src/progress/activity.js';
 
 // Fixed "now": 2026-06-10 15:00 UTC.
 const NOW = new Date('2026-06-10T15:00:00Z');
 
-let nextCardId = 1;
-
 function review(reviewedAt: string, detectedCorrect = true): ReviewEvent {
-  return { cardId: nextCardId++, detectedCorrect, reviewedAt: new Date(reviewedAt) };
+  return { detectedCorrect, reviewedAt: new Date(reviewedAt) };
 }
 
 function activity(reviews: ReviewEvent[], cardCreatedAts: string[] = [], tz = 0) {
@@ -30,8 +28,8 @@ describe('computeActivity: empty history', () => {
     expect(trend.daily).toHaveLength(30);
     expect(trend.daily[0]).toEqual({ date: '2026-05-12', reviews: 0, correct: 0, accuracy: null, cardsAdded: 0 });
     expect(trend.daily[29]?.date).toBe('2026-06-10');
-    expect(trend.thisWeek).toEqual({ reviews: 0, correct: 0, accuracy: null, cardsAdded: 0 });
-    expect(trend.lastWeek).toEqual({ reviews: 0, correct: 0, accuracy: null, cardsAdded: 0 });
+    expect(trend.last7Days).toEqual({ reviews: 0, correct: 0, accuracy: null, cardsAdded: 0 });
+    expect(trend.previous7Days).toEqual({ reviews: 0, correct: 0, accuracy: null, cardsAdded: 0 });
   });
 
   it('builds weekly blocks back from today, with a partial oldest block', () => {
@@ -97,19 +95,19 @@ describe('computeActivity: weekly series and comparison', () => {
       ...Array.from({ length: 8 }, (_, i) => review(`2026-06-10T0${i}:00:00Z`, i < 4)),
     ];
     const { trend } = activity(reviews);
-    expect(trend.thisWeek).toEqual({ reviews: 10, correct: 6, accuracy: 0.6, cardsAdded: 0 });
+    expect(trend.last7Days).toEqual({ reviews: 10, correct: 6, accuracy: 0.6, cardsAdded: 0 });
     expect(trend.weekly[4]).toMatchObject({ reviews: 10, correct: 6, accuracy: 0.6 });
   });
 
-  it('puts reviews from 8-14 days ago in lastWeek', () => {
+  it('puts reviews from 8-14 days ago in previous7Days', () => {
     const { trend } = activity([review('2026-05-30T10:00:00Z', true), review('2026-05-31T10:00:00Z', false)]);
-    expect(trend.thisWeek.reviews).toBe(0);
-    expect(trend.lastWeek).toEqual({ reviews: 2, correct: 1, accuracy: 0.5, cardsAdded: 0 });
+    expect(trend.last7Days.reviews).toBe(0);
+    expect(trend.previous7Days).toEqual({ reviews: 2, correct: 1, accuracy: 0.5, cardsAdded: 0 });
   });
 
   it('sums cards added into the weekly totals', () => {
     const { trend } = activity([], ['2026-06-08T10:00:00Z', '2026-06-09T10:00:00Z']);
-    expect(trend.thisWeek.cardsAdded).toBe(2);
+    expect(trend.last7Days.cardsAdded).toBe(2);
   });
 });
 
@@ -119,6 +117,16 @@ describe('computeActivity: streaks and days studied', () => {
     const { summary } = activity(days.map((d) => review(`2026-${d}T10:00:00Z`)));
     expect(summary.currentStreak).toBe(3);
     expect(summary.bestStreak).toBe(5);
+  });
+
+  it('counts streak days in the local timezone', () => {
+    // At UTC-5 these land on local 06-08, 06-09 and 06-10; in UTC they would span only 06-09 and 06-10.
+    const { summary } = activity(
+      [review('2026-06-09T00:30:00Z'), review('2026-06-10T01:30:00Z'), review('2026-06-10T05:30:00Z')],
+      [],
+      -300,
+    );
+    expect(summary.currentStreak).toBe(3);
   });
 
   it('keeps the streak alive when today is not studied yet', () => {

@@ -14,7 +14,7 @@ function streakNote(summary: ActivitySummary): string {
   if (reviewedToday === 0) {
     return 'Study today to keep it going';
   }
-  return currentStreak >= bestStreak ? 'Your longest streak yet' : `Best: ${days(bestStreak)}`;
+  return currentStreak === bestStreak ? 'Your longest streak yet' : `Best: ${days(bestStreak)}`;
 }
 
 export function ActivityStrip({ summary }: { summary: ActivitySummary }) {

@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { getUserId } from '../auth/middleware.js';
 import type { DbPool } from '../db.js';
-import { clampTzOffset } from './metrics.js';
+import { clampTzOffset } from './tz.js';
 import { buildProgressReport } from './report.js';
 
 export function progressRoutes(

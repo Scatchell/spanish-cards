@@ -9,10 +9,10 @@ afterEach(cleanup);
 
 const { deck, trend } = makeReport();
 
-function renderDeck(overrides: Partial<typeof deck> = {}, thisWeek = trend.thisWeek) {
+function renderDeck(overrides: Partial<typeof deck> = {}, last7Days = trend.last7Days) {
   return render(
     <MemoryRouter>
-      <DeckSection deck={{ ...deck, ...overrides }} thisWeek={thisWeek} />
+      <DeckSection deck={{ ...deck, ...overrides }} last7Days={last7Days} />
     </MemoryRouter>,
   );
 }
@@ -50,12 +50,12 @@ describe('DeckSection', () => {
     expect(screen.getByText(/Mastered: you would likely still remember it in 21 days/)).toBeInTheDocument();
   });
 
-  it('compares cards added with cards reviewed this week, and flags due cards', () => {
+  it('compares cards added with cards reviewed in the last 7 days, and flags due cards', () => {
     renderDeck({}, { reviews: 200, correct: 150, accuracy: 0.75, cardsAdded: 12 });
     expect(tile('Due now')).toHaveTextContent('9');
     expect(tile('Due now')).toHaveClass('emphasized');
-    expect(tile('Added this week')).toHaveTextContent('12');
-    expect(tile('Reviewed this week')).toHaveTextContent('200');
+    expect(tile('Added (7d)')).toHaveTextContent('12');
+    expect(tile('Reviewed (7d)')).toHaveTextContent('200');
   });
 
   it('does not emphasize Due now when nothing is due', () => {

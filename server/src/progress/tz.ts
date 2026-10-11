@@ -1,9 +1,3 @@
-export interface ReviewEvent {
-  cardId: number;
-  detectedCorrect: boolean;
-  reviewedAt: Date;
-}
-
 const MAX_TZ_OFFSET_MINUTES = 14 * 60;
 
 // Minutes ahead of UTC for the user's local time (the negation of

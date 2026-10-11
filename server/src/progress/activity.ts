@@ -1,5 +1,3 @@
-import type { ReviewEvent } from './metrics.js';
-
 // Days are bucketed in the user's local time via a fixed UTC offset supplied by
 // the client; the offset is applied uniformly, so a DST change mid-history can
 // shift which day a borderline review lands in — accepted for a personal
@@ -10,31 +8,28 @@ const MIN_DAYS = 30;
 const MAX_DAYS = 365;
 const WEEK_DAYS = 7;
 
-export interface DayPoint {
-  // Local calendar date, YYYY-MM-DD.
-  date: string;
-  reviews: number;
-  correct: number;
-  // correct / reviews, or null on a day with no reviews.
-  accuracy: number | null;
-  cardsAdded: number;
-}
-
-export interface WeekPoint {
-  weekStart: string;
-  weekEnd: string;
-  reviews: number;
-  correct: number;
-  accuracy: number | null;
-  cardsAdded: number;
+export interface ReviewEvent {
+  detectedCorrect: boolean;
+  reviewedAt: Date;
 }
 
 export interface PeriodTotals {
   reviews: number;
   correct: number;
+  // correct / reviews, or null when there were no reviews.
   accuracy: number | null;
   cardsAdded: number;
 }
+
+export type DayPoint = PeriodTotals & {
+  // Local calendar date, YYYY-MM-DD.
+  date: string;
+};
+
+export type WeekPoint = PeriodTotals & {
+  weekStart: string;
+  weekEnd: string;
+};
 
 export interface ActivitySummary {
   reviewedToday: number;
@@ -52,9 +47,9 @@ export interface ActivityTrend {
   // Consecutive 7-day blocks counted back from today; oldest first. The oldest
   // block can hold fewer than 7 days.
   weekly: WeekPoint[];
-  // The last 7 days and the 7 days before them.
-  thisWeek: PeriodTotals;
-  lastWeek: PeriodTotals;
+  // Rolling windows ending today, not calendar weeks.
+  last7Days: PeriodTotals;
+  previous7Days: PeriodTotals;
 }
 
 export interface Activity {
@@ -68,7 +63,7 @@ const rate = (correct: number, reviews: number): number | null => (reviews === 0
 // them are whole multiples of DAY_MS regardless of DST.
 const dayStart = (key: string): number => Date.parse(`${key}T00:00:00Z`);
 
-function totals(points: { reviews: number; correct: number; cardsAdded: number }[]): PeriodTotals {
+function totals(points: PeriodTotals[]): PeriodTotals {
   const reviews = points.reduce((sum, p) => sum + p.reviews, 0);
   const correct = points.reduce((sum, p) => sum + p.correct, 0);
   const cardsAdded = points.reduce((sum, p) => sum + p.cardsAdded, 0);
@@ -117,14 +112,18 @@ export function computeActivity(
     daily.push({ date, reviews, correct, accuracy: rate(correct, reviews), cardsAdded: addedByDay.get(date) ?? 0 });
   }
 
-  const weekly: WeekPoint[] = [];
-  for (let end = daily.length; end > 0; end -= WEEK_DAYS) {
-    const chunk = daily.slice(Math.max(0, end - WEEK_DAYS), end);
-    const first = chunk[0];
-    const last = chunk[chunk.length - 1];
-    if (!first || !last) continue;
-    weekly.unshift({ weekStart: first.date, weekEnd: last.date, ...totals(chunk) });
+  // Blocks are anchored on today, so any partial block is the oldest one.
+  const blocks: DayPoint[][] = [];
+  const oldestBlockLength = daily.length % WEEK_DAYS;
+  if (oldestBlockLength > 0) blocks.push(daily.slice(0, oldestBlockLength));
+  for (let start = oldestBlockLength; start < daily.length; start += WEEK_DAYS) {
+    blocks.push(daily.slice(start, start + WEEK_DAYS));
   }
+  const weekly: WeekPoint[] = blocks.map((block) => ({
+    weekStart: block[0]!.date,
+    weekEnd: block[block.length - 1]!.date,
+    ...totals(block),
+  }));
 
   const studiedDays = new Set(reviewsByDay.keys());
   const todayBucket = reviewsByDay.get(today);
@@ -143,8 +142,8 @@ export function computeActivity(
     trend: {
       daily,
       weekly,
-      thisWeek: totals(daily.slice(-7)),
-      lastWeek: totals(daily.slice(-14, -7)),
+      last7Days: totals(daily.slice(-7)),
+      previous7Days: totals(daily.slice(-14, -7)),
     },
   };
 }

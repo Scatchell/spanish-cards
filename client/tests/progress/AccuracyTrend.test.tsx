@@ -22,7 +22,7 @@ describe('AccuracyTrend', () => {
     render(<AccuracyTrend trend={trend} />);
     fireEvent.click(screen.getByRole('button', { name: '7 days' }));
     expect(columns()).toHaveLength(7);
-    fireEvent.click(screen.getByRole('button', { name: 'All time' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Year' }));
     expect(columns()).toHaveLength(trend.weekly.length);
     fireEvent.click(screen.getByRole('button', { name: '30 days' }));
     expect(columns()).toHaveLength(30);
@@ -36,7 +36,7 @@ describe('AccuracyTrend', () => {
 
   it('shows the period summary until a column is hovered, then that day, then reverts', () => {
     render(<AccuracyTrend trend={trend} />);
-    const readout = screen.getByRole('status');
+    const readout = screen.getByTestId('trend-readout');
     expect(readout).toHaveTextContent(/Last 30 days: \d+% correct, \d+ reviews/);
 
     fireEvent.mouseEnter(columns()[1] as HTMLElement);
@@ -49,33 +49,41 @@ describe('AccuracyTrend', () => {
   it('shows a column on keyboard focus too', () => {
     render(<AccuracyTrend trend={trend} />);
     fireEvent.focus(columns()[1] as HTMLElement);
-    expect(screen.getByRole('status')).toHaveTextContent('May 13: 73% correct, 11 reviews');
+    expect(screen.getByTestId('trend-readout')).toHaveTextContent('May 13: 73% correct, 11 reviews');
   });
 
   it('resets the readout when the range changes', () => {
     render(<AccuracyTrend trend={trend} />);
     fireEvent.mouseEnter(columns()[1] as HTMLElement);
     fireEvent.click(screen.getByRole('button', { name: '7 days' }));
-    expect(screen.getByRole('status')).toHaveTextContent(/Last 7 days/);
+    expect(screen.getByTestId('trend-readout')).toHaveTextContent(/Last 7 days/);
   });
 
   it('labels weekly points with their date span', () => {
     render(<AccuracyTrend trend={trend} />);
-    fireEvent.click(screen.getByRole('button', { name: 'All time' }));
-    expect(columns()[1]).toHaveAccessibleName(/May 14 – May 20: 70% correct, 90 reviews/);
+    fireEvent.click(screen.getByRole('button', { name: 'Year' }));
+    expect(columns()[1]).toHaveAccessibleName(/May 14 – May 20: 70% correct, 105 reviews/);
   });
 
   it('compares the last 7 days with the 7 before', () => {
-    render(<AccuracyTrend trend={trend} />);
-    expect(screen.getByText(/Last 7 days: 75% \(200 reviews\)/)).toBeInTheDocument();
-    expect(screen.getByText(/Previous 7 days: 70% \(150 reviews\)/)).toBeInTheDocument();
+    const weaker = { ...trend, previous7Days: { reviews: 100, correct: 65, accuracy: 0.65, cardsAdded: 0 } };
+    render(<AccuracyTrend trend={weaker} />);
+    expect(screen.getByText(/Last 7 days: 70% \(252 reviews\)/)).toBeInTheDocument();
+    expect(screen.getByText(/Previous 7 days: 65% \(100 reviews\)/)).toBeInTheDocument();
     expect(screen.getByText('Up 5 points')).toBeInTheDocument();
+  });
+
+  it('agrees with the 7-day readout on the same data', () => {
+    render(<AccuracyTrend trend={trend} />);
+    fireEvent.click(screen.getByRole('button', { name: '7 days' }));
+    expect(screen.getByTestId('trend-readout')).toHaveTextContent('Last 7 days: 70% correct, 252 reviews');
+    expect(screen.getByText(/Last 7 days: 70% \(252 reviews\)/)).toBeInTheDocument();
   });
 
   it('says so when there were no reviews in the last 7 days, and omits the delta', () => {
     const quiet = {
       ...trend,
-      thisWeek: { reviews: 0, correct: 0, accuracy: null, cardsAdded: 0 },
+      last7Days: { reviews: 0, correct: 0, accuracy: null, cardsAdded: 0 },
     };
     render(<AccuracyTrend trend={quiet} />);
     expect(screen.getByText('No reviews in the last 7 days.')).toBeInTheDocument();
@@ -85,10 +93,10 @@ describe('AccuracyTrend', () => {
   it('omits the delta when the previous 7 days had no reviews', () => {
     const fresh = {
       ...trend,
-      lastWeek: { reviews: 0, correct: 0, accuracy: null, cardsAdded: 0 },
+      previous7Days: { reviews: 0, correct: 0, accuracy: null, cardsAdded: 0 },
     };
     render(<AccuracyTrend trend={fresh} />);
-    expect(screen.getByText(/Last 7 days: 75%/)).toBeInTheDocument();
+    expect(screen.getByText(/Last 7 days: 70%/)).toBeInTheDocument();
     expect(screen.queryByText(/Previous 7 days/)).not.toBeInTheDocument();
     expect(screen.queryByText(/points/)).not.toBeInTheDocument();
   });
@@ -99,7 +107,7 @@ describe('AccuracyTrend', () => {
       daily: trend.daily.map((d) => ({ ...d, reviews: 0, correct: 0, accuracy: null })),
     };
     render(<AccuracyTrend trend={empty} />);
-    expect(screen.getByRole('status')).toHaveTextContent('Last 30 days: no reviews');
+    expect(screen.getByTestId('trend-readout')).toHaveTextContent('Last 30 days: no reviews');
     expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 });

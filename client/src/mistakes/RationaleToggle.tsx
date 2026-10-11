@@ -2,8 +2,7 @@ import { useState } from 'react';
 
 const LONG_RATIONALE_CHARS = 120;
 
-// The clamp and the toggle's visibility are CSS-driven (`.is-clamped`,
-// `.mistake-rationale-toggle`), so each surface decides where collapsing applies.
+// Long text is clamped and toggled by default; the wide table opts out in CSS.
 export function RationaleToggle({ text }: { text: string }) {
   const [expanded, setExpanded] = useState(false);
   const long = text.length > LONG_RATIONALE_CHARS;

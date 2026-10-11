@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { clampTzOffset } from '../../src/progress/metrics.js';
+import { clampTzOffset } from '../../src/progress/tz.js';
 
 describe('clampTzOffset', () => {
   it('passes through sane offsets and defaults invalid input to UTC', () => {

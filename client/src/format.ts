@@ -39,14 +39,9 @@ export function formatShortDate(isoDate: string): string {
   });
 }
 
-export function formatLastStudied(iso: string | null): string {
-  if (iso === null) {
-    return 'Never';
-  }
+// ISO instant -> "Jun 10" in the browser's locale and timezone.
+export function formatShortInstant(iso: string): string {
   return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
 }
 
-// ISO instant -> "Jun 10" in the browser's locale and timezone.
-export function formatMistakeDate(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
+export const formatLastStudied = (iso: string | null): string => (iso === null ? 'Never' : formatShortInstant(iso));

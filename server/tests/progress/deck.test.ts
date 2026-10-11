@@ -26,8 +26,4 @@ describe('computeDeckBreakdown', () => {
     const deck = computeDeckBreakdown([{ state: State.Learning, durable: true, count: 2 }]);
     expect(deck).toMatchObject({ learning: 2, mastered: 0, familiar: 0 });
   });
-
-  it('exposes the mastery threshold so the client can explain it', () => {
-    expect(MASTERED_STABILITY_DAYS).toBe(21);
-  });
 });

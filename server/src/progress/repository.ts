@@ -1,26 +1,24 @@
 import type { DbQueryable } from '../db.js';
-import type { ReviewEvent } from './metrics.js';
+import type { ReviewEvent } from './activity.js';
+import type { DeckBucketRow } from './deck.js';
 
 interface ReviewRow {
-  card_id: number;
   detected_correct: boolean;
   reviewed_at: Date;
 }
 
-// All of one user's reviews, oldest first. The whole table is loaded because
-// the metrics need per-day buckets over all time; for a single user reviewing
+// All of one user's reviews. The whole table is loaded because
+// the activity series needs per-day buckets over all time; for a single user reviewing
 // a personal deck this stays small.
 export async function getAllReviews(db: DbQueryable, userId: number): Promise<ReviewEvent[]> {
   const result = await db.query<ReviewRow>(
-    `SELECT r.card_id, r.detected_correct, r.reviewed_at
+    `SELECT r.detected_correct, r.reviewed_at
      FROM reviews r
      JOIN cards c ON c.id = r.card_id
-     WHERE c.user_id = $1
-     ORDER BY r.reviewed_at ASC, r.id ASC`,
+     WHERE c.user_id = $1`,
     [userId],
   );
   return result.rows.map((row) => ({
-    cardId: row.card_id,
     detectedCorrect: row.detected_correct,
     reviewedAt: row.reviewed_at,
   }));
@@ -41,8 +39,8 @@ export async function countDeckBuckets(
   db: DbQueryable,
   userId: number,
   masteredStabilityDays: number,
-): Promise<{ state: number | null; durable: boolean; count: number }[]> {
-  const result = await db.query<{ state: number | null; durable: boolean; count: number }>(
+): Promise<DeckBucketRow[]> {
+  const result = await db.query<DeckBucketRow>(
     `SELECT s.state AS state,
             COALESCE(s.stability >= $2, false) AS durable,
             COUNT(*)::int AS count

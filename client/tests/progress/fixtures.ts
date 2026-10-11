@@ -1,4 +1,4 @@
-import type { CategoryMistake, ProgressReport } from '../../src/api.js';
+import type { CategoryMistake, DayPoint, PeriodTotals, ProgressReport, WeekPoint } from '../../src/api.js';
 
 // 30 days ending 2026-06-10. Day 0 has no reviews; the rest have 10+i reviews
 // at roughly 70% accuracy, so charts always have a gap, a lone start, and data.
@@ -6,7 +6,7 @@ function dateKey(dayIndex: number): string {
   return new Date(Date.UTC(2026, 4, 12 + dayIndex)).toISOString().slice(0, 10);
 }
 
-const daily = Array.from({ length: 30 }, (_, i) => {
+const daily: DayPoint[] = Array.from({ length: 30 }, (_, i) => {
   const reviews = i === 0 ? 0 : 10 + i;
   const correct = Math.round(reviews * 0.7);
   return {
@@ -17,6 +17,18 @@ const daily = Array.from({ length: 30 }, (_, i) => {
     cardsAdded: i % 7 === 0 ? 3 : 0,
   };
 });
+
+function totals(points: PeriodTotals[]): PeriodTotals {
+  const reviews = points.reduce((sum, p) => sum + p.reviews, 0);
+  const correct = points.reduce((sum, p) => sum + p.correct, 0);
+  const cardsAdded = points.reduce((sum, p) => sum + p.cardsAdded, 0);
+  return { reviews, correct, accuracy: reviews === 0 ? null : correct / reviews, cardsAdded };
+}
+
+// Blocks of 7 days counted back from today; the oldest holds the 2 left over.
+const weekly: WeekPoint[] = [daily.slice(0, 2), ...[2, 9, 16, 23].map((start) => daily.slice(start, start + 7))].map(
+  (block) => ({ weekStart: block[0]!.date, weekEnd: block[block.length - 1]!.date, ...totals(block) }),
+);
 
 export function makeMistake(overrides: Partial<CategoryMistake> = {}): CategoryMistake {
   return {
@@ -48,15 +60,9 @@ export function makeReport(overrides: Partial<ProgressReport> = {}): ProgressRep
     },
     trend: {
       daily,
-      weekly: [
-        { weekStart: '2026-05-12', weekEnd: '2026-05-13', reviews: 11, correct: 8, accuracy: 8 / 11, cardsAdded: 3 },
-        { weekStart: '2026-05-14', weekEnd: '2026-05-20', reviews: 90, correct: 63, accuracy: 0.7, cardsAdded: 3 },
-        { weekStart: '2026-05-21', weekEnd: '2026-05-27', reviews: 120, correct: 84, accuracy: 0.7, cardsAdded: 0 },
-        { weekStart: '2026-05-28', weekEnd: '2026-06-03', reviews: 150, correct: 105, accuracy: 0.7, cardsAdded: 3 },
-        { weekStart: '2026-06-04', weekEnd: '2026-06-10', reviews: 200, correct: 150, accuracy: 0.75, cardsAdded: 0 },
-      ],
-      thisWeek: { reviews: 200, correct: 150, accuracy: 0.75, cardsAdded: 0 },
-      lastWeek: { reviews: 150, correct: 105, accuracy: 0.7, cardsAdded: 3 },
+      weekly,
+      last7Days: totals(daily.slice(-7)),
+      previous7Days: totals(daily.slice(-14, -7)),
     },
     deck: {
       total: 40,

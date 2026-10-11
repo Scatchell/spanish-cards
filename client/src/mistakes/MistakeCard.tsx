@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
 import type { CategoryMistake } from '../api.js';
-import { formatMistakeDate } from '../format.js';
+import { formatShortInstant } from '../format.js';
 import { CATEGORY_INFO } from './categoryInfo.js';
+import { PracticeTargetPills } from './PracticeTargetPills.js';
 import { RationaleToggle } from './RationaleToggle.js';
 
 export function MistakeCard({ item }: { item: CategoryMistake }) {
@@ -10,7 +11,7 @@ export function MistakeCard({ item }: { item: CategoryMistake }) {
     <article className="mistake-card">
       <header className="mistake-card-head">
         <span className="mistake-card-category">{categoryLabel}</span>
-        <time dateTime={item.createdAt}>{formatMistakeDate(item.createdAt)}</time>
+        <time dateTime={item.createdAt}>{formatShortInstant(item.createdAt)}</time>
       </header>
       <div className="mistake-card-field">
         <span className="mistake-card-label">Correct</span>
@@ -28,11 +29,7 @@ export function MistakeCard({ item }: { item: CategoryMistake }) {
         <div className="mistake-card-field">
           <span className="mistake-card-label">Practice targets</span>
           <span>
-            {item.practiceTargets.map((target, i) => (
-              <span key={i} className="practice-target-pill">
-                {target.submitted ?? '(nothing entered)'} &rarr; {target.expected}
-              </span>
-            ))}
+            <PracticeTargetPills targets={item.practiceTargets} />
           </span>
         </div>
       )}

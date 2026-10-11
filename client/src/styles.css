@@ -1051,26 +1051,39 @@ button.rating.emphasized {
 
 .deck-segment {
   min-width: 4px;
+  background: var(--bucket);
 }
 
 .deck-mastered {
-  background: var(--accent-secondary);
+  --bucket: var(--accent-secondary);
 }
 
 .deck-familiar {
-  background: color-mix(in srgb, var(--accent-secondary) 55%, var(--surface));
+  --bucket: color-mix(in srgb, var(--accent-secondary) 55%, var(--surface));
 }
 
 .deck-learning {
-  background: var(--accent);
+  --bucket: var(--accent);
 }
 
 .deck-lapsed {
-  background: var(--danger);
+  --bucket: var(--danger);
 }
 
 .deck-new {
-  background: var(--border);
+  --bucket: var(--border);
+}
+
+/* The legend tiles reuse the bar's bucket colours as a swatch. */
+.deck-legend-item dt::before {
+  content: '';
+  display: inline-block;
+  width: 0.6rem;
+  height: 0.6rem;
+  margin-right: 0.4rem;
+  border-radius: 50%;
+  background: var(--bucket);
+  border: 1px solid color-mix(in srgb, var(--text) 25%, transparent);
 }
 
 .deck-explainer {
@@ -1132,38 +1145,10 @@ button.rating.emphasized {
   color: var(--text-muted);
 }
 
-.mistake-card-correct {
-  color: var(--accent-secondary);
-  font-weight: 600;
-}
-
-.mistake-card-submitted {
-  color: var(--danger);
-}
-
 .mistake-card-rationale {
   background: var(--surface-muted);
   border-radius: var(--radius);
   padding: 0.6rem 0.75rem;
-}
-
-.mistake-card .mistake-rationale-text.is-clamped {
-  display: -webkit-box;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  overflow: hidden;
-}
-
-.mistake-card .mistake-rationale-toggle {
-  display: flex;
-  align-items: center;
-  min-height: 44px;
-  margin-bottom: -0.5rem;
-  padding: 0;
-  background: transparent;
-  color: var(--accent);
-  border: none;
-  text-decoration: underline;
 }
 
 .mistake-card-practice {
@@ -1757,8 +1742,47 @@ button.rating.emphasized {
   font-size: 0.75rem;
 }
 
+.mistake-correct,
+.mistake-card-correct {
+  color: var(--accent-secondary);
+  font-weight: 600;
+}
+
+.mistake-submitted,
+.mistake-card-submitted {
+  color: var(--danger);
+}
+
+.mistake-rationale-text.is-clamped {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  overflow: hidden;
+}
+
 .mistake-rationale-toggle {
-  display: none;
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: -0.5rem;
+  padding: 0;
+  background: transparent;
+  color: var(--accent);
+  border: none;
+  text-decoration: underline;
+}
+
+/* The wide table has room for the full rationale, so it never collapses. */
+@media (min-width: 56rem) {
+  .mistakes-table .mistake-rationale-text.is-clamped {
+    display: inline;
+    -webkit-line-clamp: unset;
+    overflow: visible;
+  }
+
+  .mistakes-table .mistake-rationale-toggle {
+    display: none;
+  }
 }
 
 /* Six columns stop fitting below 56rem, so rows stack; labels come from data-label. */
@@ -1817,13 +1841,10 @@ button.rating.emphasized {
 
   .mistake-correct {
     grid-area: correct;
-    color: var(--accent-secondary);
-    font-weight: 600;
   }
 
   .mistake-submitted {
     grid-area: submitted;
-    color: var(--danger);
   }
 
   .mistakes-table .mistake-rationale {
@@ -1831,25 +1852,6 @@ button.rating.emphasized {
     background: var(--surface-muted);
     border-radius: var(--radius);
     padding: 0.6rem 0.75rem;
-  }
-
-  .mistake-rationale-text.is-clamped {
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
-    overflow: hidden;
-  }
-
-  .mistake-rationale-toggle {
-    display: flex;
-    align-items: center;
-    min-height: 44px;
-    margin-bottom: -0.5rem;
-    padding: 0;
-    background: transparent;
-    color: var(--accent);
-    border: none;
-    text-decoration: underline;
   }
 
   .mistake-targets {

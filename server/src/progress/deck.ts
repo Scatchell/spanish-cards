@@ -23,6 +23,15 @@ export interface DeckBreakdown {
   masteredThresholdDays: number;
 }
 
+type Bucket = 'mastered' | 'familiar' | 'learning' | 'lapsed' | 'new';
+
+function bucketFor({ state, durable }: DeckBucketRow): Bucket {
+  if (state === null || state === State.New) return 'new';
+  if (state === State.Learning) return 'learning';
+  if (state === State.Relearning) return 'lapsed';
+  return durable ? 'mastered' : 'familiar';
+}
+
 export function computeDeckBreakdown(rows: DeckBucketRow[]): DeckBreakdown {
   const deck: DeckBreakdown = {
     total: 0,
@@ -35,27 +44,7 @@ export function computeDeckBreakdown(rows: DeckBucketRow[]): DeckBreakdown {
   };
   for (const row of rows) {
     deck.total += row.count;
-    switch (row.state) {
-      case null:
-      case State.New:
-        deck.new += row.count;
-        break;
-      case State.Learning:
-        deck.learning += row.count;
-        break;
-      case State.Relearning:
-        deck.lapsed += row.count;
-        break;
-      case State.Review:
-        if (row.durable) {
-          deck.mastered += row.count;
-        } else {
-          deck.familiar += row.count;
-        }
-        break;
-      default:
-        deck.learning += row.count;
-    }
+    deck[bucketFor(row)] += row.count;
   }
   return deck;
 }

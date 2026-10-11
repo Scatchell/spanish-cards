@@ -26,7 +26,7 @@ describe('selectTrendSeries', () => {
   });
 
   it('uses the weekly series for all time', () => {
-    const series = selectTrendSeries(trend, 'all');
+    const series = selectTrendSeries(trend, 'year');
     expect(series.granularity).toBe('week');
     expect(series.points).toHaveLength(trend.weekly.length);
     expect(series.points[0]?.start).toBe(trend.weekly[0]?.weekStart);
